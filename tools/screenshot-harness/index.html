@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>ha-dockhand-cards preview</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --primary-background-color: #111111;
+    --card-background-color: #1c1c1c;
+    --primary-text-color: #e1e1e1;
+    --secondary-text-color: #9b9b9b;
+    --divider-color: #333333;
+    --primary-color: #0ea5e9;
+    --ha-card-border-radius: 12px;
+    --ha-card-box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--primary-background-color);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--primary-text-color);
+  }
+  #stage {
+    display: inline-block;
+    padding: 24px;
+    background: var(--primary-background-color);
+  }
+  .card-slot {
+    margin-bottom: 20px;
+    width: var(--slot-width, 420px);
+  }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="cards"></div>
+</div>
+
+<script type="module">
+  import { registerShims, loadIconPaths } from './ha-shims.mjs';
+  import { buildMockHass } from './mock-data.mjs';
+
+  registerShims();
+  await loadIconPaths();
+  await import('./ha-dockhand-cards.js');
+
+  const { devices, entities, states } = buildMockHass();
+
+  const hass = {
+    devices,
+    entities,
+    states,
+    language: 'en',
+    locale: { language: 'en' },
+    themes: { darkMode: true },
+    callApi: async (method, path) => {
+      // Fake 24h-ish history for the CPU/Memory sparklines: a short,
+      // gently varying series so the chart has something to draw.
+      if (path.startsWith('history/period')) {
+        const now = Date.now();
+        const series = (base, jitter) =>
+          Array.from({ length: 20 }, (_, i) => ({
+            state: String(Math.max(0, base + (Math.sin(i / 2) * jitter))),
+            last_changed: new Date(now - (20 - i) * 45000).toISOString()
+          }));
+        return [series(3.5, 1.5), series(41, 3)];
+      }
+      return [];
+    },
+    callService: async () => {},
+    callWS: async () => ({})
+  };
+
+  window.__hass = hass;
+
+  function mount(tag, config, width) {
+    const wrap = document.createElement('div');
+    wrap.className = 'card-slot';
+    wrap.style.setProperty('--slot-width', (width || 420) + 'px');
+    wrap.id = config.__id;
+    document.getElementById('cards').appendChild(wrap);
+
+    const el = document.createElement(tag);
+    el.setConfig({ type: `custom:${tag}`, ...config });
+    el.hass = hass;
+    wrap.appendChild(el);
+    return el;
+  }
+
+  window.__mount = mount;
+  window.__renderDone = true;
+</script>
+</body>
+</html>

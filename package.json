@@ -1,0 +1,42 @@
+{
+  "name": "ha-dockhand-cards",
+  "version": "1.0.0",
+  "description": "Lovelace cards for the ha-dockhand Home Assistant integration",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "rollup -c",
+    "watch": "rollup -c -w",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "verify": "npm run typecheck && npm run lint && npm test && npm run build"
+  },
+  "license": "MIT",
+  "author": "Raetha",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/raetha/ha-dockhand-cards.git"
+  },
+  "dependencies": {
+    "lit": "^3.2.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@rollup/plugin-terser": "^1.0.0",
+    "@rollup/plugin-typescript": "^12.3.0",
+    "@typescript-eslint/eslint-plugin": "^8.64.0",
+    "@typescript-eslint/parser": "^8.64.0",
+    "custom-card-helpers": "^1.9.0",
+    "eslint": "^10.7.0",
+    "globals": "^17.7.0",
+    "home-assistant-js-websocket": "^9.4.0",
+    "jsdom": "^29.1.1",
+    "rollup": "^4.18.0",
+    "tslib": "^2.6.3",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
+  }
+}

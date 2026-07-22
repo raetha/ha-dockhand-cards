@@ -1,0 +1,13 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+*.log
+npm-debug.log*
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+
+# Screenshot harness working copies — regenerate, don't commit
+tools/screenshot-harness/ha-dockhand-cards.js
+tools/screenshot-harness/out/
