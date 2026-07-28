@@ -3,14 +3,39 @@
 ## Development setup
 
 ```bash
-npm install         # once, after cloning or pulling new dependencies
-npm run watch        # rebuilds dist/ha-dockhand-cards.js on every save while iterating
-npm run verify        # typecheck + lint + test + build, in that order — run this before every commit
+npm ci                 # once, after cloning or pulling new dependencies — installs exactly
+                        # what's pinned in package-lock.json (this is what CI runs; npm install
+                        # is NOT the same command and can leave a stale node_modules/lockfile
+                        # combination in place instead of correcting it)
+npm run watch          # rebuilds dist/ha-dockhand-cards.js on every save while iterating
+npm run verify         # typecheck + lint + test + build, in that order — run this before every commit
 ```
 
-`verify` runs exactly what CI runs, so a clean `npm run verify` locally means CI will pass too.
-The individual steps (`npm run typecheck`, `npm run lint`, `npm test`, `npm run build`) are also
-available on their own for faster iteration on just one of them.
+`verify` runs exactly what CI runs, and — as of this change — so does the install step before it:
+CI uses `npm ci`, so local setup does too, rather than the superficially-similar `npm install`.
+The difference matters here specifically because `npm install` won't necessarily pull in a newer
+patched version of a transitive dependency that still satisfies the existing lockfile's pinned
+range, so a security advisory fixed upstream can keep showing up locally even after repeated
+`npm install` runs on an old clone. `npm ci` deletes `node_modules` first and installs strictly
+from the lockfile — if `package-lock.json` is genuinely stale, `npm ci` fails loudly (package.json
+and the lockfile disagree) instead of silently working around it, which is the correct behavior
+here: surface the staleness rather than mask it.
+
+Only reach for `npm install` when you're deliberately adding/removing/bumping a dependency in
+`package.json` — it's the one command that's allowed to rewrite `package-lock.json`. If you
+suspect the committed lockfile itself has drifted (e.g. `npm audit` reports something CI doesn't),
+regenerate it deliberately with `rm -rf node_modules package-lock.json && npm install`, verify
+`npm audit` is clean, then commit the regenerated `package-lock.json` — don't leave that as a
+silent side effect of routine `npm install` runs.
+
+`package-lock.json` **is** committed to this repo (not gitignored) — deliberately, since this is
+an application with a build step, not a published npm package other projects `npm install` as a
+dependency; a committed lockfile is what actually makes "clone this repo and run `npm ci`"
+reproducible across machines and CI, rather than everyone resolving dependency ranges
+independently at install time.
+
+The individual `verify` steps (`npm run typecheck`, `npm run lint`, `npm test`, `npm run build`)
+are also available on their own for faster iteration on just one of them.
 
 There's no separate `scripts/` folder the way ha-dockhand has one — for a Python integration with
 no build step, small shell/Python scripts are the natural place for repeatable tasks. Here,
@@ -56,10 +81,14 @@ own small per-locale dictionary (`src/common/i18n.ts`), looked up by `hass.langu
 time. Same locale list as ha-dockhand (de, es, fr, it, nb, nl, pl, pt, sv, zh-Hans),
 machine-translated the same way.
 
-Current coverage (v1): editor field labels and section headings — the highest-visibility text
-for someone configuring a card in their own language. Live-card-rendered labels (e.g. "Images",
-"CPU", "Events") and the longer mode-description hint paragraphs are still English-only; see
-`docs/BACKLOG.md` for the reasoning and what's left.
+Current coverage (v1.1): editor field labels, section headings, and mode-description hints — the
+highest-visibility text for someone configuring a card in their own language — plus each card's
+"Open in Dockhand"-style link tooltip, the first live-card-rendered text to get translated.
+Everything else live-card-rendered (e.g. "Images", "CPU", "Events", health/status words) is still
+English-only; see `docs/BACKLOG.md` for what's left. The mode-description hints were also trimmed
+down from long descriptive paragraphs to just genuinely non-obvious prerequisites (a sensor off by
+default, a newer ha-dockhand release, HA's own recorder) — what each display mode visually adds is
+better learned by switching between them in the live preview than by reading about it first.
 
 Adding a new editor string should add it to every locale in the same pass, matching ha-dockhand's
 own discipline — no partially-translated locale files.
@@ -70,6 +99,12 @@ Same discipline as ha-dockhand's own `CHANGELOG.md` — see the maintainer note 
 file. Short version: entries describe net user-facing functionality, not the development
 journey; a bug introduced and fixed within the same still-unreleased cycle doesn't get its own
 entry, since there's nothing to disclose about something that never shipped broken.
+
+## Versioning
+
+This repo follows semver. The canonical policy lives in `ha-dockhand` (the primary repo this one
+depends on) — see `docs/SEMVER.md` here for the pointer and the cards-specific notes that don't
+belong in the shared doc. Decide the bump before working through the release flow below.
 
 ## Releasing
 

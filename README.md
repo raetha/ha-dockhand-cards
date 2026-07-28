@@ -25,14 +25,18 @@ setup and the release process.
 ## Requirements
 
 - **Home Assistant 2026.6 or later.** This is what's actually been tested against, not a
-  theoretical minimum — the editors use `ha-select`/`ha-input`, which were substantially rewritten
-  as part of HA's frontend design-system migration, and older HA versions may not run them
-  correctly. Enforced via `hacs.json`'s `homeassistant` field.
+  theoretical minimum — the editors are built on HA's own `<ha-form>`, which itself depends on
+  `ha-select`/`ha-input`'s modern API (substantially rewritten as part of HA's frontend
+  design-system migration); older HA versions may not run them correctly. Enforced via
+  `hacs.json`'s `homeassistant` field.
 - **ha-dockhand 1.8.0 or later** — the Vulnerability card, the environment card's
-  connection-type icon, and detailed/full mode's disk usage view all depend on entities added in
-  that release. HACS doesn't support declaring a dependency on another custom repository, so this
-  isn't enforced automatically; everything else degrades gracefully on an older ha-dockhand (see
-  `docs/ARCHITECTURE.md` §1 for why), but those specific features simply won't have data yet.
+  connection-type icon, detailed/full mode's disk usage view, and the stack card's list of member
+  container names all depend on entities added in that release. HACS doesn't support declaring a
+  dependency on another custom repository, so this isn't enforced automatically; everything else
+  degrades gracefully on an older ha-dockhand (see `docs/ARCHITECTURE.md` §1 for why), but those
+  specific features simply won't have data yet. **ha-dockhand 1.8.2 or later** if you use "Hide
+  when no updates" and have a system container with its own pending update — older releases
+  undercount that specific case rather than breaking (see `CHANGELOG.md`).
 
 ## Installation
 
@@ -81,6 +85,7 @@ type: custom:dockhand-environment-card
 device_id: <environment device>
 mode: standard # compact | standard | detailed | full | custom
 custom_sections: [container_counts, metrics, resources, events_summary] # only used when mode: custom
+show_settings_link: true # link to open this environment in Dockhand
 ```
 
 Compact (name/online/counts), Standard (+ CPU/memory, health, resource counts, events — matches
@@ -107,6 +112,7 @@ combinations above (e.g. just the summary and CPU/memory/disk sections without e
 ```yaml
 type: custom:dockhand-vulnerability-card
 device_id: <environment device>
+show_settings_link: true # link to view vulnerabilities in Dockhand
 ```
 
 Total findings plus a critical/high/medium/low breakdown (Dockhand's own severity colors) and scan
@@ -120,10 +126,13 @@ vulnerability scanning turned on for that environment in Dockhand.
 ```yaml
 type: custom:dockhand-stack-card
 device_id: <stack device>
+show_settings_link: true # link to open this stack in Dockhand
 ```
 
 Status (running/partial/stopped/created), container count, pending-update badge, and — for
-git-tracked stacks only — sync status, last sync time, and a sync-error banner.
+git-tracked stacks only — sync status, last sync time, and a sync-error banner. Each member
+container gets its own pill, linking to that container's own status entity when it can be
+resolved.
 
 <img src="docs/images/stack.png" alt="Stack card" width="420">
 
@@ -132,6 +141,7 @@ git-tracked stacks only — sync status, last sync time, and a sync-error banner
 ```yaml
 type: custom:dockhand-container-card
 device_id: <container device>
+show_settings_link: true # link to open this container in Dockhand
 ```
 
 State, health (when the container has a healthcheck), CPU/memory usage, and network/block I/O.
@@ -153,11 +163,15 @@ every item of that type for one environment.
 ```yaml
 type: custom:dockhand-stacks-card
 device_id: <environment device>
+show_settings_link: true # link to view stacks in Dockhand
+visible_badges: [container_count, updates, type] # which per-row details to show, independent of each other
 ```
 
 Every stack in one environment, one compact row each (type, status, container count, pending
 updates). Auto-detects every stack device for the selected environment — nothing else to
-configure.
+configure. Each per-row detail (container count, the "updates available" badge, the stack-type
+pill) can be turned off independently via "Details to show" in the editor if you don't want it
+cluttering the list.
 
 <img src="docs/images/stacks-list.png" alt="Stacks card" width="420">
 
@@ -166,10 +180,13 @@ configure.
 ```yaml
 type: custom:dockhand-containers-card
 device_id: <environment device>
+show_settings_link: true # link to view containers in Dockhand
+visible_badges: [health, updates, cpu, memory] # which per-row details to show, independent of each other
 ```
 
 Every container in one environment, one compact row each (state, health, CPU/memory when those
-sensors are enabled).
+sensors are enabled). Same "Details to show" control as the Stacks card — turn off any of health,
+updates, CPU, or memory independently if you don't want it per-row.
 
 <img src="docs/images/containers-list.png" alt="Containers card" width="420">
 
@@ -204,12 +221,13 @@ environment_mode: standard # compact | standard | detailed | full | custom
 environment_custom_sections: [container_counts, metrics, resources, events_summary] # only used when environment_mode: custom
 ```
 
-Intended to fill an entire dashboard view. One column per environment (sorted by name), each
-column stacking whichever sections you've enabled — the environment card, vulnerability card,
-Updates card, Stacks card, and Containers card, in that order by default (drag to reorder in the
-editor) — so everything about one environment lives together instead of being split into separate
-rows per card type. Columns lay out side by side on a wide screen and collapse to one column at a
-time, in the same order, on mobile — a plain flex-wrap, no separate mobile layout to maintain.
+Intended to fill an entire dashboard view. One column per environment (sorted by name, or dragged
+to a custom order in the editor), each column stacking whichever sections you've enabled — the
+environment card, vulnerability card, Updates card, Stacks card, and Containers card, in that order
+by default (also drag-to-reorder in the editor) — so everything about one environment lives
+together instead of being split into separate rows per card type. Columns lay out side by side on
+a wide screen and collapse to one column at a time, in the same order, on mobile — a plain
+flex-wrap, no separate mobile layout to maintain.
 
 Defaults to environments only — turn on Vulnerabilities/Updates/Stacks/Containers if you want them.
 Kept deliberately minimal by default: with everything on, this card gets very tall very fast (every
@@ -218,14 +236,28 @@ shown small versus on a real dashboard (see `docs/ARCHITECTURE.md` if you're cur
 default has to work reasonably either way. If you just want a clean per-environment overview,
 this default is probably already what you want.
 
+Beyond the per-section on/off toggles, the editor has two more layers of settings, both reached
+from a pencil icon rather than hand-written YAML:
+
+- **A global default per card type** — settings like display mode, which per-row details to show
+  on the Stacks/Containers cards, and whether each card type's "open in Dockhand" link shows, set
+  once and applied to every environment's generated card of that type. Reached via the pencil on
+  each row in the editor's "Section order" list.
+- **A per-environment override** — any of those same settings, plus a title override, for one
+  specific environment only, when you want that one environment's card to differ from the shared
+  default. Reached via the pencil on each row in the editor's "Environment order" list. Stored in
+  the `environments_overrides` config key, keyed by device id — set through the editor, not
+  typically hand-written.
+
 <img src="docs/images/overview.png" alt="Overview card" width="460">
 
 ## Translations
 
 Editor field labels and section headings are translated into the same 10 languages as
 ha-dockhand (German, Spanish, French, Italian, Norwegian Bokmål, Dutch, Polish, Portuguese,
-Swedish, Simplified Chinese), looked up from `hass.language`. Live-card-rendered text (e.g.
-"Images", "CPU", "Events") is still English-only.
+Swedish, Simplified Chinese), looked up from `hass.language`. Live-card-rendered text is mostly
+still English (e.g. "Images", "CPU", "Events") — the one exception is each card's "Open in
+Dockhand"-style link tooltip, translated the same way.
 
 ## Contributing
 

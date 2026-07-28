@@ -124,16 +124,6 @@ function buildEnvironment(addDevice, addEntity, opts) {
     })
   );
   addEntity(
-    entity(`sensor.${slug}_containers`, envDeviceId, 'containers', online ? '14' : '0', {
-      running: online ? 12 : 0,
-      stopped: online ? 1 : 14,
-      paused: 0,
-      restarting: 0,
-      unhealthy: online ? 1 : 0,
-      pending_updates: online ? 2 : 0
-    })
-  );
-  addEntity(
     entity(`sensor.${slug}_stacks`, envDeviceId, 'stacks', online ? '4' : '0', {
       running: online ? 3 : 0,
       partial: online ? 1 : 0,
@@ -193,22 +183,45 @@ function buildEnvironment(addDevice, addEntity, opts) {
       mem: 8.1,
       memLimit: 512,
       update: 'hash',
+      image: 'nginx:1.25',
       netRx: 184320,
       netTx: 92160,
       blkRead: 15728640,
       blkWrite: 4194304
     },
-    { name: 'postgres', state: 'running', health: 'healthy', cpu: 6.1, mem: 12.4, memLimit: 1024, update: 'none' },
-    { name: 'redis', state: 'running', health: 'healthy', cpu: 1.1, mem: 3.2, memLimit: 256, update: 'none' },
-    { name: 'traefik', state: 'running', health: null, cpu: 0.4, mem: 1.8, memLimit: 256, update: 'generic' },
-    { name: 'worker', state: 'running', health: 'unhealthy', cpu: 0.2, mem: 2.6, memLimit: 512, update: 'none' }
+    { name: 'postgres', state: 'running', health: 'healthy', cpu: 6.1, mem: 12.4, memLimit: 1024, update: 'none', image: 'postgres:16' },
+    { name: 'redis', state: 'running', health: 'healthy', cpu: 1.1, mem: 3.2, memLimit: 256, update: 'none', image: 'redis:7.2' },
+    { name: 'traefik', state: 'running', health: null, cpu: 0.4, mem: 1.8, memLimit: 256, update: 'generic', image: 'traefik:v3.1' },
+    { name: 'worker', state: 'running', health: 'unhealthy', cpu: 0.2, mem: 2.6, memLimit: 512, update: 'none', image: 'ghcr.io/nebula/worker:latest' }
   ];
+
+  // Computed from the container list above, not hand-maintained separately
+  // — the exact drift risk this repo hit a real bug from once already
+  // (mock/real data disagreeing silently). systemContainer is never set
+  // in this mock data, so pending_system_updates is always 0 here; a
+  // future test of that specific case should add one rather than
+  // hand-editing these numbers directly.
+  const pendingUpdateCount = containers.filter((c) => c.update !== 'none').length;
+  const systemContainers = containers.filter((c) => c.systemContainer);
+  const pendingSystemUpdateCount = systemContainers.filter((c) => c.update !== 'none').length;
+  addEntity(
+    entity(`sensor.${slug}_containers`, envDeviceId, 'containers', online ? '14' : '0', {
+      running: online ? 12 : 0,
+      stopped: online ? 1 : 14,
+      paused: 0,
+      restarting: 0,
+      unhealthy: online ? 1 : 0,
+      pending_updates: online ? pendingUpdateCount - pendingSystemUpdateCount : 0,
+      pending_system_updates: online ? pendingSystemUpdateCount : 0,
+      pending_updates_total: online ? pendingUpdateCount : 0
+    })
+  );
 
   for (const c of containers) {
     const devId = `container_${envId}_${c.name}`;
-    addDevice(device(devId, [`container_${envId}_${c.name}`], c.name, { model: 'Container' }));
+    addDevice(device(devId, [`container_${envId}_${c.name}`], c.name, { model: 'Container', configuration_url: `http://${slug}.example.internal:2376/containers` }));
     addEntity(
-      entity(`sensor.${slug}_${c.name}_state`, devId, 'state', c.state, { name: c.name, type: 'Compose' }, { friendly_name: c.name })
+      entity(`sensor.${slug}_${c.name}_state`, devId, 'state', c.state, { name: c.name, type: 'Compose', image: c.image }, { friendly_name: c.name })
     );
     if (c.health) {
       addEntity(entity(`sensor.${slug}_${c.name}_health`, devId, 'health', c.health));
@@ -251,20 +264,25 @@ function buildEnvironment(addDevice, addEntity, opts) {
 
   // ── Stacks ─────────────────────────────────────────────────────────
   const stacks = [
-    { name: 'core', status: 'running', containerCount: 3, type: 'Git' },
-    { name: 'monitoring', status: 'partial', containerCount: 2, type: 'Internal' }
+    { name: 'core', status: 'running', containerCount: 3, type: 'Git', containerNames: ['traefik', 'web', 'worker'] },
+    { name: 'monitoring', status: 'partial', containerCount: 2, type: 'Internal', containerNames: ['postgres', 'redis'] }
   ];
   for (const s of stacks) {
     const devId = `stack_${envId}_${s.name}`;
-    addDevice(device(devId, [`stack_${envId}_${s.name}`], s.name, { model: `${s.type} Stack` }));
+    addDevice(device(devId, [`stack_${envId}_${s.name}`], s.name, { model: `${s.type} Stack`, configuration_url: `http://${slug}.example.internal:2376/stacks` }));
     addEntity(
       entity(`sensor.${slug}_${s.name}_status`, devId, 'status', s.status, {
         name: s.name,
         type: s.type,
-        container_count: s.containerCount
+        container_count: s.containerCount,
+        container_names: s.containerNames
       })
     );
-    addEntity(entity(`sensor.${slug}_${s.name}_containers_in_stack`, devId, 'containers_in_stack', s.containerCount));
+    addEntity(
+      entity(`sensor.${slug}_${s.name}_containers_in_stack`, devId, 'containers_in_stack', s.containerCount, {
+        container_names: s.containerNames
+      })
+    );
   }
 }
 

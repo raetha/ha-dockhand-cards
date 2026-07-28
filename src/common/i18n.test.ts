@@ -22,5 +22,9 @@ describe('t', () => {
     expect(t({ language: 'de' }, 'environment')).not.toBe(t(undefined, 'environment'));
     expect(t({ language: 'zh-Hans' }, 'container')).not.toBe(t(undefined, 'container'));
     expect(t({ language: 'pl' }, 'display_mode')).not.toBe(t(undefined, 'display_mode'));
+    expect(t({ language: 'fr' }, 'overrides_from_default_badge')).not.toBe(t(undefined, 'overrides_from_default_badge'));
+    expect(t({ language: 'sv' }, 'environment_order_hint')).not.toBe(t(undefined, 'environment_order_hint'));
+    expect(t({ language: 'it' }, 'updates_scope_label')).not.toBe(t(undefined, 'updates_scope_label'));
+    expect(t({ language: 'nl' }, 'hide_when_no_updates_helper')).not.toBe(t(undefined, 'hide_when_no_updates_helper'));
   });
 });

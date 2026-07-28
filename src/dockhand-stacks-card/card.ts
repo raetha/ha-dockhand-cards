@@ -5,9 +5,10 @@ import { fireEvent, type LovelaceCard, type LovelaceCardEditor } from 'custom-ca
 import type { HomeAssistant, LovelaceGridOptions } from '../common/ha-types';
 import { getEnvironmentDevices, getStackDevicesForEnvironment, getEnvId } from '../common/device-utils';
 import { resolveStackEntities, type ResolutionResult } from '../common/entity-resolver';
-import { getDockhandBaseUrl } from '../common/format';
+import { getDockhandBaseUrl, SETTINGS_LINK_UNAVAILABLE_ICON } from '../common/format';
+import { t } from '../common/i18n';
 import type { StackTranslationKey } from '../common/const';
-import type { DockhandStacksCardConfig } from './types';
+import { DEFAULT_STACKS_BADGES, type DockhandStacksCardConfig } from './types';
 import { cardStyles } from './styles';
 
 // Matches Dockhand's own stackStatusTypes color list (src/routes/stacks/+page.svelte).
@@ -52,7 +53,7 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
     if (!config.device_id) {
       throw new Error('Please select a Dockhand environment.');
     }
-    this._config = { ...config };
+    this._config = { show_settings_link: true, ...config };
   }
 
   set config(config: DockhandStacksCardConfig) {
@@ -125,10 +126,14 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
             </div>
             <div class="name-block"><span class="name">${name} — Stacks</span></div>
           </div>
-          ${base
-            ? html`<span class="settings-link" title="View stacks in Dockhand" @click=${() => window.open(`${base}/stacks`, '_blank', 'noopener,noreferrer')}>
-                <ha-icon icon="mdi:open-in-new"></ha-icon>
-              </span>`
+          ${this._config?.show_settings_link
+            ? base
+              ? html`<span class="settings-link" title=${t(this._hass, 'settings_link_view_stacks')} @click=${() => window.open(`${base}/stacks`, '_blank', 'noopener,noreferrer')}>
+                  <ha-icon icon="mdi:open-in-new"></ha-icon>
+                </span>`
+              : html`<span class="settings-link unavailable" title=${t(this._hass, 'settings_link_unavailable')}>
+                  <ha-icon icon=${SETTINGS_LINK_UNAVAILABLE_ICON}></ha-icon>
+                </span>`
             : nothing}
         </div>
         <div class="body">
@@ -154,15 +159,16 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
     const updateCount = found.updatesAvailable?.state.attributes.update_count;
     const updatesId = found.updatesAvailable?.entityId;
     const id = found.status!.entityId;
+    const visible = new Set(this._config?.visible_badges ?? DEFAULT_STACKS_BADGES);
 
     return html`
       <div class="item-row clickable" tabindex="0" role="button" @click=${() => this._moreInfo(id)} @keydown=${this._onKeydown(id)}>
         <ha-icon class="item-status-icon ${statusIcon.cls}" icon=${statusIcon.icon}></ha-icon>
         <span class="name-and-type">
           <span class="item-name">${row.name}</span>
-          <span class="item-type-pill">${row.type}</span>
+          ${visible.has('type') ? html`<span class="item-type-pill">${row.type}</span>` : nothing}
         </span>
-        ${containerCount !== undefined
+        ${containerCount !== undefined && visible.has('container_count')
           ? html`<span
               class="item-badge ${containerCountId ? 'clickable' : ''}"
               tabindex=${containerCountId ? 0 : -1}
@@ -176,7 +182,7 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
               ><ha-icon icon="mdi:docker"></ha-icon>${containerCount}</span
             >`
           : nothing}
-        ${updatesOn
+        ${updatesOn && visible.has('updates')
           ? html`<span
               class="item-badge updates clickable"
               tabindex="0"

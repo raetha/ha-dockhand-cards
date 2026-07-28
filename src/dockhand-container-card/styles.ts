@@ -4,15 +4,51 @@ import { sharedStyles } from '../common/shared-styles';
 export const cardStyles = css`
   ${sharedStyles}
 
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .image-tag {
+    display: block;
+    font-size: 0.75em;
+    color: var(--secondary-text-color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .update-chip {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.78em;
+    font-weight: 500;
+    padding: 5px 8px;
+    border-radius: 6px;
+    background: rgb(from var(--dockhand-status-warn-color) r g b / 0.12);
+    color: var(--dockhand-status-warn-color);
+    white-space: nowrap;
+  }
+  .update-chip ha-icon {
+    --mdc-icon-size: 14px;
+  }
+
   .state-row {
     display: flex;
     align-items: center;
     gap: 8px;
   }
   .state-word {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     font-size: 1.1em;
     font-weight: 600;
     text-transform: capitalize;
+  }
+  .state-word ha-icon {
+    --mdc-icon-size: 20px;
   }
   .state-word.running {
     color: var(--dockhand-status-ok-color);

@@ -54,3 +54,4 @@ describe('getContainerDevicesForEnvironment', () => {
     expect(result.map((d) => d.id).sort()).toEqual(['c1', 'c2']);
   });
 });
+

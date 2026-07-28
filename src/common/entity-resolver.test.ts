@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveEnvironmentEntities, resolveTopContainers, findPrimaryEntityByDomain } from './entity-resolver';
+import { resolveEnvironmentEntities, resolveTopContainers, findPrimaryEntityByDomain, getContainerDropdownOptions, getStackDropdownOptions } from './entity-resolver';
 import { makeDevice, makeEntity, makeState, makeHass } from './test-fixtures';
 
 const ENV_DEVICE_ID = 'env-device';
@@ -118,5 +118,57 @@ describe('findPrimaryEntityByDomain', () => {
     const state = makeState({ entity_id: 'update.web', state: 'on' });
     const hass = makeHass({ entities: [entity], states: [state] });
     expect(findPrimaryEntityByDomain(hass, 'c1', 'update')).toBeNull();
+  });
+});
+
+describe('getContainerDropdownOptions', () => {
+  it('labels with the raw container name attribute, not the full device display name, sorted alphabetically', () => {
+    const zebra = makeDevice({ id: 'c-zebra', name: 'Forseti \u2013 Containers \u2013 zebra' });
+    const alpha = makeDevice({ id: 'c-alpha', name: 'Forseti \u2013 Containers \u2013 alpha' });
+    const entities = [
+      makeEntity({ entity_id: 'sensor.zebra_state', device_id: 'c-zebra', translation_key: 'state' }),
+      makeEntity({ entity_id: 'sensor.alpha_state', device_id: 'c-alpha', translation_key: 'state' })
+    ];
+    const states = [
+      makeState({ entity_id: 'sensor.zebra_state', state: 'running', attributes: { name: 'zebra' } }),
+      makeState({ entity_id: 'sensor.alpha_state', state: 'running', attributes: { name: 'alpha' } })
+    ];
+    const hass = makeHass({ devices: [zebra, alpha], entities, states });
+
+    const result = getContainerDropdownOptions(hass, [zebra, alpha]);
+    expect(result).toEqual([
+      { value: 'c-alpha', label: 'alpha' },
+      { value: 'c-zebra', label: 'zebra' }
+    ]);
+  });
+
+  it('falls back to the device display name when the state entity/attribute is unavailable (pre-1.8.0 ha-dockhand)', () => {
+    const device = makeDevice({ id: 'c-old', name: 'Forseti \u2013 Containers \u2013 legacy', name_by_user: null });
+    const hass = makeHass({ devices: [device] });
+
+    const result = getContainerDropdownOptions(hass, [device]);
+    expect(result).toEqual([{ value: 'c-old', label: 'Forseti \u2013 Containers \u2013 legacy' }]);
+  });
+});
+
+describe('getStackDropdownOptions', () => {
+  it('labels with the raw stack name attribute, not the full device display name, sorted alphabetically', () => {
+    const zebra = makeDevice({ id: 's-zebra', name: 'Forseti \u2013 Stacks \u2013 zebra-stack' });
+    const alpha = makeDevice({ id: 's-alpha', name: 'Forseti \u2013 Stacks \u2013 alpha-stack' });
+    const entities = [
+      makeEntity({ entity_id: 'sensor.zebra_status', device_id: 's-zebra', translation_key: 'status' }),
+      makeEntity({ entity_id: 'sensor.alpha_status', device_id: 's-alpha', translation_key: 'status' })
+    ];
+    const states = [
+      makeState({ entity_id: 'sensor.zebra_status', state: 'running', attributes: { name: 'zebra-stack' } }),
+      makeState({ entity_id: 'sensor.alpha_status', state: 'running', attributes: { name: 'alpha-stack' } })
+    ];
+    const hass = makeHass({ devices: [zebra, alpha], entities, states });
+
+    const result = getStackDropdownOptions(hass, [zebra, alpha]);
+    expect(result).toEqual([
+      { value: 's-alpha', label: 'alpha-stack' },
+      { value: 's-zebra', label: 'zebra-stack' }
+    ]);
   });
 });

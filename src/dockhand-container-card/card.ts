@@ -4,9 +4,10 @@ import { fireEvent, type LovelaceCard, type LovelaceCardEditor } from 'custom-ca
 
 import type { HomeAssistant, LovelaceGridOptions } from '../common/ha-types';
 import { getAllContainerDevices } from '../common/device-utils';
-import { resolveContainerEntities, type ResolutionResult } from '../common/entity-resolver';
+import { resolveContainerEntities, findPrimaryEntityByDomain, type ResolutionResult } from '../common/entity-resolver';
 import type { ContainerTranslationKey } from '../common/const';
-import { barColorClass, formatBytes } from '../common/format';
+import { barColorClass, formatBytes, getDockhandBaseUrl, SETTINGS_LINK_UNAVAILABLE_ICON } from '../common/format';
+import { t } from '../common/i18n';
 import type { DockhandContainerCardConfig } from './types';
 import { cardStyles } from './styles';
 
@@ -95,6 +96,11 @@ export class DockhandContainerCard extends LitElement implements LovelaceCard {
       </ha-card>`;
     }
 
+    // Only used to validate configuration_url parses (see the
+    // identical comment in dockhand-environment-card/card.ts for the
+    // full reasoning) — the click target stays the full
+    // device.configuration_url, not this value.
+    const base = getDockhandBaseUrl(device.configuration_url);
     const resolution = resolveContainerEntities(this._hass, this._config.device_id, [
       'state',
       'health',
@@ -109,6 +115,9 @@ export class DockhandContainerCard extends LitElement implements LovelaceCard {
     ]);
     const s = resolution.found;
     const name = this._config.title || device.name_by_user || device.name || 'Container';
+    const image = s.state?.state.attributes.image as string | undefined;
+    const update = findPrimaryEntityByDomain(this._hass, this._config.device_id, 'update');
+    const updatePending = update?.state.state === 'on';
 
     return html`
       <ha-card>
@@ -119,13 +128,36 @@ export class DockhandContainerCard extends LitElement implements LovelaceCard {
             </div>
             <div class="name-block">
               <span class="name">${name}</span>
+              ${image ? html`<span class="image-tag">${image}</span>` : nothing}
             </div>
           </div>
-          ${this._config?.show_settings_link && device.configuration_url
-            ? html`<span class="settings-link" title="Open in Dockhand" @click=${() => window.open(device.configuration_url!, '_blank', 'noopener,noreferrer')}>
-                <ha-icon icon="mdi:open-in-new"></ha-icon>
-              </span>`
-            : nothing}
+          <div class="header-right">
+            ${updatePending
+              ? html`
+                  <span
+                    class="update-chip clickable"
+                    tabindex="0"
+                    role="button"
+                    title=${update?.state.attributes.latest_version
+                      ? `Update available: ${update.state.attributes.installed_version ?? '?'} → ${update.state.attributes.latest_version}`
+                      : 'Update available'}
+                    @click=${() => this._moreInfo(update?.entityId)}
+                    @keydown=${this._onKeydown(update?.entityId)}
+                  >
+                    <ha-icon icon="mdi:package-up"></ha-icon> Update available
+                  </span>
+                `
+              : nothing}
+            ${this._config?.show_settings_link
+              ? base
+                ? html`<span class="settings-link" title=${t(this._hass, 'settings_link_open')} @click=${() => window.open(device.configuration_url!, '_blank', 'noopener,noreferrer')}>
+                    <ha-icon icon="mdi:open-in-new"></ha-icon>
+                  </span>`
+                : html`<span class="settings-link unavailable" title=${t(this._hass, 'settings_link_unavailable')}>
+                    <ha-icon icon=${SETTINGS_LINK_UNAVAILABLE_ICON}></ha-icon>
+                  </span>`
+              : nothing}
+          </div>
         </div>
         <div class="body">${this._renderBody(s)}</div>
       </ha-card>

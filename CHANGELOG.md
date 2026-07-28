@@ -20,7 +20,56 @@ maintain — write each section as the thing you'd want a user to read on
 the Releases page.
 -->
 
-## [Unreleased]
+## [1.1.0] — 2026-07-28
+
+### Added
+
+- **Overview card** editor gained two new layers of customization, both reached via icons next to
+  each row in the editor: a global default per card type (display mode, which per-row details
+  show, and link visibility, applied to every environment unless overridden) and a
+  per-environment override of any of those same settings for one specific environment. Also new:
+  show/hide icons for individual environments and for each card-type section.
+- **Stacks and Containers list cards** can now show or hide individual per-row details (update
+  badges, container count, CPU/memory, etc.) instead of always showing everything, and gained the
+  same "Show link to open in Dockhand" toggle every other card already had.
+- **Container card** now shows the image/tag and an "Update available" badge when one's pending.
+  **Stack card**'s member container list now links each container through to its own status, and
+  (with ha-dockhand 1.8.0+) shows container names.
+- Every card's "open in Dockhand" link now shows a clear, explained icon if Home Assistant can't
+  resolve a working link for it, instead of silently failing or looking identical to the link
+  being turned off.
+
+### Changed
+
+- Editor controls across every card are more consistent with Home Assistant's own forms: dropdowns
+  render compactly instead of sometimes expanding into a list, "pick several" fields use checkboxes
+  instead of switches, hint text now scales with your HA accessibility text-size setting, and a
+  missing-entity warning appears as a native alert next to the relevant field. Overview card's
+  editor also reorganized its section/environment toggles to use the same show/hide and edit icons
+  throughout.
+- More editor text is translated, including per-mode help text (also shortened to focus on
+  genuinely useful information, like a feature needing a specific sensor enabled) and each card's
+  link tooltip.
+- Two Overview card config keys were renamed for consistency (`environment_overrides`/
+  `environment_order` → `environments_overrides`/`environments_order`). Existing configs keep
+  working automatically — nothing to change.
+- **Environment card** label pills now use Dockhand's own per-label colors instead of a plain
+  neutral pill.
+
+### Fixed
+
+- **"Hide when no updates" (Updates card and Overview's own equivalent) could hide a card that
+  genuinely had a pending update, if that update was on a system container or one only found by
+  the optional precise-update-check feature.** Requires **ha-dockhand 1.8.2 or later** to fully
+  fix; see that repo's own changelog. On an older ha-dockhand, behavior is unchanged from before.
+- **All six cards' "open in Dockhand" links now validate consistently** — three previously showed
+  a link that silently did nothing if Home Assistant's configured Dockhand URL had a subtle
+  formatting problem (also fixed in ha-dockhand 1.8.2); the other three already handled this
+  correctly.
+- Fixed several small icon-alignment issues where an icon sat slightly off-center next to its text,
+  across the Container, Stack, Overview, and Updates cards.
+- The Container and Stack card editors' dropdowns now sort alphabetically, matching every other
+  dropdown in these editors.
 
 ## [1.0.0] — 2026-07-21
 
@@ -73,5 +122,6 @@ so a user's own icon customization is reflected automatically.
   from `hass.language`. Custom mode's section-checkbox labels specifically are English-only for
   now — see `docs/BACKLOG.md`.
 
-[Unreleased]: https://github.com/raetha/ha-dockhand-cards/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/raetha/ha-dockhand-cards/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/raetha/ha-dockhand-cards/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/raetha/ha-dockhand-cards/releases/tag/v1.0.0

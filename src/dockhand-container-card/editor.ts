@@ -1,10 +1,11 @@
-import { LitElement, html, nothing, type TemplateResult } from 'lit';
+import { LitElement, html, type TemplateResult } from 'lit';
 import { state } from 'lit/decorators.js';
 import { fireEvent, type LovelaceCardEditor } from 'custom-card-helpers';
+import type { HaFormSchema } from '../common/ha-form-types';
 
 import type { HomeAssistant } from '../common/ha-types';
 import { getEnvironmentDevices, getEnvId, getContainerDevicesForEnvironment, getEnvIdForContainerDevice } from '../common/device-utils';
-import { resolveContainerEntities } from '../common/entity-resolver';
+import { resolveContainerEntities, getContainerDropdownOptions } from '../common/entity-resolver';
 import { t } from '../common/i18n';
 import { editorFormStyles } from '../common/editor-styles';
 import { CONTAINER_FRIENDLY_LABEL } from '../common/const';
@@ -13,7 +14,6 @@ import type { DockhandContainerCardConfig } from './types';
 export class DockhandContainerCardEditor extends LitElement implements LovelaceCardEditor {
   @state() private _config?: DockhandContainerCardConfig;
   @state() private _hass?: HomeAssistant;
-  @state() private _envDeviceId?: string;
 
   static styles = editorFormStyles;
 
@@ -23,16 +23,42 @@ export class DockhandContainerCardEditor extends LitElement implements LovelaceC
 
   setConfig(config: DockhandContainerCardConfig): void {
     this._config = config;
-    if (config.device_id && this._hass && !this._envDeviceId) {
-      const containerDevice = this._hass.devices?.[config.device_id];
-      if (containerDevice) {
-        const envId = getEnvIdForContainerDevice(containerDevice);
-        if (envId !== null) {
-          const envDevice = Object.values(this._hass.devices).find((d) => getEnvId(d) === envId);
-          this._envDeviceId = envDevice?.id;
-        }
-      }
-    }
+  }
+
+  /** Falls back to deriving the environment from the currently configured
+   * container device — needed for a config saved before
+   * environment_device_id existed, hand-written YAML that only ever set
+   * device_id, or a persisted environment_device_id that's since gone
+   * stale (the referenced environment was removed from HA — unlike the
+   * scratch @state this replaced, which only ever held a value freshly
+   * verified against the live device list, a value read back from saved
+   * config needs that same verification done explicitly, not assumed).
+   * Once the editor renders once, ha-form's own value-changed persists a
+   * current environment_device_id going forward, so this fallback only
+   * ever matters on the very first render of an existing config. */
+  private _resolvedEnvDeviceId(): string | undefined {
+    const saved = this._config?.environment_device_id;
+    if (saved && this._hass?.devices[saved]) return saved;
+    if (!this._config?.device_id || !this._hass) return undefined;
+    const containerDevice = this._hass.devices?.[this._config.device_id];
+    if (!containerDevice) return undefined;
+    const envId = getEnvIdForContainerDevice(containerDevice);
+    if (envId === null) return undefined;
+    return Object.values(this._hass.devices).find((d) => getEnvId(d) === envId)?.id;
+  }
+
+  private _schema(envDevices: ReturnType<typeof getEnvironmentDevices>, containerOptions: { value: string; label: string }[]): HaFormSchema[] {
+    return [
+      { name: 'environment_device_id', required: true, selector: { select: { mode: 'dropdown', options: envDevices.map((d) => ({ value: d.deviceId, label: d.name })) } } },
+      {
+        name: 'device_id',
+        required: true,
+        disabled: containerOptions.length === 0,
+        selector: { select: { mode: 'dropdown', options: containerOptions } }
+      },
+      { name: 'title', selector: { text: {} } },
+      { name: 'show_settings_link', default: true, selector: { boolean: {} } }
+    ];
   }
 
   protected render(): TemplateResult {
@@ -43,50 +69,53 @@ export class DockhandContainerCardEditor extends LitElement implements LovelaceC
       return html`<div class="row">${t(this._hass, 'no_environments_found')}</div>`;
     }
 
-    const envId = this._envDeviceId ? getEnvId(this._hass.devices[this._envDeviceId]) : null;
+    const envDeviceId = this._resolvedEnvDeviceId();
+    const envId = envDeviceId ? getEnvId(this._hass.devices[envDeviceId]) : null;
     const containerDevices = envId !== null ? getContainerDevicesForEnvironment(this._hass, envId) : [];
+    const containerOptions = getContainerDropdownOptions(this._hass, containerDevices);
+    const noContainersFound = envId !== null && containerDevices.length === 0;
 
     return html`
-      <div class="row">
-        <ha-select
-          label=${t(this._hass, 'environment')}
-          .options=${envDevices.map((d) => ({ value: d.deviceId, label: d.name }))}
-          .value=${this._envDeviceId ?? ''}
-          @selected=${this._envChanged}
-        ></ha-select>
-      </div>
-
-      <div class="row">
-        <ha-select
-          label=${t(this._hass, 'container')}
-          .options=${containerDevices.map((d) => ({ value: d.id, label: d.name_by_user || d.name || d.id }))}
-          .value=${this._config.device_id}
-          .disabled=${containerDevices.length === 0}
-          .helper=${envId !== null && containerDevices.length === 0 ? t(this._hass, 'no_containers_found') : undefined}
-          @selected=${this._containerChanged}
-        ></ha-select>
-      </div>
-
-      <div class="row">
-        <ha-input label=${t(this._hass, 'title_override')} .value=${this._config.title ?? ''} @input=${this._titleChanged}></ha-input>
-      </div>
-
-      <div class="row">
-        <ha-formfield label=${t(this._hass, 'show_settings_link')}>
-          <ha-switch .checked=${this._config.show_settings_link ?? true} @change=${this._settingsLinkChanged}></ha-switch>
-        </ha-formfield>
-      </div>
-
-      ${this._renderAvailabilityHint()}
+      <ha-form
+        .hass=${this._hass}
+        .data=${{ ...this._config, environment_device_id: envDeviceId }}
+        .schema=${this._schema(envDevices, containerOptions)}
+        .computeLabel=${this._computeLabel}
+        .computeHelper=${(schema: HaFormSchema) => (schema.name === 'device_id' && noContainersFound ? t(this._hass, 'no_containers_found') : '')}
+        .warning=${this._warning()}
+        @value-changed=${this._valueChanged}
+      ></ha-form>
     `;
   }
 
-  /** Only checks the genuinely opt-in diagnostic sensors — "state" is
-   * handled by the card's own core error message, and "health" only exists
-   * when the container has a Docker healthcheck configured at all, which
-   * isn't something enabling an entity would fix. */
-  private _renderAvailabilityHint(): TemplateResult | typeof nothing {
-    if (!this._hass || !this._config?.device_id) return nothing;
+  private _computeLabel = (schema: HaFormSchema): string => {
+    switch (schema.name) {
+      case 'environment_device_id':
+        return t(this._hass, 'environment');
+      case 'device_id':
+        return t(this._hass, 'container');
+      case 'title':
+        return t(this._hass, 'title_override');
+      case 'show_settings_link':
+        return t(this._hass, 'show_settings_link');
+      default:
+        return schema.name;
+    }
+  };
+
+  /** Attached to the device_id field via ha-form's own native
+   * .warning/computeWarning mechanism (a real HA feature, confirmed
+   * against source, present since well before our HA floor — unlike
+   * `visible:`, this one's actually shipped) rather than a hand-built
+   * .hint-box below the form, matching how HA's own editors surface a
+   * field-specific caveat: a real <ha-alert> renders right at the field
+   * it's about, not a disconnected box at the bottom of an unrelated
+   * form. Only checks the genuinely opt-in diagnostic sensors — "state"
+   * is handled by the card's own core error message, and "health" only
+   * exists when the container has a Docker healthcheck configured at
+   * all, which isn't something enabling an entity would fix. */
+  private _warning(): Record<string, string> {
+    if (!this._hass || !this._config?.device_id) return {};
     const { unavailable } = resolveContainerEntities(this._hass, this._config.device_id, [
       'cpuPercent',
       'memoryUsage',
@@ -98,39 +127,24 @@ export class DockhandContainerCardEditor extends LitElement implements LovelaceC
       'blockWrite'
     ]);
     const disabledOnly = unavailable.filter((u) => u.reason === 'disabled');
-    if (disabledOnly.length === 0) return nothing;
+    if (disabledOnly.length === 0) return {};
 
-    return html`
-      <div class="hint-box">
-        This card would show more with these entities enabled:
-        <ul>
-          ${disabledOnly.map((u) => html`<li>${CONTAINER_FRIENDLY_LABEL[u.key] ?? u.key}</li>`)}
-        </ul>
-      </div>
-    `;
+    const names = disabledOnly.map((u) => CONTAINER_FRIENDLY_LABEL[u.key] ?? u.key).join(', ');
+    return { device_id: `This card would show more with these entities enabled: ${names}.` };
   }
 
-  private _envChanged(ev: CustomEvent<{ value: string }>): void {
-    this._envDeviceId = ev.detail.value;
-    this.requestUpdate();
-  }
-
-  private _containerChanged(ev: CustomEvent<{ value: string }>): void {
-    this._updateConfig({ device_id: ev.detail.value });
-  }
-
-  private _titleChanged(ev: Event): void {
-    this._updateConfig({ title: (ev.target as HTMLInputElement).value });
-  }
-
-  private _settingsLinkChanged(ev: Event): void {
-    this._updateConfig({ show_settings_link: (ev.target as HTMLInputElement).checked });
-  }
-
-  private _updateConfig(partial: Partial<DockhandContainerCardConfig>): void {
-    if (!this._config) return;
-    this._config = { ...this._config, ...partial };
-    fireEvent(this, 'config-changed', { config: this._config });
+  /** Plain passthrough — same as every other converted editor.
+   * environment_device_id changing doesn't touch device_id here, matching
+   * the previous hand-rendered picker's actual behavior: switching
+   * environment only ever re-scoped which containers the dropdown
+   * offered, it never silently cleared or rewrote a previously-chosen
+   * device_id on its own. If the two end up mismatched (environment
+   * changed, container not yet re-picked), the container schema options
+   * are already scoped to the new environment on the very next render,
+   * so the stale value simply won't appear as a valid choice until the
+   * user picks again — no separate cleanup needed. */
+  private _valueChanged(ev: CustomEvent<{ value: DockhandContainerCardConfig }>): void {
+    fireEvent(this, 'config-changed', { config: ev.detail.value });
   }
 }
 

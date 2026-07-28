@@ -8,7 +8,7 @@ import {
   type StackTranslationKey
 } from './const';
 import { getContainerDevicesForEnvironment } from './device-utils';
-import type { HomeAssistant, EntityRegistryEntry } from './ha-types';
+import type { HomeAssistant, EntityRegistryEntry, DeviceRegistryEntry } from './ha-types';
 import type { HassEntity } from 'home-assistant-js-websocket';
 
 export interface ResolvedEntity<K extends string = string> {
@@ -178,4 +178,34 @@ export function findPrimaryEntityByDomain(
   const state = hass.states[entry.entity_id];
   if (!state) return null;
   return { entityId: entry.entity_id, state };
+}
+
+export interface DeviceDropdownOption {
+  value: string;
+  label: string;
+}
+
+/** Editor dropdown options for a list of container/stack devices, using
+ * the raw Docker/stack name (ha-dockhand 1.8.0+'s `name` attribute on the
+ * state/status sensor — e.g. "traefik1") rather than the full device
+ * display name (e.g. "Forseti – Containers – traefik1"), sorted
+ * alphabetically by that same displayed label. Falls back to the device's
+ * own name/id on an older ha-dockhand that doesn't expose the attribute
+ * yet, so the dropdown still works, just without the shorter name. */
+export function getContainerDropdownOptions(hass: HomeAssistant, devices: DeviceRegistryEntry[]): DeviceDropdownOption[] {
+  const options = devices.map((d) => {
+    const { found } = resolveContainerEntities(hass, d.id, ['state']);
+    const rawName = found.state?.state.attributes.name as string | undefined;
+    return { value: d.id, label: rawName || d.name_by_user || d.name || d.id };
+  });
+  return options.sort((a, b) => a.label.localeCompare(b.label));
+}
+
+export function getStackDropdownOptions(hass: HomeAssistant, devices: DeviceRegistryEntry[]): DeviceDropdownOption[] {
+  const options = devices.map((d) => {
+    const { found } = resolveStackEntities(hass, d.id, ['status']);
+    const rawName = found.status?.state.attributes.name as string | undefined;
+    return { value: d.id, label: rawName || d.name_by_user || d.name || d.id };
+  });
+  return options.sort((a, b) => a.label.localeCompare(b.label));
 }

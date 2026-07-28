@@ -39,17 +39,19 @@ quality as possible" means for this repo. Check it before every release.
 - [x] ESLint clean (`npm run lint`)
 - [x] `npm run verify` (typecheck + lint + test + build) passes locally before every commit, and
       CI runs the identical script on every push/PR
-- [x] Unit tests for all pure logic (`src/common/*.ts`) — entity resolution, device matching,
-      formatting. Not attempting full component render tests yet (LitElement + jsdom is workable
-      but lower value than the resolver logic — see below)
+- [x] Unit tests for all pure logic — entity resolution, device matching, formatting
+      (`src/common/*.ts`), and card-specific pure logic where it exists (e.g. Overview's config
+      migration functions in `dockhand-overview-card/types.test.ts`). Not attempting full
+      component render tests yet (LitElement + jsdom is workable but lower value than the
+      resolver/logic tests — see below)
 - [x] No hardcoded API calls or credentials — reads only `hass.states`/`hass.entities`/
       `hass.devices`, same trust boundary as any other Lovelace card
 - [x] No `localStorage`/`sessionStorage` usage
-- [x] Editors use HA's own current form components (`ha-select`, `ha-input`, `ha-switch`+
-      `ha-formfield`, `ha-expansion-panel`) against their present-day API, verified directly
-      against `home-assistant/frontend` source rather than assumed from older examples — see
-      `docs/ARCHITECTURE.md`'s "ha-select's API was rewritten, not deprecated" entry for what changed
-      and why an earlier pass wrongly moved to native HTML substitutes first
+- [x] Editors built on HA's own `<ha-form>` schema system (all but Overview, which has sortable
+      lists and cross-editor navigation `<ha-form>` has no model for), verified against present-day
+      HA source rather than assumed from older examples — see `docs/ARCHITECTURE.md` §2 and §7 for
+      what that verification actually found, including a case where it caught an earlier pass
+      wrongly concluding a component was deprecated when its API had just changed
 
 ## Card behavior
 

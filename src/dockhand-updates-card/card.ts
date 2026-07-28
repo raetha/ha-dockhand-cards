@@ -5,6 +5,7 @@ import { fireEvent, type LovelaceCard, type LovelaceCardEditor } from 'custom-ca
 import type { HomeAssistant, LovelaceGridOptions } from '../common/ha-types';
 import { getEnvironmentDevices, getContainerDevicesForEnvironment, getEnvId, type EnvironmentDeviceOption } from '../common/device-utils';
 import { resolveEnvironmentEntities, findPrimaryEntityByDomain } from '../common/entity-resolver';
+import { getTotalPendingUpdates } from '../common/updates-visibility';
 import type { DockhandUpdatesCardConfig } from './types';
 import { cardStyles } from './styles';
 
@@ -81,13 +82,13 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
     };
   }
 
-  private _buildGroups(): { groups: EnvGroup[]; checkUpdatesEntityIds: string[] } {
-    if (!this._hass || !this._config) return { groups: [], checkUpdatesEntityIds: [] };
+  private _buildGroups(): { groups: EnvGroup[]; checkUpdatesEntityIds: string[]; envDeviceIds: string[] } {
+    if (!this._hass || !this._config) return { groups: [], checkUpdatesEntityIds: [], envDeviceIds: [] };
 
     let envDevices: EnvironmentDeviceOption[];
     if (this._config.scope === 'environment' && this._config.device_id) {
       const device = this._hass.devices[this._config.device_id];
-      if (!device) return { groups: [], checkUpdatesEntityIds: [] };
+      if (!device) return { groups: [], checkUpdatesEntityIds: [], envDeviceIds: [] };
       envDevices = [{ deviceId: this._config.device_id, name: device.name_by_user || device.name || 'Environment' }];
     } else {
       envDevices = getEnvironmentDevices(this._hass);
@@ -127,7 +128,7 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
         });
       }
     }
-    return { groups, checkUpdatesEntityIds };
+    return { groups, checkUpdatesEntityIds, envDeviceIds: envDevices.map((e) => e.deviceId) };
   }
 
   protected render(): TemplateResult {
@@ -142,12 +143,32 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
       </ha-card>`;
     }
 
-    const { groups, checkUpdatesEntityIds } = this._buildGroups();
-    const totalUpdates = groups.reduce((sum, g) => sum + g.updates.length, 0);
+    const { groups, checkUpdatesEntityIds, envDeviceIds } = this._buildGroups();
+    // Deliberately not groups.reduce((sum, g) => sum + g.updates.length, 0)
+    // (a second, independent tally of the same per-container row list) —
+    // reads the same pending_updates_total attribute, for the same
+    // environments, that this card's own hide-when-empty visibility
+    // condition is built from (see common/updates-visibility.ts). If
+    // this number and the actual row count these groups produce below
+    // ever disagree, that's a real, worth-reporting mismatch between
+    // ha-dockhand's own aggregate and its own per-container update
+    // entities — not something to paper over here by re-deriving the
+    // count locally instead.
+    const totalUpdates = getTotalPendingUpdates(this._hass, envDeviceIds);
 
     const bulkButtonIds = groups.map((g) => g.bulkButtonEntityId).filter((id): id is string => Boolean(id));
     const title = this._config.title ?? 'Updates';
-    const showGroupHeaders = this._config.scope === 'all' && groups.length > 1;
+    // Based on the card's own scope, not how many environments currently
+    // have a pending update — a config with scope: 'all' can show
+    // updates from any environment depending on what's pending right
+    // now, so the environment name matters even when only one happens
+    // to have something pending at this exact moment (a real bug: this
+    // used to require groups.length > 1, so a single populated group
+    // silently dropped the one piece of context that says *where* the
+    // update lives). scope: 'environment' is the only case where the
+    // name is genuinely redundant, since the card is already scoped to
+    // one specific environment by its own config.
+    const showGroupHeaders = this._config.scope === 'all';
 
     return html`
       <ha-card>
@@ -182,7 +203,7 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
           </div>
         </div>
         <div class="body">
-          ${totalUpdates === 0
+          ${groups.every((g) => g.updates.length === 0)
             ? html`<div class="empty-note">
                 <ha-icon icon="mdi:check-circle-outline"></ha-icon>
                 <span>Everything up to date.</span>

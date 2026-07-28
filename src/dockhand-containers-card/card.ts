@@ -5,9 +5,10 @@ import { fireEvent, type LovelaceCard, type LovelaceCardEditor } from 'custom-ca
 import type { HomeAssistant, LovelaceGridOptions } from '../common/ha-types';
 import { getEnvironmentDevices, getContainerDevicesForEnvironment, getEnvId } from '../common/device-utils';
 import { resolveContainerEntities, findPrimaryEntityByDomain, type ResolutionResult } from '../common/entity-resolver';
-import { getDockhandBaseUrl } from '../common/format';
+import { getDockhandBaseUrl, SETTINGS_LINK_UNAVAILABLE_ICON } from '../common/format';
+import { t } from '../common/i18n';
 import type { ContainerTranslationKey } from '../common/const';
-import type { DockhandContainersCardConfig } from './types';
+import { DEFAULT_CONTAINERS_BADGES, type DockhandContainersCardConfig } from './types';
 import { cardStyles } from './styles';
 
 // Matches Dockhand's own statusTypes color list (src/routes/containers/+page.svelte).
@@ -54,7 +55,7 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
     if (!config.device_id) {
       throw new Error('Please select a Dockhand environment.');
     }
-    this._config = { ...config };
+    this._config = { show_settings_link: true, ...config };
   }
 
   set config(config: DockhandContainersCardConfig) {
@@ -127,10 +128,14 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
             </div>
             <div class="name-block"><span class="name">${name} — Containers</span></div>
           </div>
-          ${base
-            ? html`<span class="settings-link" title="View containers in Dockhand" @click=${() => window.open(`${base}/containers`, '_blank', 'noopener,noreferrer')}>
-                <ha-icon icon="mdi:open-in-new"></ha-icon>
-              </span>`
+          ${this._config?.show_settings_link
+            ? base
+              ? html`<span class="settings-link" title=${t(this._hass, 'settings_link_view_containers')} @click=${() => window.open(`${base}/containers`, '_blank', 'noopener,noreferrer')}>
+                  <ha-icon icon="mdi:open-in-new"></ha-icon>
+                </span>`
+              : html`<span class="settings-link unavailable" title=${t(this._hass, 'settings_link_unavailable')}>
+                  <ha-icon icon=${SETTINGS_LINK_UNAVAILABLE_ICON}></ha-icon>
+                </span>`
             : nothing}
         </div>
         <div class="body">
@@ -153,12 +158,13 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
     const mem = found.memoryPercent ? Number(found.memoryPercent.state.state) : undefined;
     const memId = found.memoryPercent?.entityId;
     const id = found.state!.entityId;
+    const visible = new Set(this._config?.visible_badges ?? DEFAULT_CONTAINERS_BADGES);
 
     return html`
       <div class="item-row clickable" tabindex="0" role="button" @click=${() => this._moreInfo(id)} @keydown=${this._onKeydown(id)}>
         <ha-icon class="item-status-icon ${stateIcon.cls}" icon=${stateIcon.icon}></ha-icon>
         <span class="item-name">${row.name}</span>
-        ${health === 'healthy' || health === 'unhealthy' || health === 'starting'
+        ${(health === 'healthy' || health === 'unhealthy' || health === 'starting') && visible.has('health')
           ? html`<span
               class="item-badge ${health === 'healthy' ? 'healthy' : health === 'unhealthy' ? 'unhealthy' : ''} clickable"
               tabindex="0"
@@ -175,7 +181,7 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
               ></ha-icon>
             </span>`
           : nothing}
-        ${row.updateEntityId
+        ${row.updateEntityId && visible.has('updates')
           ? html`<span
               class="item-badge updates clickable"
               tabindex="0"
@@ -190,7 +196,7 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
               <ha-icon icon="mdi:arrow-up-circle"></ha-icon>
             </span>`
           : nothing}
-        ${cpu !== undefined
+        ${cpu !== undefined && visible.has('cpu')
           ? html`<span
               class="item-badge clickable"
               tabindex="0"
@@ -203,7 +209,7 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
               ><ha-icon icon="mdi:chip"></ha-icon>${cpu.toFixed(0)}%</span
             >`
           : nothing}
-        ${mem !== undefined
+        ${mem !== undefined && visible.has('memory')
           ? html`<span
               class="item-badge clickable"
               tabindex="0"

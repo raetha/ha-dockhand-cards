@@ -5,12 +5,26 @@ import { makeEntity, makeState, makeHass } from './test-fixtures';
 const ENV_A = 'env-a';
 const ENV_B = 'env-b';
 
+// pending_updates_total is ha-dockhand's own corrected, system-container-
+// inclusive total as of 1.8.2 (see that repo's sensor.py comment on
+// DockhandEnvContainerCountSensor for the full three-attribute design:
+// pending_updates is bulk-eligible only, pending_system_updates is
+// system-only, pending_updates_total is the sum this repo actually reads
+// for visibility purposes) — this repo just reads whatever value the
+// entity reports, so these tests are about the aggregate-lookup and
+// visibility-condition-building logic, not about system-container
+// correctness itself, which lives entirely on the ha-dockhand side now.
+// A per-container-entity approach was tried here first and reverted: it
+// baked individual container update entity ids into saved `visibility:`
+// config, which went stale the moment a container was added, removed, or
+// recreated, and produced a 50+-condition array for a real environment
+// with that many containers — see docs/ARCHITECTURE.md.
 function hassWithPendingUpdates(deviceId: string, entityId: string, count: number | undefined) {
   const entity = makeEntity({ entity_id: entityId, device_id: deviceId, translation_key: 'containers' });
   const state = makeState({
     entity_id: entityId,
     state: '5',
-    attributes: count === undefined ? {} : { pending_updates: count }
+    attributes: count === undefined ? {} : { pending_updates_total: count }
   });
   return makeHass({ entities: [entity], states: [state] });
 }
@@ -28,12 +42,12 @@ describe('getPendingUpdatesEntityId', () => {
 });
 
 describe('hasPendingUpdates', () => {
-  it('is true when pending_updates is above zero', () => {
+  it('is true when pending_updates_total is above zero', () => {
     const hass = hassWithPendingUpdates(ENV_A, 'sensor.nebula_containers', 3);
     expect(hasPendingUpdates(hass, ENV_A)).toBe(true);
   });
 
-  it('is false when pending_updates is exactly zero', () => {
+  it('is false when pending_updates_total is exactly zero', () => {
     const hass = hassWithPendingUpdates(ENV_A, 'sensor.nebula_containers', 0);
     expect(hasPendingUpdates(hass, ENV_A)).toBe(false);
   });
@@ -43,7 +57,7 @@ describe('hasPendingUpdates', () => {
     expect(hasPendingUpdates(hass, ENV_A)).toBe(true);
   });
 
-  it('defaults to true when the entity exists but pending_updates attribute is absent', () => {
+  it('defaults to true when the entity exists but pending_updates_total attribute is absent', () => {
     const hass = hassWithPendingUpdates(ENV_A, 'sensor.nebula_containers', undefined);
     expect(hasPendingUpdates(hass, ENV_A)).toBe(true);
   });
@@ -53,7 +67,7 @@ describe('buildUpdatesVisibilityCondition', () => {
   it('builds a single numeric_state condition for one environment', () => {
     const hass = hassWithPendingUpdates(ENV_A, 'sensor.nebula_containers', 0);
     const result = buildUpdatesVisibilityCondition(hass, [ENV_A]);
-    expect(result).toEqual([{ condition: 'numeric_state', entity: 'sensor.nebula_containers', attribute: 'pending_updates', above: 0 }]);
+    expect(result).toEqual([{ condition: 'numeric_state', entity: 'sensor.nebula_containers', attribute: 'pending_updates_total', above: 0 }]);
   });
 
   it('OR-combines conditions across multiple environments', () => {
@@ -68,8 +82,8 @@ describe('buildUpdatesVisibilityCondition', () => {
       {
         condition: 'or',
         conditions: [
-          { condition: 'numeric_state', entity: 'sensor.a_containers', attribute: 'pending_updates', above: 0 },
-          { condition: 'numeric_state', entity: 'sensor.b_containers', attribute: 'pending_updates', above: 0 }
+          { condition: 'numeric_state', entity: 'sensor.a_containers', attribute: 'pending_updates_total', above: 0 },
+          { condition: 'numeric_state', entity: 'sensor.b_containers', attribute: 'pending_updates_total', above: 0 }
         ]
       }
     ]);
@@ -83,6 +97,6 @@ describe('buildUpdatesVisibilityCondition', () => {
   it('skips devices that do not resolve, still building conditions for the ones that do', () => {
     const hass = hassWithPendingUpdates(ENV_A, 'sensor.nebula_containers', 0);
     const result = buildUpdatesVisibilityCondition(hass, [ENV_A, ENV_B]);
-    expect(result).toEqual([{ condition: 'numeric_state', entity: 'sensor.nebula_containers', attribute: 'pending_updates', above: 0 }]);
+    expect(result).toEqual([{ condition: 'numeric_state', entity: 'sensor.nebula_containers', attribute: 'pending_updates_total', above: 0 }]);
   });
 });

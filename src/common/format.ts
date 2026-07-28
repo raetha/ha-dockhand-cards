@@ -29,3 +29,18 @@ export function getDockhandBaseUrl(configurationUrl: string | null | undefined):
     return null;
   }
 }
+
+/** Shared by every card's settings-link — shown instead of the normal
+ * clickable link when show_settings_link is on but getDockhandBaseUrl
+ * couldn't resolve a valid URL. Deliberately not the same as the toggle
+ * being off (which hides the icon entirely): this state exists precisely
+ * so "the setting is on but broken" doesn't look identical to "the
+ * setting is off", which was a real, confirmed source of confusion —
+ * a malformed configured URL silently produced the exact same
+ * appearance as choosing not to show the link at all, with nothing to
+ * suggest anything needed fixing. The tooltip text itself is a
+ * translated string (t(hass, 'settings_link_unavailable')), not a
+ * constant here — this repo's live cards didn't translate any
+ * rendered text at all until this string, so there's nothing to keep
+ * consistent with; the icon has no such need, since it's not text. */
+export const SETTINGS_LINK_UNAVAILABLE_ICON = 'mdi:link-off';

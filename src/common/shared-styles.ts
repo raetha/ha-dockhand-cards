@@ -104,6 +104,22 @@ export const sharedStyles = css`
   .settings-link:hover {
     color: var(--primary-text-color);
   }
+  /* Additive modifier, not a replacement for .settings-link — anyone's
+   * existing card_mod targeting .settings-link (a documented, stable
+   * class name — see docs/STYLING.md) still works the same way for the
+   * normal case. Used when show_settings_link is on but the URL couldn't
+   * be resolved, so it reads as "something's misconfigured" rather than
+   * silently looking identical to the toggle being off — hiding both
+   * cases the same way was the actual source of real confusion (a user
+   * enabling the toggle and then seeing nothing, indistinguishable from
+   * the feature being off, with no indication anything needed fixing). */
+  .settings-link.unavailable {
+    cursor: default;
+    opacity: 0.5;
+  }
+  .settings-link.unavailable:hover {
+    color: var(--secondary-text-color);
+  }
   .body {
     margin-top: 10px;
   }
@@ -138,6 +154,10 @@ export const sharedStyles = css`
     color: var(--secondary-text-color);
   }
   .empty-note {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
     font-size: 0.85em;
     color: var(--secondary-text-color);
     text-align: center;
@@ -229,13 +249,12 @@ export const sharedStyles = css`
    * as plain unstyled text. */
   .core-message {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 8px;
   }
   .core-message ha-icon {
     --mdc-icon-size: 18px;
     flex-shrink: 0;
-    margin-top: 1px;
   }
 
   /* Shared "compact row list" pattern — used identically by the Stacks and

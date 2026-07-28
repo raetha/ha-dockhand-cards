@@ -69,6 +69,10 @@ useful ones:
 - `.section`, `.section-title` — the labeled sub-sections in detailed mode / the stack card's git
   section
 - `.unavailable-hint` — the "would show more with these entities enabled" banner
+- `.settings-link.unavailable` — the settings-link icon when `show_settings_link` is on but no
+  usable URL could be resolved (a non-interactive, visually distinct state — see
+  `docs/ARCHITECTURE.md` §6); additive to `.settings-link`, so a card_mod rule targeting
+  `.settings-link` alone still matches this state too
 
 Example — hide the settings gear link entirely on one card instance without turning off
 `show_settings_link` for automations/scripts that might check it:
@@ -85,3 +89,20 @@ card_mod:
 
 Full per-card class lists are easiest to read straight from each card's `styles.ts` — they're
 short, flat, and not worth duplicating here in a way that will drift out of sync.
+
+## Periodic cross-card consistency sweep
+
+Shared concepts (icon+text pairing, status text size, chip padding) belong in `shared-styles.ts`
+once 2+ cards use them — see that file's own comment on the policy. But file placement alone
+doesn't catch drift: two cards can each correctly follow the shared pattern individually and still
+disagree with each other (e.g. the Container/Stack status-word size mismatch, or `.state-word`
+missing `display:flex` entirely while every sibling icon+text class had it) — this happens
+one card at a time, in different sessions, so no single diff makes it visible.
+
+What actually catches this is periodically generating screenshots for all cards via
+`tools/screenshot-harness/` and looking at them side by side, deliberately checking whether the
+same *kind* of element (a status word, an icon+text row, a small badge/chip, a section header)
+looks the same across every card that has one — not just whether each card looks right in
+isolation. Worth doing this before any release that touches shared visual elements, not only when
+something already looks obviously wrong.
+

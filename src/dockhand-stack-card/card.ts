@@ -2,10 +2,12 @@ import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { state } from 'lit/decorators.js';
 import { fireEvent, type LovelaceCard, type LovelaceCardEditor } from 'custom-card-helpers';
 
-import type { HomeAssistant, LovelaceGridOptions } from '../common/ha-types';
-import { getAllStackDevices } from '../common/device-utils';
-import { resolveStackEntities, type ResolutionResult } from '../common/entity-resolver';
+import type { HomeAssistant, LovelaceGridOptions, DeviceRegistryEntry } from '../common/ha-types';
+import { getAllStackDevices, getEnvIdForStackDevice, getContainerDevicesForEnvironment } from '../common/device-utils';
+import { resolveStackEntities, resolveContainerEntities, type ResolutionResult } from '../common/entity-resolver';
 import type { StackTranslationKey } from '../common/const';
+import { getDockhandBaseUrl, SETTINGS_LINK_UNAVAILABLE_ICON } from '../common/format';
+import { t } from '../common/i18n';
 import type { DockhandStackCardConfig } from './types';
 import { cardStyles } from './styles';
 
@@ -93,6 +95,11 @@ export class DockhandStackCard extends LitElement implements LovelaceCard {
       </ha-card>`;
     }
 
+    // Only used to validate configuration_url parses (see the identical
+    // comment in dockhand-environment-card/card.ts for the full
+    // reasoning) — the click target stays the full
+    // device.configuration_url, not this value.
+    const base = getDockhandBaseUrl(device.configuration_url);
     const resolution = resolveStackEntities(this._hass, this._config.device_id, [
       'status',
       'containersInStack',
@@ -117,18 +124,22 @@ export class DockhandStackCard extends LitElement implements LovelaceCard {
             </div>
           </div>
           <span class="type-pill">${device.model ?? 'Stack'}</span>
-          ${this._config?.show_settings_link && device.configuration_url
-            ? html`<span class="settings-link" title="Open in Dockhand" @click=${() => window.open(device.configuration_url!, '_blank', 'noopener,noreferrer')}>
-                <ha-icon icon="mdi:open-in-new"></ha-icon>
-              </span>`
+          ${this._config?.show_settings_link
+            ? base
+              ? html`<span class="settings-link" title=${t(this._hass, 'settings_link_open')} @click=${() => window.open(device.configuration_url!, '_blank', 'noopener,noreferrer')}>
+                  <ha-icon icon="mdi:open-in-new"></ha-icon>
+                </span>`
+              : html`<span class="settings-link unavailable" title=${t(this._hass, 'settings_link_unavailable')}>
+                  <ha-icon icon=${SETTINGS_LINK_UNAVAILABLE_ICON}></ha-icon>
+                </span>`
             : nothing}
         </div>
-        <div class="body">${this._renderBody(s, isGit)}</div>
+        <div class="body">${this._renderBody(s, isGit, device)}</div>
       </ha-card>
     `;
   }
 
-  private _renderBody(s: ResolutionResult<StackTranslationKey>['found'], isGit: boolean): TemplateResult {
+  private _renderBody(s: ResolutionResult<StackTranslationKey>['found'], isGit: boolean, stackDevice: DeviceRegistryEntry): TemplateResult {
     if (!s.status) {
       return html`<div class="unavailable-hint core-message">
         <ha-icon icon="mdi:alert-circle-outline"></ha-icon>
@@ -138,8 +149,10 @@ export class DockhandStackCard extends LitElement implements LovelaceCard {
 
     const status = s.status.state.state;
     const containerCount = s.status.state.attributes.container_count ?? s.containersInStack?.state.state;
+    const containerNames = s.status.state.attributes.container_names as string[] | undefined;
     const updatesOn = s.updatesAvailable?.state.state === 'on';
     const updateCount = s.updatesAvailable?.state.attributes.update_count;
+    const containerEntityIds = containerNames && containerNames.length > 0 ? this._containerNameToEntityId(stackDevice) : new Map<string, string>();
 
     return html`
       <div
@@ -167,8 +180,56 @@ export class DockhandStackCard extends LitElement implements LovelaceCard {
             </div>
           `
         : nothing}
+      ${containerNames && containerNames.length > 0
+        ? html`
+            <div class="section">
+              <div class="section-title"><ha-icon icon="mdi:docker"></ha-icon> Containers</div>
+              <div class="label-row">
+                ${containerNames.map((name) => {
+                  const entityId = containerEntityIds.get(name);
+                  return entityId
+                    ? html`<span
+                        class="label-pill clickable"
+                        tabindex="0"
+                        role="button"
+                        @click=${() => this._moreInfo(entityId)}
+                        @keydown=${this._onKeydown(entityId)}
+                        >${name}</span
+                      >`
+                    : html`<span class="label-pill">${name}</span>`;
+                })}
+              </div>
+            </div>
+          `
+        : nothing}
       ${isGit ? this._renderGitSection(s) : nothing}
     `;
+  }
+
+  /** Maps each container's raw Docker name (what `container_names` lists)
+   * to its "state" entity id, so a pill can link straight to that
+   * container's status/state entity — same raw-name resolution the
+   * Container card's own editor already uses for its dropdown (matching
+   * on Dockhand's actual container name, not the full device display
+   * name), just applied here to make each pill clickable instead of
+   * picking a value. Container devices without a resolvable environment,
+   * or whose own state entity isn't available, are simply left as plain
+   * (non-clickable) pills — same graceful-degradation approach used
+   * throughout this card for missing/disabled entities elsewhere. */
+  private _containerNameToEntityId(stackDevice: DeviceRegistryEntry): Map<string, string> {
+    const map = new Map<string, string>();
+    if (!this._hass) return map;
+    const envId = getEnvIdForStackDevice(stackDevice);
+    if (envId === null) return map;
+
+    for (const containerDevice of getContainerDevicesForEnvironment(this._hass, envId)) {
+      const { found } = resolveContainerEntities(this._hass, containerDevice.id, ['state']);
+      const rawName = found.state?.state.attributes.name as string | undefined;
+      if (rawName && found.state) {
+        map.set(rawName, found.state.entityId);
+      }
+    }
+    return map;
   }
 
   private _renderGitSection(s: ResolutionResult<StackTranslationKey>['found']): TemplateResult {

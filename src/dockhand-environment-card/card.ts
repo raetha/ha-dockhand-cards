@@ -11,7 +11,9 @@ import {
   type TopContainerEntry
 } from '../common/entity-resolver';
 import { REQUIRED_KEYS_BY_MODE, OPTIONAL_STATUS_KEYS, type EnvTranslationKey } from '../common/const';
-import { barColorClass, formatBytes } from '../common/format';
+import { barColorClass, formatBytes, getDockhandBaseUrl, SETTINGS_LINK_UNAVAILABLE_ICON } from '../common/format';
+import { t } from '../common/i18n';
+import { getLabelColors } from '../common/label-colors';
 import { CUSTOM_SECTION_ORDER, DEFAULT_CUSTOM_SECTIONS, type CardMode, type CustomSection, type DockhandEnvironmentCardConfig } from './types';
 import { cardStyles } from './styles';
 
@@ -495,7 +497,14 @@ export class DockhandEnvironmentCard extends LitElement implements LovelaceCard 
     return html`
       <ha-card>
         ${this._renderHeader(name, device, online, s)}
-        ${labels.length > 0 ? html`<div class="label-row">${labels.map((l) => html`<span class="label-pill">${l}</span>`)}</div>` : nothing}
+        ${labels.length > 0
+          ? html`<div class="label-row">
+              ${labels.map((l) => {
+                const { color, bgColor } = getLabelColors(l);
+                return html`<span class="label-pill" style="color: ${color}; background: ${bgColor};">${l}</span>`;
+              })}
+            </div>`
+          : nothing}
         <div class="body">
           ${isUnavailableCore
             ? html`<div class="error-state core-message">
@@ -526,6 +535,16 @@ export class DockhandEnvironmentCard extends LitElement implements LovelaceCard 
     online: boolean,
     s: ResolutionResult<EnvTranslationKey>['found']
   ): TemplateResult {
+    // Only used to validate that configuration_url actually parses
+    // (getDockhandBaseUrl catches an invalid URL and returns null, same
+    // defense-in-depth every other card already has) — the click target
+    // below is still the full device.configuration_url, not this value,
+    // since base is deliberately just the origin and this URL already
+    // has ha-dockhand's own deep-link path/query baked in (edit this
+    // specific environment's settings, not a generic page). Using base
+    // itself as the click target would silently strip that path — a
+    // real mistake caught in review, not a hypothetical one.
+    const base = getDockhandBaseUrl(device.configuration_url);
     // Prefer the real connection_type entity (ha-dockhand 1.8.0+) so the
     // icon follows the entity's own icon (including any user override) and
     // stays in sync with ha-dockhand's own corrected iconography. Falls
@@ -603,10 +622,14 @@ export class DockhandEnvironmentCard extends LitElement implements LovelaceCard 
           ${this._statusIcon(s.vulnerabilityScanning, '--dockhand-status-ok-color')}
           ${this._statusIcon(s.activityLogging, '--dockhand-status-warn-color')}
           ${this._statusIcon(s.metricsCollection, '--dockhand-status-info-color')}
-          ${this._config?.show_settings_link && device.configuration_url
-            ? html`<span class="settings-link" title="Open in Dockhand" @click=${() => this._openDockhand(device.configuration_url!)}>
-                <ha-icon icon="mdi:cog"></ha-icon>
-              </span>`
+          ${this._config?.show_settings_link
+            ? base
+              ? html`<span class="settings-link" title=${t(this._hass, 'settings_link_open')} @click=${() => this._openDockhand(device.configuration_url!)}>
+                  <ha-icon icon="mdi:cog"></ha-icon>
+                </span>`
+              : html`<span class="settings-link unavailable" title=${t(this._hass, 'settings_link_unavailable')}>
+                  <ha-icon icon=${SETTINGS_LINK_UNAVAILABLE_ICON}></ha-icon>
+                </span>`
             : nothing}
         </div>
       </div>

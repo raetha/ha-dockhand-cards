@@ -1,19 +1,17 @@
-import { LitElement, html, nothing, type TemplateResult } from 'lit';
+import { LitElement, html, type TemplateResult } from 'lit';
 import { state } from 'lit/decorators.js';
 import { fireEvent, type LovelaceCardEditor } from 'custom-card-helpers';
+import type { HaFormSchema } from '../common/ha-form-types';
 
 import type { HomeAssistant } from '../common/ha-types';
 import { getEnvironmentDevices } from '../common/device-utils';
 import { t } from '../common/i18n';
-import { editorFormStyles } from '../common/editor-styles';
 import { buildUpdatesVisibilityCondition } from '../common/updates-visibility';
 import type { DockhandUpdatesCardConfig } from './types';
 
 export class DockhandUpdatesCardEditor extends LitElement implements LovelaceCardEditor {
   @state() private _config?: DockhandUpdatesCardConfig;
   @state() private _hass?: HomeAssistant;
-
-  static styles = editorFormStyles;
 
   set hass(hass: HomeAssistant) {
     this._hass = hass;
@@ -23,68 +21,76 @@ export class DockhandUpdatesCardEditor extends LitElement implements LovelaceCar
     this._config = { ...config, scope: config.scope ?? 'all' };
   }
 
+  private _schema(devices: ReturnType<typeof getEnvironmentDevices>, scope: 'all' | 'environment'): HaFormSchema[] {
+    return [
+      {
+        name: 'scope',
+        required: true,
+        selector: {
+          select: {
+            mode: 'dropdown',
+            options: [
+              { value: 'all', label: t(this._hass, 'updates_scope_all') },
+              { value: 'environment', label: t(this._hass, 'updates_scope_environment') }
+            ]
+          }
+        }
+      },
+      // Conditionally included rather than expressed via the schema's own
+      // `visible:` condition — that's real, but only landed in HA's dev
+      // branch on 2026-07-17 and isn't in any released version yet
+      // (verified directly against HA core's actual frontend pin — even
+      // 2026.7.4, the latest release as of this writing, predates it).
+      // Omitting the field entirely achieves the identical visible
+      // behavior without depending on unreleased HA functionality —
+      // revisit once `visible:` actually ships.
+      ...(scope === 'environment'
+        ? [{ name: 'device_id', selector: { select: { mode: 'dropdown' as const, options: devices.map((d) => ({ value: d.deviceId, label: d.name })) } } }]
+        : []),
+      { name: 'title', selector: { text: {} } },
+      { name: 'hide_when_no_updates', default: false, selector: { boolean: {} } }
+    ];
+  }
+
   protected render(): TemplateResult {
     if (!this._hass || !this._config) return html``;
 
     const devices = getEnvironmentDevices(this._hass);
 
     return html`
-      <div class="row">
-        <ha-select
-          label="Scope"
-          .options=${[
-            { value: 'all', label: 'All environments' },
-            { value: 'environment', label: 'One environment' }
-          ]}
-          .value=${this._config.scope}
-          @selected=${this._scopeChanged}
-        ></ha-select>
-      </div>
-
-      ${this._config.scope === 'environment'
-        ? html`
-            <div class="row">
-              <ha-select
-                label=${t(this._hass, 'environment')}
-                .options=${devices.map((d) => ({ value: d.deviceId, label: d.name }))}
-                .value=${this._config.device_id ?? ''}
-                @selected=${this._deviceChanged}
-              ></ha-select>
-              ${devices.length === 0 ? html`<div class="hint">${t(this._hass, 'no_environments_found')}</div>` : nothing}
-            </div>
-          `
-        : nothing}
-
-      <div class="row">
-        <ha-input label=${t(this._hass, 'title_override')} .value=${this._config.title ?? ''} @input=${this._titleChanged}></ha-input>
-      </div>
-
-      <div class="row">
-        <ha-formfield label="Hide when no updates">
-          <ha-switch .checked=${this._config.hide_when_no_updates ?? false} @change=${this._hideToggled}></ha-switch>
-        </ha-formfield>
-        <div class="hint">
-          Uses Home Assistant's own card visibility condition — the same feature available in every card's own editor — rather
-          than anything this card invents itself, so the card is genuinely gone (not just empty) when hidden.
-        </div>
-      </div>
+      <ha-form
+        .hass=${this._hass}
+        .data=${this._config}
+        .schema=${this._schema(devices, this._config.scope ?? 'all')}
+        .computeLabel=${this._computeLabel}
+        .computeHelper=${(schema: HaFormSchema) => this._computeHelper(schema, devices)}
+        @value-changed=${this._valueChanged}
+      ></ha-form>
     `;
   }
 
-  private _scopeChanged(ev: CustomEvent<{ value: string }>): void {
-    this._updateConfig({ scope: ev.detail.value as 'environment' | 'all' });
-  }
+  private _computeLabel = (schema: HaFormSchema): string => {
+    switch (schema.name) {
+      case 'scope':
+        return t(this._hass, 'updates_scope_label');
+      case 'device_id':
+        return t(this._hass, 'environment');
+      case 'title':
+        return t(this._hass, 'title_override');
+      case 'hide_when_no_updates':
+        return t(this._hass, 'hide_when_no_updates_override');
+      default:
+        return schema.name;
+    }
+  };
 
-  private _deviceChanged(ev: CustomEvent<{ value: string }>): void {
-    this._updateConfig({ device_id: ev.detail.value });
-  }
-
-  private _titleChanged(ev: Event): void {
-    this._updateConfig({ title: (ev.target as HTMLInputElement).value });
-  }
-
-  private _hideToggled(ev: Event): void {
-    this._updateConfig({ hide_when_no_updates: (ev.target as HTMLInputElement).checked });
+  private _computeHelper(schema: HaFormSchema, devices: ReturnType<typeof getEnvironmentDevices>): string {
+    if (schema.name === 'device_id' && devices.length === 0) return t(this._hass, 'no_environments_found');
+    // The card is fully removed when hidden (Home Assistant's own card
+    // visibility condition), not just emptied — worth saying since it's
+    // not obvious from the toggle's own label.
+    if (schema.name === 'hide_when_no_updates') return t(this._hass, 'hide_when_no_updates_helper');
+    return '';
   }
 
   /** Reconciles the card's own `visibility:` condition against its
@@ -98,10 +104,15 @@ export class DockhandUpdatesCardEditor extends LitElement implements LovelaceCar
    * docs/ARCHITECTURE.md for why an earlier getGridOptions()-based
    * approach couldn't achieve that. Removes `visibility` entirely from
    * the saved config when the toggle is off, rather than leaving a
-   * stale condition behind. */
-  private _updateConfig(partial: Partial<DockhandUpdatesCardConfig>): void {
-    if (!this._config) return;
-    const next: DockhandUpdatesCardConfig = { ...this._config, ...partial };
+   * stale condition behind.
+   *
+   * This is genuinely not expressible as a plain ha-form schema field —
+   * it's a derived side effect across several fields, not a value one
+   * field holds — so it stays hand-written here rather than in the
+   * schema, even though the rest of this editor now goes through
+   * <ha-form>. */
+  private _valueChanged(ev: CustomEvent<{ value: DockhandUpdatesCardConfig }>): void {
+    const next = { ...ev.detail.value };
 
     if (next.hide_when_no_updates && this._hass) {
       const deviceIds = next.scope === 'environment' ? (next.device_id ? [next.device_id] : []) : getEnvironmentDevices(this._hass).map((d) => d.deviceId);

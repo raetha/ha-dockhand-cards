@@ -1,51 +1,45 @@
-import { LitElement, html, nothing, type TemplateResult } from 'lit';
-import { state } from 'lit/decorators.js';
+import { LitElement, html, type TemplateResult } from 'lit';
+import { state, property } from 'lit/decorators.js';
 import { fireEvent, type LovelaceCardEditor } from 'custom-card-helpers';
+import type { HaFormSchema } from '../common/ha-form-types';
 
 import type { HomeAssistant } from '../common/ha-types';
 import { getEnvironmentDevices } from '../common/device-utils';
 import { resolveEnvironmentEntities } from '../common/entity-resolver';
-import { editorFormStyles } from '../common/editor-styles';
 import { REQUIRED_KEYS_BY_MODE, ENV_FRIENDLY_LABEL, type EnvTranslationKey } from '../common/const';
-import { t } from '../common/i18n';
-import { CUSTOM_SECTION_ORDER, DEFAULT_CUSTOM_SECTIONS, type CardMode, type CustomSection, type DockhandEnvironmentCardConfig } from './types';
+import { t, type TranslationKey } from '../common/i18n';
+import { editorFormStyles } from '../common/editor-styles';
+import { CUSTOM_SECTION_ORDER, DEFAULT_CUSTOM_SECTIONS, type CardMode, type DockhandEnvironmentCardConfig } from './types';
 
 const MODE_KEYS = { compact: 'mode_compact', standard: 'mode_standard', detailed: 'mode_detailed', full: 'mode_full', custom: 'mode_custom' } as const;
 
-const SECTION_LABEL: Record<CustomSection, string> = {
-  container_counts: 'Container counts (+ health banner)',
-  metrics: 'CPU / memory bars',
-  resources: 'Images / stacks / volumes / networks',
-  events_summary: 'Events (today / total)',
-  recent_events: 'Recent events list',
-  top_containers: 'Top containers by CPU',
-  disk_usage: 'Disk usage breakdown',
-  history_chart: 'CPU / memory history chart'
+const SECTION_LABEL_KEY: Record<string, TranslationKey> = {
+  container_counts: 'section_container_counts',
+  metrics: 'section_metrics',
+  resources: 'section_resources',
+  events_summary: 'section_events_summary',
+  recent_events: 'section_recent_events',
+  top_containers: 'section_top_containers',
+  disk_usage: 'section_disk_usage',
+  history_chart: 'section_history_chart'
 };
-
-const MODES: { value: CardMode; label: string; hint: string }[] = [
-  { value: 'compact', label: 'Compact', hint: 'Name, online status, and the container counts row with health banner — same as the top of Standard, without CPU/memory/resource counts/events below it.' },
-  { value: 'standard', label: 'Standard', hint: 'Adds CPU/memory bars, health banner, image/stack/volume/network counts, and events.' },
-  {
-    value: 'detailed',
-    label: 'Detailed',
-    hint: 'Standard, plus top containers by CPU and recent events (both need a recent ha-dockhand release — no per-container entities required). Sections you haven\u2019t got the data for yet are simply left out, not shown broken.'
-  },
-  {
-    value: 'full',
-    label: 'Full',
-    hint: 'Detailed, plus a disk usage breakdown (needs the Disk usage sensor enabled — off by default) and 15-minute CPU/memory history charts, matching Dockhand\u2019s own window (needs Home Assistant\u2019s recorder to have history for those sensors).'
-  },
-  {
-    value: 'custom',
-    label: 'Custom',
-    hint: 'Pick exactly which sections to show, independent of the fixed combinations above — e.g. just the summary and CPU/memory/disk sections without either list.'
-  }
-];
 
 export class DockhandEnvironmentCardEditor extends LitElement implements LovelaceCardEditor {
   @state() private _config?: DockhandEnvironmentCardConfig;
   @state() private _hass?: HomeAssistant;
+  /** See DockhandVulnerabilityCardEditor's identical property for the
+   * full reasoning — set only by the Overview card's per-environment
+   * override detail view, never by HA itself. */
+  @property({ type: Boolean }) hideDevicePicker = false;
+  /** Set only by Overview's per-section global-defaults view — a
+   * title override is inherently per-instance (it names one specific
+   * card), so it has no sensible meaning as a value shared across every
+   * environment's generated card. Never set by HA itself, and distinct
+   * from hideDevicePicker: the per-environment override view sets
+   * hideDevicePicker alone (title still makes sense there, since it's
+   * scoped to one environment's card), while the global-defaults view
+   * sets both. */
+  @property({ type: Boolean }) hideTitle = false;
 
   static styles = editorFormStyles;
 
@@ -57,135 +51,138 @@ export class DockhandEnvironmentCardEditor extends LitElement implements Lovelac
     this._config = config;
   }
 
+  private _schema(devices: ReturnType<typeof getEnvironmentDevices>, selectedMode: CardMode): HaFormSchema[] {
+    const sectionOptions: Record<string, string> = {};
+    for (const section of CUSTOM_SECTION_ORDER) {
+      sectionOptions[section] = t(this._hass, SECTION_LABEL_KEY[section]);
+    }
+
+    return [
+      ...(this.hideDevicePicker
+        ? []
+        : [
+            {
+              name: 'device_id',
+              required: true,
+              selector: { select: { mode: 'dropdown' as const, options: devices.map((d) => ({ value: d.deviceId, label: d.name })) } }
+            }
+          ]),
+      {
+        name: 'mode',
+        required: true,
+        default: 'standard',
+        selector: {
+          select: { mode: 'dropdown', options: (Object.keys(MODE_KEYS) as CardMode[]).map((value) => ({ value, label: t(this._hass, MODE_KEYS[value]) })) }
+        }
+      },
+      // Conditionally included rather than expressed via the schema's own
+      // `visible:` condition — that's real, but only landed in HA's dev
+      // branch on 2026-07-17 and isn't in any released version yet
+      // (verified directly against HA core's actual frontend pin — even
+      // 2026.7.4, the latest release as of this writing, predates it).
+      // Omitting the field entirely achieves the identical visible
+      // behavior without depending on unreleased HA functionality —
+      // revisit once `visible:` actually ships.
+      ...(selectedMode === 'custom' ? [{ name: 'custom_sections', type: 'multi_select' as const, options: sectionOptions }] : []),
+      ...(this.hideTitle ? [] : [{ name: 'title', selector: { text: {} } }]),
+      { name: 'show_settings_link', default: true, selector: { boolean: {} } }
+    ];
+  }
+
   protected render(): TemplateResult {
     if (!this._hass || !this._config) return html``;
 
     const devices = getEnvironmentDevices(this._hass);
     const selectedMode = this._config.mode ?? 'standard';
 
-    if (devices.length === 0) {
+    if (!this.hideDevicePicker && devices.length === 0) {
       return html`<div class="row">${t(this._hass, 'no_environments_found')}</div>`;
     }
 
     return html`
-      <div class="row">
-        <ha-select
-          label=${t(this._hass, 'environment')}
-          .options=${devices.map((d) => ({ value: d.deviceId, label: d.name }))}
-          .value=${this._config.device_id}
-          @selected=${this._deviceChanged}
-        ></ha-select>
-      </div>
-
-      <div class="row">
-        <ha-select
-          label=${t(this._hass, 'display_mode')}
-          .options=${MODES.map((m) => ({ value: m.value, label: t(this._hass, MODE_KEYS[m.value]) }))}
-          .value=${selectedMode}
-          .helper=${MODES.find((m) => m.value === selectedMode)?.hint}
-          @selected=${this._modeChanged}
-        ></ha-select>
-      </div>
-
-      <div class="row">
-        <ha-input label=${t(this._hass, 'title_override')} .value=${this._config.title ?? ''} @input=${this._titleChanged}></ha-input>
-      </div>
-
-      <div class="row">
-        <ha-formfield label=${t(this._hass, 'show_settings_link')}>
-          <ha-switch .checked=${this._config.show_settings_link ?? true} @change=${this._settingsLinkChanged}></ha-switch>
-        </ha-formfield>
-      </div>
-
-      ${selectedMode === 'custom' ? this._renderSectionCheckboxes() : nothing}
-
-      ${this._renderAvailabilityHint(selectedMode)}
+      <ha-form
+        .hass=${this._hass}
+        .data=${{ ...this._config, custom_sections: this._config.custom_sections ?? DEFAULT_CUSTOM_SECTIONS }}
+        .schema=${this._schema(devices, selectedMode)}
+        .computeLabel=${this._computeLabel}
+        .computeHelper=${this._computeHelper}
+        .warning=${this._warning(selectedMode)}
+        @value-changed=${this._valueChanged}
+      ></ha-form>
     `;
   }
 
-  private _renderSectionCheckboxes(): TemplateResult {
-    const selected = new Set(this._config?.custom_sections ?? DEFAULT_CUSTOM_SECTIONS);
-    return html`
-      <div class="row sub-row">
-        <div class="hint">Which sections to show — pick any combination.</div>
-      </div>
-      ${CUSTOM_SECTION_ORDER.map(
-        (section) => html`
-          <div class="row sub-row">
-            <ha-formfield label=${SECTION_LABEL[section]}>
-              <ha-switch .checked=${selected.has(section)} @change=${this._sectionToggle(section)}></ha-switch>
-            </ha-formfield>
-          </div>
-        `
-      )}
-    `;
-  }
+  private _computeLabel = (schema: HaFormSchema): string => {
+    switch (schema.name) {
+      case 'device_id':
+        return t(this._hass, 'environment');
+      case 'mode':
+        return t(this._hass, 'display_mode');
+      case 'title':
+        return t(this._hass, 'title_override');
+      case 'custom_sections':
+        return t(this._hass, 'custom_sections_label');
+      case 'show_settings_link':
+        return t(this._hass, 'show_settings_link');
+      default:
+        return schema.name;
+    }
+  };
 
-  private _renderAvailabilityHint(mode: CardMode): TemplateResult | typeof nothing {
-    if (!this._hass || !this._config?.device_id) return nothing;
-    const requiredKeys = REQUIRED_KEYS_BY_MODE[mode] ?? REQUIRED_KEYS_BY_MODE.standard;
-    const { unavailable } = resolveEnvironmentEntities(this._hass, this._config.device_id, requiredKeys);
-    if (unavailable.length === 0) return nothing;
+  /** Trimmed to genuinely non-obvious prerequisites only (a sensor
+   * that's off by default, a feature that needs a newer ha-dockhand,
+   * HA's own recorder) — compact/standard have neither, so they get no
+   * hint at all. What each mode visually adds is better learned by
+   * actually switching between them in the live preview than by
+   * reading a paragraph describing it first. */
+  private _computeHelper = (schema: HaFormSchema): string => {
+    if (schema.name !== 'mode') return '';
+    switch (this._config?.mode ?? 'standard') {
+      case 'detailed':
+        return t(this._hass, 'mode_hint_detailed');
+      case 'full':
+        return t(this._hass, 'mode_hint_full');
+      case 'custom':
+        return t(this._hass, 'mode_hint_custom');
+      default:
+        return '';
+    }
+  };
 
-    return html`
-      <div class="hint-box">
-        This card would show more with these entities enabled:
-        <ul>
-          ${unavailable.map(
-            (u: { key: EnvTranslationKey; reason: string }) =>
-              html`<li>${ENV_FRIENDLY_LABEL[u.key] ?? u.key}${u.reason === 'not_found' ? ' (requires a newer ha-dockhand release)' : ''}</li>`
-          )}
-        </ul>
-      </div>
-    `;
-  }
-
-  private _deviceChanged(ev: CustomEvent<{ value: string }>): void {
-    this._updateConfig({ device_id: ev.detail.value });
-  }
-
-  private _modeChanged(ev: CustomEvent<{ value: string }>): void {
-    const mode = ev.detail.value as CardMode;
-    if (!this._config) return;
-    const next = { ...this._config, mode };
-    if (mode !== 'custom' && next.custom_sections !== undefined) {
-      // Switching away from Custom — the custom_sections selection no
-      // longer takes effect, so drop it from the saved config entirely
-      // rather than leaving it behind. Otherwise it just bloats the yaml
-      // with a setting that's doing nothing, and could read as confusing
-      // or contradictory to someone looking at the config later (e.g.
-      // "why does this say history_chart: false when mode is full,
-      // which always shows it?").
+  /** custom_sections falls back to DEFAULT_CUSTOM_SECTIONS the same way
+   * the card itself does — done via the `data` passed into <ha-form>
+   * above, not a schema-level `default` (that only applies when the
+   * field is absent from `data` entirely, and here the fallback also
+   * needs to apply whenever mode isn't 'custom', before the field would
+   * ever be shown). Only real cleanup needed on the way back out: drop
+   * custom_sections whenever mode isn't 'custom', matching the card's
+   * own set-membership check (a stale list left over from a previous
+   * Custom-mode session shouldn't linger once mode has moved away from
+   * it) — same behavior the original hand-written _modeChanged had. */
+  private _valueChanged(ev: CustomEvent<{ value: DockhandEnvironmentCardConfig }>): void {
+    const next = { ...ev.detail.value };
+    if (next.mode !== 'custom') {
       delete next.custom_sections;
     }
     this._config = next;
     fireEvent(this, 'config-changed', { config: this._config });
   }
 
-  private _sectionToggle(section: CustomSection) {
-    return (ev: Event) => {
-      const selected = new Set(this._config?.custom_sections ?? DEFAULT_CUSTOM_SECTIONS);
-      if ((ev.target as HTMLInputElement).checked) {
-        selected.add(section);
-      } else {
-        selected.delete(section);
-      }
-      this._updateConfig({ custom_sections: CUSTOM_SECTION_ORDER.filter((s) => selected.has(s)) });
-    };
-  }
+  /** Attached to the 'mode' field (not device_id — device_id can be
+   * hidden entirely when hideDevicePicker is true, but mode is always
+   * present) via ha-form's own native .warning/computeWarning mechanism
+   * — see DockhandContainerCardEditor's identical comment for the full
+   * reasoning. */
+  private _warning(mode: CardMode): Record<string, string> {
+    if (!this._hass || !this._config?.device_id) return {};
+    const requiredKeys = REQUIRED_KEYS_BY_MODE[mode] ?? REQUIRED_KEYS_BY_MODE.standard;
+    const { unavailable } = resolveEnvironmentEntities(this._hass, this._config.device_id, requiredKeys);
+    if (unavailable.length === 0) return {};
 
-  private _titleChanged(ev: Event): void {
-    this._updateConfig({ title: (ev.target as HTMLInputElement).value });
-  }
-
-  private _settingsLinkChanged(ev: Event): void {
-    this._updateConfig({ show_settings_link: (ev.target as HTMLInputElement).checked });
-  }
-
-  private _updateConfig(partial: Partial<DockhandEnvironmentCardConfig>): void {
-    if (!this._config) return;
-    this._config = { ...this._config, ...partial };
-    fireEvent(this, 'config-changed', { config: this._config });
+    const names = unavailable
+      .map((u: { key: EnvTranslationKey; reason: string }) => `${ENV_FRIENDLY_LABEL[u.key] ?? u.key}${u.reason === 'not_found' ? ' (requires a newer ha-dockhand release)' : ''}`)
+      .join(', ');
+    return { mode: `This card would show more with these entities enabled: ${names}.` };
   }
 }
 

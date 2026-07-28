@@ -10,8 +10,30 @@ import type { DockhandVulnerabilityCardConfig } from '../dockhand-vulnerability-
 import type { DockhandStacksCardConfig } from '../dockhand-stacks-card/types';
 import type { DockhandContainersCardConfig } from '../dockhand-containers-card/types';
 import type { DockhandUpdatesCardConfig } from '../dockhand-updates-card/types';
-import { DEFAULT_SECTION_ORDER, type DockhandOverviewCardConfig, type OverviewSection } from './types';
+import { DEFAULT_SECTION_ORDER, getEnvironmentOrder, getEnvironmentOverrides, type DockhandOverviewCardConfig, type OverviewSection } from './types';
 import { cardStyles } from './styles';
+
+/** Resolves one generated child card's field: a per-environment override
+ * wins if set, otherwise the section-wide global default if set,
+ * otherwise the key is omitted entirely so the child card's own default
+ * applies (see the comment above _renderColumn's config objects for why
+ * omitting rather than passing `undefined` matters here). Extracted as
+ * a shared helper specifically because the previous hand-copied version
+ * of this exact ternary chain was written once for `visible_badges`/
+ * `title` and never extended when `show_settings_link` became a second
+ * override+global-default-capable field — silently leaving every
+ * generated Stacks/Containers card's link-visibility permanently at its
+ * own default regardless of what Overview's global setting or
+ * per-environment override said, and leaving Environment/Vulnerability's
+ * own show_settings_link with an override path but no global-default
+ * one. A single call site per field, reused for every field that has
+ * this exact override→global→omit shape, is what makes adding a 5th one
+ * later just another call instead of another hand-copied ternary to
+ * remember. */
+export function mergeOverridableField<K extends string, T>(key: K, overrideValue: T | undefined, globalValue: T | undefined): { [P in K]?: T } {
+  const value = overrideValue ?? globalValue;
+  return value !== undefined ? ({ [key]: value } as { [P in K]?: T }) : {};
+}
 
 export class DockhandOverviewCard extends LitElement implements LovelaceCard {
   static styles = cardStyles;
@@ -124,7 +146,7 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
    * Array.sort is stable and getEnvironmentDevices already sorts
    * alphabetically. */
   private _orderIndex(deviceId: string): number {
-    const order = this._config?.environment_order;
+    const order = getEnvironmentOrder(this._config);
     if (!order) return 0;
     const index = order.indexOf(deviceId);
     return index === -1 ? order.length : index;
@@ -144,20 +166,52 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
   }
 
   private _renderColumn(deviceId: string, name: string): TemplateResult {
+    const override = getEnvironmentOverrides(this._config)?.[deviceId];
+
+    // Deliberately NOT `title: override?.environment?.title` etc. for
+    // every field — Environment/Vulnerability cards' own setConfig()
+    // merges `{ show_settings_link: true, ...config }`, so an explicit
+    // `show_settings_link: undefined` key here (present but unset,
+    // whenever there's no override) would overwrite that default with
+    // undefined via the spread, silently hiding the settings link for
+    // every environment. Only including a key when the override actually
+    // sets it — same as any other real "absence means use the default"
+    // config coming from YAML — sidesteps that entirely.
     const envCfg: DockhandEnvironmentCardConfig = {
       type: 'custom:dockhand-environment-card',
       device_id: deviceId,
-      mode: this._config?.environment_mode ?? 'standard',
-      custom_sections: this._config?.environment_custom_sections
+      mode: override?.environment?.mode ?? this._config?.environment_mode ?? 'standard',
+      ...(override?.environment?.custom_sections !== undefined ? { custom_sections: override.environment.custom_sections } : this._config?.environment_custom_sections !== undefined ? { custom_sections: this._config.environment_custom_sections } : {}),
+      ...(override?.environment?.title !== undefined ? { title: override.environment.title } : {}),
+      ...mergeOverridableField('show_settings_link', override?.environment?.show_settings_link, this._config?.environment_show_settings_link)
     };
-    const vulnCfg: DockhandVulnerabilityCardConfig = { type: 'custom:dockhand-vulnerability-card', device_id: deviceId };
-    const stacksCfg: DockhandStacksCardConfig = { type: 'custom:dockhand-stacks-card', device_id: deviceId };
-    const containersCfg: DockhandContainersCardConfig = { type: 'custom:dockhand-containers-card', device_id: deviceId };
+    const vulnCfg: DockhandVulnerabilityCardConfig = {
+      type: 'custom:dockhand-vulnerability-card',
+      device_id: deviceId,
+      ...(override?.vulnerabilities?.title !== undefined ? { title: override.vulnerabilities.title } : {}),
+      ...mergeOverridableField('show_settings_link', override?.vulnerabilities?.show_settings_link, this._config?.vulnerabilities_show_settings_link)
+    };
+    const stacksCfg: DockhandStacksCardConfig = {
+      type: 'custom:dockhand-stacks-card',
+      device_id: deviceId,
+      ...(override?.stacks?.title !== undefined ? { title: override.stacks.title } : {}),
+      ...mergeOverridableField('visible_badges', override?.stacks?.visible_badges, this._config?.stacks_visible_badges),
+      ...mergeOverridableField('show_settings_link', override?.stacks?.show_settings_link, this._config?.stacks_show_settings_link)
+    };
+    const containersCfg: DockhandContainersCardConfig = {
+      type: 'custom:dockhand-containers-card',
+      device_id: deviceId,
+      ...(override?.containers?.title !== undefined ? { title: override.containers.title } : {}),
+      ...mergeOverridableField('visible_badges', override?.containers?.visible_badges, this._config?.containers_visible_badges),
+      ...mergeOverridableField('show_settings_link', override?.containers?.show_settings_link, this._config?.containers_show_settings_link)
+    };
     const updatesCfg: DockhandUpdatesCardConfig = {
       type: 'custom:dockhand-updates-card',
       scope: 'environment',
-      device_id: deviceId
+      device_id: deviceId,
+      ...(override?.updates?.title !== undefined ? { title: override.updates.title } : {})
     };
+    const updatesHideOverride = override?.updates?.hide_when_no_updates;
 
     const sectionRenderers: Record<OverviewSection, () => TemplateResult | typeof nothing> = {
       environments: () =>
@@ -185,7 +239,8 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
         // plain flex column this card already controls, not HA's
         // sections grid, so there's no CSS span-validity issue to work
         // around the way there was for the standalone card.
-        if (this._config?.updates_hide_when_no_updates && this._hass && !hasPendingUpdates(this._hass, deviceId)) {
+        const hideWhenNoUpdates = updatesHideOverride ?? this._config?.updates_hide_when_no_updates ?? false;
+        if (hideWhenNoUpdates && this._hass && !hasPendingUpdates(this._hass, deviceId)) {
           return nothing;
         }
         return html`<dockhand-updates-card .hass=${this._hass} .config=${updatesCfg}></dockhand-updates-card>`;

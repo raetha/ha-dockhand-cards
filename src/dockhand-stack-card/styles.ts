@@ -19,9 +19,15 @@ export const cardStyles = css`
     justify-content: space-between;
   }
   .status-word {
-    font-size: 1.3em;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 1.1em;
     font-weight: 600;
     text-transform: capitalize;
+  }
+  .status-word ha-icon {
+    --mdc-icon-size: 20px;
   }
   .status-word.running {
     color: var(--dockhand-status-ok-color);
