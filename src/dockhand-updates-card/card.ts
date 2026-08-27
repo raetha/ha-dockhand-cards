@@ -3,13 +3,16 @@ import { state } from 'lit/decorators.js';
 import { fireEvent, type LovelaceCard, type LovelaceCardEditor } from 'custom-card-helpers';
 
 import type { HomeAssistant, LovelaceGridOptions } from '../common/ha-types';
-import { getEnvironmentDevices, getContainerDevicesForEnvironment, getEnvId, type EnvironmentDeviceOption } from '../common/device-utils';
+import { getContainerDevicesForEnvironment, getEnvId, getEnvironmentDevices, getRepresentativeEntityId, type EnvironmentDeviceOption } from '../common/device-utils';
+import { resolveIncludedOrderedWithLegacy, resolveEffectiveGroupBy } from '../common/environment-scope';
+import { resolveCardName, migrateTitleToName, multiEnvCardNameFallback } from '../common/card-name';
 import { resolveEnvironmentEntities, findPrimaryEntityByDomain } from '../common/entity-resolver';
 import { getTotalPendingUpdates } from '../common/updates-visibility';
+import { renderIcon, onKeydownActivate } from '../common/icon';
 import type { DockhandUpdatesCardConfig } from './types';
 import { cardStyles } from './styles';
 
-interface PendingUpdate {
+export interface PendingUpdate {
   entityId: string;
   name: string;
   installedVersion?: string;
@@ -22,6 +25,23 @@ interface EnvGroup {
   bulkButtonEntityId?: string;
   checkUpdatesEntityId?: string;
   updates: PendingUpdate[];
+}
+
+/** Alphabetical by name — the one sort this card offers (no group_by/
+ * sort_by choice here; see docs/EDITOR_DESIGN.md rule 1 and the
+ * README's own Updates section for why). */
+export function sortPendingUpdates(updates: PendingUpdate[]): PendingUpdate[] {
+  return [...updates].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** Whether an environment gets its own group at all — not just "has
+ * pending updates." An environment with a working bulk-update button but
+ * nothing currently pending still shows, so the button stays visible/
+ * discoverable rather than the whole environment disappearing the
+ * moment nothing needs updating; one with neither a button nor any
+ * pending updates is correctly left out, not shown as an empty group. */
+export function shouldShowEnvironmentGroup(updates: PendingUpdate[], hasBulkButton: boolean): boolean {
+  return updates.length > 0 || hasBulkButton;
 }
 
 export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
@@ -41,7 +61,7 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
   }
 
   static getStubConfig(): Partial<DockhandUpdatesCardConfig> {
-    return { type: 'custom:dockhand-updates-card', scope: 'all' };
+    return { type: 'custom:dockhand-updates-card' };
   }
 
   static async getConfigElement(): Promise<LovelaceCardEditor> {
@@ -50,10 +70,7 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
   }
 
   setConfig(config: DockhandUpdatesCardConfig): void {
-    if (config.scope === 'environment' && !config.device_id) {
-      throw new Error('Please select a Dockhand environment, or switch scope to "All environments".');
-    }
-    this._config = { ...config, scope: config.scope ?? 'all' };
+    this._config = migrateTitleToName(config as Record<string, unknown>) as DockhandUpdatesCardConfig;
   }
 
   set config(config: DockhandUpdatesCardConfig) {
@@ -73,26 +90,16 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
     fireEvent(this, 'hass-more-info', { entityId });
   }
 
-  private _onKeydown(entityId: string | null | undefined) {
-    return (e: KeyboardEvent) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        this._moreInfo(entityId);
-      }
-    };
-  }
+  private _buildGroups(): { groups: EnvGroup[]; checkUpdatesEntityIds: string[]; envDevices: EnvironmentDeviceOption[] } {
+    if (!this._hass || !this._config) return { groups: [], checkUpdatesEntityIds: [], envDevices: [] };
 
-  private _buildGroups(): { groups: EnvGroup[]; checkUpdatesEntityIds: string[]; envDeviceIds: string[] } {
-    if (!this._hass || !this._config) return { groups: [], checkUpdatesEntityIds: [], envDeviceIds: [] };
-
-    let envDevices: EnvironmentDeviceOption[];
-    if (this._config.scope === 'environment' && this._config.device_id) {
-      const device = this._hass.devices[this._config.device_id];
-      if (!device) return { groups: [], checkUpdatesEntityIds: [], envDeviceIds: [] };
-      envDevices = [{ deviceId: this._config.device_id, name: device.name_by_user || device.name || 'Environment' }];
-    } else {
-      envDevices = getEnvironmentDevices(this._hass);
-    }
+    const envDevices: EnvironmentDeviceOption[] = resolveIncludedOrderedWithLegacy(
+      getEnvironmentDevices(this._hass),
+      this._config.environments_order,
+      this._config.exclude_device_ids,
+      this._config.device_id,
+      this._config.scope
+    );
 
     const groups: EnvGroup[] = [];
     const checkUpdatesEntityIds: string[] = [];
@@ -116,34 +123,33 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
           latestVersion: entry.state.attributes.latest_version
         });
       }
-      updates.sort((a, b) => a.name.localeCompare(b.name));
+      const sortedUpdates = sortPendingUpdates(updates);
 
-      if (updates.length > 0 || found.envBulkUpdate) {
+      if (shouldShowEnvironmentGroup(sortedUpdates, Boolean(found.envBulkUpdate))) {
         groups.push({
           envDeviceId: env.deviceId,
           envName: env.name,
           bulkButtonEntityId: found.envBulkUpdate?.entityId,
           checkUpdatesEntityId: found.checkUpdates?.entityId,
-          updates
+          updates: sortedUpdates
         });
       }
     }
-    return { groups, checkUpdatesEntityIds, envDeviceIds: envDevices.map((e) => e.deviceId) };
+    return { groups, checkUpdatesEntityIds, envDevices };
   }
 
   protected render(): TemplateResult {
     if (!this._config || !this._hass) return html``;
 
-    if (this._config.scope === 'environment' && !this._hass.devices[this._config.device_id ?? '']) {
+    const { groups, checkUpdatesEntityIds, envDevices } = this._buildGroups();
+    if (envDevices.length === 0) {
       return html`<ha-card>
-        <div class="error-state core-message">
+        <div class="card-message error">
           <ha-icon icon="mdi:alert-circle-outline"></ha-icon>
-          <span>Environment device not found. It may have been removed — edit this card to pick another.</span>
+          <span>No environment selected. Edit this card to pick one or more.</span>
         </div>
       </ha-card>`;
     }
-
-    const { groups, checkUpdatesEntityIds, envDeviceIds } = this._buildGroups();
     // Deliberately not groups.reduce((sum, g) => sum + g.updates.length, 0)
     // (a second, independent tally of the same per-container row list) —
     // reads the same pending_updates_total attribute, for the same
@@ -154,68 +160,76 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
     // ha-dockhand's own aggregate and its own per-container update
     // entities — not something to paper over here by re-deriving the
     // count locally instead.
+    const envDeviceIds = envDevices.map((e) => e.deviceId);
     const totalUpdates = getTotalPendingUpdates(this._hass, envDeviceIds);
 
     const bulkButtonIds = groups.map((g) => g.bulkButtonEntityId).filter((id): id is string => Boolean(id));
-    const title = this._config.title ?? 'Updates';
-    // Based on the card's own scope, not how many environments currently
-    // have a pending update — a config with scope: 'all' can show
-    // updates from any environment depending on what's pending right
-    // now, so the environment name matters even when only one happens
-    // to have something pending at this exact moment (a real bug: this
-    // used to require groups.length > 1, so a single populated group
-    // silently dropped the one piece of context that says *where* the
-    // update lives). scope: 'environment' is the only case where the
-    // name is genuinely redundant, since the card is already scoped to
-    // one specific environment by its own config.
-    const showGroupHeaders = this._config.scope === 'all';
+    const representativeEntityId = getRepresentativeEntityId(this._hass, envDeviceIds[0]);
+    const name = resolveCardName(this._hass, representativeEntityId, this._config.name, multiEnvCardNameFallback(envDevices, 'Updates'));
+    // Based on how many environments are actually included, not the
+    // card's old scope field — a single included environment (whether
+    // that's because only one exists, or because everything else was
+    // explicitly excluded) makes the group header redundant the same
+    // way scope: 'environment' always did; more than one still needs it
+    // even if, at this exact moment, only one happens to have anything
+    // pending (a real bug this already fixed once: it used to require
+    // groups.length > 1, so a single populated group silently dropped
+    // the one piece of context that says *where* the update lives).
+    // Same shared suppression Stacks/Containers/Schedules now all use
+    // (see resolveEffectiveGroupBy in common/environment-scope.ts) —
+    // 'environment' collapses to 'none' when there's only one
+    // environment to group, since grouping by the one thing every row
+    // already shares produces a single, pointless header.
+    const effectiveGroupBy = resolveEffectiveGroupBy(this._config.group_by, envDevices, 'environment');
+    const showGroupHeaders = effectiveGroupBy !== 'none';
+    // Flattened, not grouped: every pending update across every
+    // included environment in one sorted list, discarding which group
+    // each came from.
+    const flatUpdates = effectiveGroupBy === 'none' ? sortPendingUpdates(groups.flatMap((g) => g.updates)) : null;
 
     return html`
       <ha-card>
-        <div class="header">
-          <div class="header-left">
-            <div class="icon-badge">
-              <ha-icon icon="mdi:arrow-up-circle"></ha-icon>
+        <div class="body">
+          <div class="card-header">
+            <div class="header-left">
+              ${renderIcon({ baseClass: 'card-badge', icon: 'mdi:arrow-up-circle', static: true })}
+              <span class="truncate">${name}${totalUpdates > 0 ? ` (${totalUpdates})` : ''}</span>
             </div>
-            <div class="name-block"><span class="name">${title}${totalUpdates > 0 ? ` (${totalUpdates})` : ''}</span></div>
-          </div>
-          <div class="header-actions">
+            <div class="header-right">
             ${checkUpdatesEntityIds.length > 0
-              ? html`
-                  <button
-                    class="bulk-button secondary"
-                    ?disabled=${this._checking}
-                    @click=${() => this._triggerCheckUpdates(checkUpdatesEntityIds)}
-                  >
-                    <ha-icon icon="mdi:refresh" class=${this._checking ? 'spinning' : ''}></ha-icon>
-                    ${this._checking ? 'Checking…' : 'Check for updates'}
-                  </button>
-                `
+              ? renderIcon({
+                  baseClass: `header-icon${this._checking ? ' spinning' : ''}`,
+                  icon: 'mdi:refresh',
+                  title: this._checking ? 'Checking…' : 'Check for updates',
+                  ...(this._checking ? { disabled: true } : { onClick: () => this._triggerCheckUpdates(checkUpdatesEntityIds) })
+                })
               : nothing}
             ${bulkButtonIds.length > 0
-              ? html`
-                  <button class="bulk-button" ?disabled=${this._triggering} @click=${() => this._triggerBulkUpdate(bulkButtonIds)}>
-                    <ha-icon icon="mdi:arrow-up-circle"></ha-icon>
-                    ${this._triggering ? 'Updating…' : 'Update all'}
-                  </button>
-                `
+              ? renderIcon({
+                  baseClass: `header-icon filled${this._triggering ? ' spinning' : ''}`,
+                  icon: 'mdi:arrow-up-circle',
+                  text: 'Update all',
+                  title: this._triggering ? 'Updating…' : 'Update all',
+                  ...(this._triggering ? { disabled: true } : { onClick: () => this._triggerBulkUpdate(bulkButtonIds) })
+                })
               : nothing}
+            </div>
           </div>
-        </div>
-        <div class="body">
+          <div class="divider"></div>
           ${groups.every((g) => g.updates.length === 0)
-            ? html`<div class="empty-note">
+            ? html`<div class="card-message">
                 <ha-icon icon="mdi:check-circle-outline"></ha-icon>
                 <span>Everything up to date.</span>
               </div>`
-            : groups.map(
-                (g) => html`
-                  <div class="env-group">
-                    ${showGroupHeaders ? html`<div class="env-group-title">${g.envName}</div>` : nothing}
-                    ${g.updates.map((u) => this._renderUpdateRow(u))}
-                  </div>
-                `
-              )}
+            : flatUpdates
+              ? html`<div class="list">${flatUpdates.map((u) => this._renderUpdateRow(u))}</div>`
+              : groups.map(
+                  (g, i) => html`
+                    ${i > 0 ? html`<div class="divider"></div>` : nothing}
+                    ${showGroupHeaders ? html`<div class="group-header">${g.envName}</div>` : nothing}
+                    <div class="list">${g.updates.map((u) => this._renderUpdateRow(u))}</div>
+                  `
+                )}
         </div>
       </ha-card>
     `;
@@ -223,12 +237,12 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
 
   private _renderUpdateRow(u: PendingUpdate): TemplateResult {
     return html`
-      <div class="update-row clickable" tabindex="0" role="button" @click=${() => this._moreInfo(u.entityId)} @keydown=${this._onKeydown(u.entityId)}>
-        <ha-icon icon="mdi:arrow-up-circle"></ha-icon>
-        <span class="update-name">${u.name}</span>
-        ${u.installedVersion && u.latestVersion
-          ? html`<span class="update-versions">${u.installedVersion} → ${u.latestVersion}</span>`
-          : nothing}
+      <div class="row update-row clickable" tabindex="0" role="button" @click=${() => this._moreInfo(u.entityId)} @keydown=${onKeydownActivate(() => this._moreInfo(u.entityId))}>
+        <div class="row-left">
+          <ha-icon icon="mdi:arrow-up-circle"></ha-icon>
+          <span class="item-name">${u.name}</span>
+        </div>
+        ${u.installedVersion && u.latestVersion ? html`<span class="row-right">${u.installedVersion} → ${u.latestVersion}</span>` : nothing}
       </div>
     `;
   }

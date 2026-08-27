@@ -3,11 +3,12 @@ import {
   ENV_TRANSLATION_KEYS,
   CONTAINER_TRANSLATION_KEYS,
   STACK_TRANSLATION_KEYS,
+  SCHEDULE_TRANSLATION_KEYS,
   type EnvTranslationKey,
   type ContainerTranslationKey,
-  type StackTranslationKey
+  type StackTranslationKey,
+  type ScheduleTranslationKey
 } from './const';
-import { getContainerDevicesForEnvironment } from './device-utils';
 import type { HomeAssistant, EntityRegistryEntry, DeviceRegistryEntry } from './ha-types';
 import type { HassEntity } from 'home-assistant-js-websocket';
 
@@ -110,49 +111,18 @@ export function resolveStackEntities(
   return resolveEntities(hass, deviceId, STACK_TRANSLATION_KEYS, keys);
 }
 
-export interface TopContainerEntry {
-  deviceId: string;
-  name: string;
-  cpuPercent: number | null;
-  cpuEntityId: string | null;
-  memoryPercent: number | null;
-  memoryEntityId: string | null;
+export function resolveScheduleEntities(
+  hass: HomeAssistant,
+  deviceId: string,
+  keys: ScheduleTranslationKey[]
+): ResolutionResult<ScheduleTranslationKey> {
+  return resolveEntities(hass, deviceId, SCHEDULE_TRANSLATION_KEYS, keys);
 }
 
-/**
- * Best-effort "top containers by CPU" for detailed mode, matching
- * Dockhand's own sort. Returns an empty array (never throws/errors) when
- * the per-container CPU/memory sensors aren't enabled — those are
- * opt-in and API-heavy, off by default, so an empty environment here is
- * an expected, common case the card must render cleanly, not a fallback
- * path bolted on afterward.
- */
-export function resolveTopContainers(hass: HomeAssistant, envId: number, limit = 5): TopContainerEntry[] {
-  const containerDevices = getContainerDevicesForEnvironment(hass, envId);
-  const entries: TopContainerEntry[] = [];
-
-  for (const device of containerDevices) {
-    const { found } = resolveContainerEntities(hass, device.id, ['cpuPercent', 'memoryPercent']);
-
-    // A container with neither sensor enabled contributes nothing rankable —
-    // skip it rather than showing a name with two dashes.
-    if (!found.cpuPercent && !found.memoryPercent) continue;
-
-    const cpuPercent = found.cpuPercent ? Number(found.cpuPercent.state.state) : null;
-    const memoryPercent = found.memoryPercent ? Number(found.memoryPercent.state.state) : null;
-
-    entries.push({
-      deviceId: device.id,
-      name: device.name_by_user || device.name || device.id,
-      cpuPercent: Number.isFinite(cpuPercent) ? cpuPercent : null,
-      cpuEntityId: found.cpuPercent?.entityId ?? null,
-      memoryPercent: Number.isFinite(memoryPercent) ? memoryPercent : null,
-      memoryEntityId: found.memoryPercent?.entityId ?? null
-    });
-  }
-
-  entries.sort((a, b) => (b.cpuPercent ?? -1) - (a.cpuPercent ?? -1));
-  return entries.slice(0, limit);
+export interface TopContainerEntry {
+  name: string;
+  cpuPercent: number | null;
+  memoryPercent: number | null;
 }
 
 /**

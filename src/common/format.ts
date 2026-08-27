@@ -30,7 +30,7 @@ export function getDockhandBaseUrl(configurationUrl: string | null | undefined):
   }
 }
 
-/** Shared by every card's settings-link — shown instead of the normal
+/** Shared by every card's header-icon settings link — shown instead of the normal
  * clickable link when show_settings_link is on but getDockhandBaseUrl
  * couldn't resolve a valid URL. Deliberately not the same as the toggle
  * being off (which hides the icon entirely): this state exists precisely
@@ -44,3 +44,36 @@ export function getDockhandBaseUrl(configurationUrl: string | null | undefined):
  * rendered text at all until this string, so there's nothing to keep
  * consistent with; the icon has no such need, since it's not text. */
 export const SETTINGS_LINK_UNAVAILABLE_ICON = 'mdi:link-off';
+
+/** Compact relative time for a schedule's next run or last execution —
+ * "in 4h" / "2h ago" / "in 3d" / "just now". Deliberately coarse (single
+ * unit, no seconds precision beyond "just now") since this is a glance-able
+ * list-row value, not a precise timestamp — the full timestamp is always
+ * available via the entity's more-info dialog for anyone who needs it. */
+export function formatRelativeTime(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return null;
+  const diffMs = then - Date.now();
+  const future = diffMs >= 0;
+  const abs = Math.abs(diffMs);
+
+  const minute = 60_000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+
+  if (abs < minute) return 'just now';
+  let value: number;
+  let unit: string;
+  if (abs < hour) {
+    value = Math.round(abs / minute);
+    unit = 'm';
+  } else if (abs < day) {
+    value = Math.round(abs / hour);
+    unit = 'h';
+  } else {
+    value = Math.round(abs / day);
+    unit = 'd';
+  }
+  return future ? `in ${value}${unit}` : `${value}${unit} ago`;
+}

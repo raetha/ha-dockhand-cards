@@ -1,6 +1,9 @@
 import { css } from 'lit';
+import { sharedStyles } from '../common/shared-styles';
 
 export const cardStyles = css`
+  ${sharedStyles}
+
   .overview {
     display: flex;
     flex-wrap: wrap;
@@ -17,26 +20,5 @@ export const cardStyles = css`
     display: flex;
     flex-direction: column;
     gap: 12px;
-  }
-  .env-column-title {
-    font-size: 0.85em;
-    font-weight: 500;
-    color: var(--secondary-text-color);
-    padding: 0 4px;
-  }
-  .empty-note {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.9em;
-    color: var(--secondary-text-color);
-    text-align: center;
-    padding: 24px 0;
-    width: 100%;
-  }
-  .empty-note ha-icon {
-    --mdc-icon-size: 24px;
-    opacity: 0.6;
   }
 `;

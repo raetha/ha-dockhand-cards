@@ -4,6 +4,7 @@
   "description": "Renders the real card bundle against fictional mock data for documentation screenshots. Not part of the card build itself.",
   "type": "module",
   "dependencies": {
+    "@fontsource/roboto": "^5.3.0",
     "@mdi/js": "^7.4.47"
   }
 }

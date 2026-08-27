@@ -82,6 +82,18 @@ export const STACK_TRANSLATION_KEYS = {
 
 export type StackTranslationKey = keyof typeof STACK_TRANSLATION_KEYS;
 
+// Per-schedule entities, resolved against schedule devices. last_status is
+// the comprehensive/primary entity (name, description, is_system, plus the
+// scheduling fields duplicated from next_run) as of ha-dockhand 1.9.0 — see
+// that repo's ARCHITECTURE.md and CHANGELOG for why. next_run stays the
+// canonical source for the timestamp value itself.
+export const SCHEDULE_TRANSLATION_KEYS = {
+  nextRun: 'next_run',
+  lastStatus: 'last_status'
+} as const;
+
+export type ScheduleTranslationKey = keyof typeof SCHEDULE_TRANSLATION_KEYS;
+
 // Entities needed for each display mode. "compact" is a strict subset of
 // "standard", which is a strict subset of "detailed" (detailed additionally
 // needs per-container cpu/memory sensors on the Containers group device,
@@ -141,8 +153,8 @@ export const REQUIRED_KEYS_BY_MODE: Record<'compact' | 'standard' | 'detailed' |
   ]
 };
 
-// Optional keys: enhance the header status-icon row when present, but the
-// card never errors or shows a "missing entity" hint for these — they're
+// Optional keys: enhance the header's own feature-icon row when present, but
+// the card never errors or shows a "missing entity" hint for these — they're
 // off by default in ha-dockhand and plenty of setups legitimately won't
 // have them enabled.
 export const OPTIONAL_STATUS_KEYS: EnvTranslationKey[] = [
@@ -190,4 +202,45 @@ export const STACK_FRIENDLY_LABEL: Partial<Record<StackTranslationKey, string>> 
   gitSyncStatus: 'Git sync status',
   gitLastSync: 'Git last sync time',
   gitSyncError: 'Git sync error banner'
+};
+
+// Dockhand's own container health values — shared between Container
+// (singular) and Containers (plural, the list card), both of which
+// render a health indicator from the same underlying entity states.
+export const HEALTH_ICON: Record<string, string> = {
+  healthy: 'mdi:heart',
+  unhealthy: 'mdi:heart-broken',
+  starting: 'mdi:heart-outline'
+};
+
+/** Maps Dockhand's own health values to the shared .status-chip/.value-
+ * label's canonical color modifier names (common/shared-styles.ts) —
+ * kept separate from the health value itself, which is still shown as
+ * visible text (a `title` attribute) and used as HEALTH_ICON's own
+ * lookup key verbatim. */
+export const HEALTH_STATUS_CLASS: Record<string, string> = {
+  healthy: 'ok',
+  unhealthy: 'error',
+  starting: 'warn'
+};
+
+/** Maps Stack's own raw status value to .hero-word's own canonical
+ * color modifier names (common/shared-styles.ts) — same pattern as
+ * HEALTH_STATUS_CLASS above. */
+export const STACK_STATUS_CLASS: Record<string, string> = {
+  running: 'ok',
+  partial: 'warn',
+  stopped: 'error',
+  created: 'neutral'
+};
+
+/** Maps Container's own raw state value to .hero-word's own canonical
+ * color modifier names (common/shared-styles.ts) — same pattern as
+ * HEALTH_STATUS_CLASS above. */
+export const CONTAINER_STATE_CLASS: Record<string, string> = {
+  running: 'ok',
+  paused: 'warn',
+  restarting: 'error',
+  exited: 'neutral',
+  dead: 'neutral'
 };

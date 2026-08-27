@@ -4,7 +4,8 @@ import { fireEvent, type LovelaceCardEditor } from 'custom-card-helpers';
 import type { HaFormSchema } from '../common/ha-form-types';
 
 import type { HomeAssistant } from '../common/ha-types';
-import { getEnvironmentDevices } from '../common/device-utils';
+import { getEnvironmentDevices, getRepresentativeEntityId } from '../common/device-utils';
+import { cardNameFieldSchema, migrateTitleToName } from '../common/card-name';
 import { resolveEnvironmentEntities } from '../common/entity-resolver';
 import { REQUIRED_KEYS_BY_MODE, ENV_FRIENDLY_LABEL, type EnvTranslationKey } from '../common/const';
 import { t, type TranslationKey } from '../common/i18n';
@@ -30,35 +31,36 @@ export class DockhandEnvironmentCardEditor extends LitElement implements Lovelac
   /** See DockhandVulnerabilityCardEditor's identical property for the
    * full reasoning — set only by the Overview card's per-environment
    * override detail view, never by HA itself. */
-  @property({ type: Boolean }) hideDevicePicker = false;
+  @property({ type: Boolean }) cardIsEmbedded = false;
   /** Set only by Overview's per-section global-defaults view — a
    * title override is inherently per-instance (it names one specific
    * card), so it has no sensible meaning as a value shared across every
    * environment's generated card. Never set by HA itself, and distinct
-   * from hideDevicePicker: the per-environment override view sets
-   * hideDevicePicker alone (title still makes sense there, since it's
+   * from cardIsEmbedded: the per-environment override view sets
+   * cardIsEmbedded alone (title still makes sense there, since it's
    * scoped to one environment's card), while the global-defaults view
    * sets both. */
   @property({ type: Boolean }) hideTitle = false;
 
-  static styles = editorFormStyles;
+  static styles = [editorFormStyles];
 
   set hass(hass: HomeAssistant) {
     this._hass = hass;
   }
 
   setConfig(config: DockhandEnvironmentCardConfig): void {
-    this._config = config;
+    this._config = migrateTitleToName(config as Record<string, unknown>) as DockhandEnvironmentCardConfig;
   }
 
-  private _schema(devices: ReturnType<typeof getEnvironmentDevices>, selectedMode: CardMode): HaFormSchema[] {
+  private _mainSchema(devices: ReturnType<typeof getEnvironmentDevices>, selectedMode: CardMode): HaFormSchema[] {
     const sectionOptions: Record<string, string> = {};
     for (const section of CUSTOM_SECTION_ORDER) {
       sectionOptions[section] = t(this._hass, SECTION_LABEL_KEY[section]);
     }
+    const representativeEntityId = this._config?.device_id && this._hass ? getRepresentativeEntityId(this._hass, this._config.device_id) : undefined;
 
     return [
-      ...(this.hideDevicePicker
+      ...(this.cardIsEmbedded
         ? []
         : [
             {
@@ -75,17 +77,43 @@ export class DockhandEnvironmentCardEditor extends LitElement implements Lovelac
           select: { mode: 'dropdown', options: (Object.keys(MODE_KEYS) as CardMode[]).map((value) => ({ value, label: t(this._hass, MODE_KEYS[value]) })) }
         }
       },
-      // Conditionally included rather than expressed via the schema's own
-      // `visible:` condition — that's real, but only landed in HA's dev
-      // branch on 2026-07-17 and isn't in any released version yet
-      // (verified directly against HA core's actual frontend pin — even
-      // 2026.7.4, the latest release as of this writing, predates it).
-      // Omitting the field entirely achieves the identical visible
-      // behavior without depending on unreleased HA functionality —
-      // revisit once `visible:` actually ships.
+      // Root, directly below mode — not in Content. Picking "Custom"
+      // mode needs this picker to appear immediately as the obvious next
+      // step; buried inside a collapsed Content section, someone who
+      // doesn't already know to expand it has no visible way to actually
+      // choose which sections show. Conditionally included rather than
+      // expressed via the schema's own `visible:` condition — that's
+      // real, but only landed in HA's dev branch on 2026-07-17 and isn't
+      // in any released version yet (verified directly against HA
+      // core's actual frontend pin — even 2026.7.4, the latest release
+      // as of this writing, predates it). Omitting the field entirely
+      // achieves the identical visible behavior without depending on
+      // unreleased HA functionality — revisit once `visible:` actually
+      // ships.
       ...(selectedMode === 'custom' ? [{ name: 'custom_sections', type: 'multi_select' as const, options: sectionOptions }] : []),
-      ...(this.hideTitle ? [] : [{ name: 'title', selector: { text: {} } }]),
-      { name: 'show_settings_link', default: true, selector: { boolean: {} } }
+      // Content covers everything else shaping how this environment
+      // displays. `mode`/`custom_sections` both stay at root, not in
+      // here — `mode`'s own reason is that ha-form-expandable doesn't
+      // forward the `.warning` prop to its nested <ha-form> at all (only
+      // hass/data/schema/disabled/computeLabel/computeHelper/
+      // localizeValue are), and this card's own warning (which entities
+      // a given mode needs) is attached to `mode` specifically — moving
+      // it into Content would have silently broken that feature, not
+      // just changed where the field sits. `custom_sections`' reason is
+      // the discoverability one above; worth remembering these are two
+      // different, unrelated reasons even though both fields ended up
+      // at root the same way.
+      {
+        name: 'content',
+        type: 'expandable',
+        flatten: true,
+        icon: 'mdi:text-short',
+        title: t(this._hass, 'content_section_heading'),
+        schema: [
+          ...(this.hideTitle ? [] : [cardNameFieldSchema(representativeEntityId, [{ type: 'device' }])]),
+          { name: 'show_settings_link', default: true, selector: { boolean: {} } }
+        ]
+      }
     ];
   }
 
@@ -95,7 +123,7 @@ export class DockhandEnvironmentCardEditor extends LitElement implements Lovelac
     const devices = getEnvironmentDevices(this._hass);
     const selectedMode = this._config.mode ?? 'standard';
 
-    if (!this.hideDevicePicker && devices.length === 0) {
+    if (!this.cardIsEmbedded && devices.length === 0) {
       return html`<div class="row">${t(this._hass, 'no_environments_found')}</div>`;
     }
 
@@ -103,7 +131,7 @@ export class DockhandEnvironmentCardEditor extends LitElement implements Lovelac
       <ha-form
         .hass=${this._hass}
         .data=${{ ...this._config, custom_sections: this._config.custom_sections ?? DEFAULT_CUSTOM_SECTIONS }}
-        .schema=${this._schema(devices, selectedMode)}
+        .schema=${this._mainSchema(devices, selectedMode)}
         .computeLabel=${this._computeLabel}
         .computeHelper=${this._computeHelper}
         .warning=${this._warning(selectedMode)}
@@ -118,7 +146,7 @@ export class DockhandEnvironmentCardEditor extends LitElement implements Lovelac
         return t(this._hass, 'environment');
       case 'mode':
         return t(this._hass, 'display_mode');
-      case 'title':
+      case 'name':
         return t(this._hass, 'title_override');
       case 'custom_sections':
         return t(this._hass, 'custom_sections_label');
@@ -169,7 +197,7 @@ export class DockhandEnvironmentCardEditor extends LitElement implements Lovelac
   }
 
   /** Attached to the 'mode' field (not device_id — device_id can be
-   * hidden entirely when hideDevicePicker is true, but mode is always
+   * hidden entirely when cardIsEmbedded is true, but mode is always
    * present) via ha-form's own native .warning/computeWarning mechanism
    * — see DockhandContainerCardEditor's identical comment for the full
    * reasoning. */

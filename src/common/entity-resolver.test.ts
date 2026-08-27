@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { resolveEnvironmentEntities, resolveTopContainers, findPrimaryEntityByDomain, getContainerDropdownOptions, getStackDropdownOptions } from './entity-resolver';
+import {
+  resolveEnvironmentEntities,
+  resolveContainerEntities,
+  resolveStackEntities,
+  findPrimaryEntityByDomain,
+  getContainerDropdownOptions,
+  getStackDropdownOptions,
+  resolveScheduleEntities
+} from './entity-resolver';
 import { makeDevice, makeEntity, makeState, makeHass } from './test-fixtures';
 
 const ENV_DEVICE_ID = 'env-device';
@@ -52,43 +60,46 @@ describe('resolveEnvironmentEntities', () => {
   });
 });
 
-describe('resolveTopContainers', () => {
-  it('skips containers with neither CPU nor memory sensor enabled', () => {
-    const noSensors = makeDevice({ id: 'c1', identifiers: [['dockhand', 'container_5_quiet']], name: 'quiet' });
-    const hass = makeHass({ devices: [noSensors] });
+// resolveContainerEntities/resolveStackEntities are thin wrappers around
+// the same resolveEntities the tests above already exercise thoroughly —
+// these confirm each wrapper is actually wired to its own real
+// translation-key map (CONTAINER_TRANSLATION_KEYS/STACK_TRANSLATION_KEYS
+// in common/const.ts), not a full re-test of shared resolution logic
+// that's already covered.
+describe('resolveContainerEntities', () => {
+  const CONTAINER_DEVICE_ID = 'container-device';
 
-    expect(resolveTopContainers(hass, 5)).toEqual([]);
+  it('resolves a real container-specific key', () => {
+    const entity = makeEntity({ entity_id: 'sensor.cpu', device_id: CONTAINER_DEVICE_ID, translation_key: 'container_cpu_percent' });
+    const state = makeState({ entity_id: 'sensor.cpu', state: '12.5' });
+    const hass = makeHass({ entities: [entity], states: [state] });
+
+    const result = resolveContainerEntities(hass, CONTAINER_DEVICE_ID, ['cpuPercent']);
+    expect(result.found.cpuPercent?.entityId).toBe('sensor.cpu');
+  });
+});
+
+describe('resolveStackEntities', () => {
+  const STACK_DEVICE_ID = 'stack-device';
+
+  it('resolves a real stack-specific key', () => {
+    const entity = makeEntity({ entity_id: 'sensor.status', device_id: STACK_DEVICE_ID, translation_key: 'status' });
+    const state = makeState({ entity_id: 'sensor.status', state: 'running' });
+    const hass = makeHass({ entities: [entity], states: [state] });
+
+    const result = resolveStackEntities(hass, STACK_DEVICE_ID, ['status']);
+    expect(result.found.status?.entityId).toBe('sensor.status');
   });
 
-  it('ranks by CPU descending and caps at the limit', () => {
-    const devices = ['a', 'b', 'c'].map((n) => makeDevice({ id: n, identifiers: [['dockhand', `container_5_${n}`]], name: n }));
-    const entities = [
-      makeEntity({ entity_id: 'sensor.a_cpu', device_id: 'a', translation_key: 'container_cpu_percent' }),
-      makeEntity({ entity_id: 'sensor.b_cpu', device_id: 'b', translation_key: 'container_cpu_percent' }),
-      makeEntity({ entity_id: 'sensor.c_cpu', device_id: 'c', translation_key: 'container_cpu_percent' })
-    ];
-    const states = [
-      makeState({ entity_id: 'sensor.a_cpu', state: '10' }),
-      makeState({ entity_id: 'sensor.b_cpu', state: '90' }),
-      makeState({ entity_id: 'sensor.c_cpu', state: '50' })
-    ];
-    const hass = makeHass({ devices, entities, states });
-
-    const result = resolveTopContainers(hass, 5, 2);
-    expect(result.map((r) => r.name)).toEqual(['b', 'c']);
-    expect(result[0].cpuPercent).toBe(90);
-  });
-
-  it('shows a container with only memory enabled using a null (not zero) CPU', () => {
-    const device = makeDevice({ id: 'mem-only', identifiers: [['dockhand', 'container_5_mem-only']], name: 'mem-only' });
-    const entity = makeEntity({ entity_id: 'sensor.mem', device_id: 'mem-only', translation_key: 'container_memory_percent' });
-    const state = makeState({ entity_id: 'sensor.mem', state: '42' });
-    const hass = makeHass({ devices: [device], entities: [entity], states: [state] });
-
-    const result = resolveTopContainers(hass, 5);
-    expect(result).toHaveLength(1);
-    expect(result[0].cpuPercent).toBeNull();
-    expect(result[0].memoryPercent).toBe(42);
+  it('treats a missing git_* key as not_found, not an error — the documented "not git-tracked" signal', () => {
+    // git_sync_status only exists on git-tracked stacks at all; a stack
+    // that isn't git-tracked simply never gets this entity, and
+    // resolveEntities' own not_found handling is what the stack card
+    // relies on to distinguish "not git-tracked" from a real problem.
+    const hass = makeHass({});
+    const result = resolveStackEntities(hass, STACK_DEVICE_ID, ['gitSyncStatus']);
+    expect(result.found.gitSyncStatus).toBeUndefined();
+    expect(result.unavailable).toEqual([{ key: 'gitSyncStatus', entityId: null, reason: 'not_found' }]);
   });
 });
 
@@ -170,5 +181,26 @@ describe('getStackDropdownOptions', () => {
       { value: 's-alpha', label: 'alpha-stack' },
       { value: 's-zebra', label: 'zebra-stack' }
     ]);
+  });
+});
+
+describe('resolveScheduleEntities', () => {
+  it('resolves last_status and next_run by translation_key', () => {
+    const deviceId = 'schedule-device';
+    const entities = [
+      makeEntity({ entity_id: 'sensor.nginx_last_status', device_id: deviceId, translation_key: 'last_status' }),
+      makeEntity({ entity_id: 'sensor.nginx_next_run', device_id: deviceId, translation_key: 'next_run' })
+    ];
+    const states = [
+      makeState({ entity_id: 'sensor.nginx_last_status', state: 'success', attributes: { name: 'Update container: nginx' } }),
+      makeState({ entity_id: 'sensor.nginx_next_run', state: '2026-08-01T00:00:00Z' })
+    ];
+    const hass = makeHass({ entities, states });
+
+    const result = resolveScheduleEntities(hass, deviceId, ['lastStatus', 'nextRun']);
+    expect(result.found.lastStatus?.entityId).toBe('sensor.nginx_last_status');
+    expect(result.found.lastStatus?.state.attributes.name).toBe('Update container: nginx');
+    expect(result.found.nextRun?.entityId).toBe('sensor.nginx_next_run');
+    expect(result.unavailable).toEqual([]);
   });
 });

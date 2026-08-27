@@ -14,7 +14,8 @@ function device(id, identifiers, name, extra = {}) {
     identifiers: identifiers.map((i) => ['dockhand', i]),
     config_entries: [ENTRY_ID],
     configuration_url: extra.configuration_url ?? null,
-    hw_version: extra.hw_version ?? null
+    hw_version: extra.hw_version ?? null,
+    via_device_id: extra.via_device_id ?? null
   };
 }
 
@@ -53,6 +54,7 @@ const CONNECTION_ICON = {
   'hawser-edge': 'mdi:undo-variant'
 };
 const STATUS_ICON = {
+  auto_update: 'mdi:arrow-up-circle',
   update_checks: 'mdi:arrow-up-circle-outline',
   vulnerability_scanning: 'mdi:shield-check',
   activity_logging: 'mdi:pulse',
@@ -67,7 +69,7 @@ const STATUS_ICON = {
  * per mode) each show a genuinely different environment rather than the
  * same fake data four times over. */
 function buildEnvironment(addDevice, addEntity, opts) {
-  const { envId, name, slug, connectionType, online, hostPort, showStatusIcons } = opts;
+  const { envId, name, slug, connectionType, online, hostPort, showStatusIcons, labels, autoUpdate, updateChecks } = opts;
   const envDeviceId = `env_${envId}`;
 
   addDevice(
@@ -83,7 +85,16 @@ function buildEnvironment(addDevice, addEntity, opts) {
     onlineAttrs.connection_host = hostPort.host;
     onlineAttrs.connection_port = hostPort.port;
   }
+  if (labels) {
+    onlineAttrs.labels = labels;
+  }
   addEntity(entity(`binary_sensor.${slug}_online`, envDeviceId, 'online', online ? 'on' : 'off', onlineAttrs));
+  if (autoUpdate) {
+    addEntity(entity(`binary_sensor.${slug}_auto_update`, envDeviceId, 'auto_update', 'on', { name: `${name} auto-update`, icon: STATUS_ICON.auto_update }, { friendly_name: `${name} auto-update` }));
+  }
+  if (updateChecks) {
+    addEntity(entity(`binary_sensor.${slug}_update_checks`, envDeviceId, 'update_checks', 'on', { name: `${name} update checks`, icon: STATUS_ICON.update_checks }, { friendly_name: `${name} update checks` }));
+  }
   addEntity(
     entity(
       `sensor.${slug}_connection_type`,
@@ -97,13 +108,15 @@ function buildEnvironment(addDevice, addEntity, opts) {
 
   if (showStatusIcons) {
     for (const [key, iconName] of Object.entries(STATUS_ICON)) {
-      addEntity(entity(`binary_sensor.${slug}_${key}`, envDeviceId, key, 'on', { name, icon: iconName }));
+      const label = `${name} ${key.replace(/_/g, ' ')}`;
+      addEntity(entity(`binary_sensor.${slug}_${key}`, envDeviceId, key, 'on', { name: label, icon: iconName }, { friendly_name: label }));
     }
   }
 
   addEntity(
     entity(`sensor.${slug}_cpu_usage`, envDeviceId, 'cpu_usage', online ? '3.8' : '0', {
       unit_of_measurement: '%',
+      icon: 'mdi:cpu-64-bit',
       cpu_count: 8,
       top_containers: online
         ? [
@@ -119,22 +132,25 @@ function buildEnvironment(addDevice, addEntity, opts) {
   addEntity(
     entity(`sensor.${slug}_memory_usage`, envDeviceId, 'memory_usage', online ? '41.2' : '0', {
       unit_of_measurement: '%',
+      icon: 'mdi:memory',
       memory_used_bytes: online ? 6618980352 : 0,
       memory_total_bytes: 16072835072
     })
   );
   addEntity(
     entity(`sensor.${slug}_stacks`, envDeviceId, 'stacks', online ? '4' : '0', {
+      icon: 'mdi:layers-outline',
       running: online ? 3 : 0,
       partial: online ? 1 : 0,
       stopped: online ? 0 : 4
     })
   );
-  addEntity(entity(`sensor.${slug}_image_count`, envDeviceId, 'image_count', '31'));
-  addEntity(entity(`sensor.${slug}_volume_count`, envDeviceId, 'volume_count', '9'));
-  addEntity(entity(`sensor.${slug}_network_count`, envDeviceId, 'network_count', '6'));
+  addEntity(entity(`sensor.${slug}_image_count`, envDeviceId, 'image_count', '31', { icon: 'mdi:package-variant-closed' }));
+  addEntity(entity(`sensor.${slug}_volume_count`, envDeviceId, 'volume_count', '9', { icon: 'mdi:database-outline' }));
+  addEntity(entity(`sensor.${slug}_network_count`, envDeviceId, 'network_count', '6', { icon: 'mdi:lan' }));
   addEntity(
     entity(`sensor.${slug}_activity_events`, envDeviceId, 'activity_events', online ? '3' : '0', {
+      icon: 'mdi:pulse',
       today: online ? 3 : 0,
       total: 512,
       recent_events: online
@@ -226,15 +242,16 @@ function buildEnvironment(addDevice, addEntity, opts) {
     if (c.health) {
       addEntity(entity(`sensor.${slug}_${c.name}_health`, devId, 'health', c.health));
     }
-    addEntity(entity(`sensor.${slug}_${c.name}_cpu_percent`, devId, 'container_cpu_percent', c.cpu.toFixed(1), { unit_of_measurement: '%' }));
+    addEntity(entity(`sensor.${slug}_${c.name}_cpu_percent`, devId, 'container_cpu_percent', c.cpu.toFixed(1), { unit_of_measurement: '%', icon: 'mdi:cpu-64-bit' }));
     addEntity(
-      entity(`sensor.${slug}_${c.name}_memory_percent`, devId, 'container_memory_percent', c.mem.toFixed(1), { unit_of_measurement: '%' })
+      entity(`sensor.${slug}_${c.name}_memory_percent`, devId, 'container_memory_percent', c.mem.toFixed(1), { unit_of_measurement: '%', icon: 'mdi:memory' })
     );
     addEntity(
-      entity(`sensor.${slug}_${c.name}_memory_usage`, devId, 'container_memory_usage', (c.memLimit * (c.mem / 100)).toFixed(0), {
-        unit_of_measurement: 'MB'
+      entity(`sensor.${slug}_${c.name}_memory_usage`, devId, 'container_memory_usage', Math.round(c.memLimit * (c.mem / 100) * 1024 * 1024), {
+        unit_of_measurement: 'B'
       })
     );
+    addEntity(entity(`sensor.${slug}_${c.name}_memory_limit`, devId, 'container_memory_limit', c.memLimit * 1024 * 1024, { unit_of_measurement: 'B' }));
     if (c.netRx !== undefined) {
       addEntity(entity(`sensor.${slug}_${c.name}_network_rx`, devId, 'container_network_rx', c.netRx, { unit_of_measurement: 'B' }));
       addEntity(entity(`sensor.${slug}_${c.name}_network_tx`, devId, 'container_network_tx', c.netTx, { unit_of_measurement: 'B' }));
@@ -264,8 +281,8 @@ function buildEnvironment(addDevice, addEntity, opts) {
 
   // ── Stacks ─────────────────────────────────────────────────────────
   const stacks = [
-    { name: 'core', status: 'running', containerCount: 3, type: 'Git', containerNames: ['traefik', 'web', 'worker'] },
-    { name: 'monitoring', status: 'partial', containerCount: 2, type: 'Internal', containerNames: ['postgres', 'redis'] }
+    { name: 'core', status: 'running', containerCount: 3, type: 'Git', containerNames: ['traefik', 'web', 'worker'], updateCount: 2, git: true, syncStatus: 'pending', syncError: true, lastSyncHoursAgo: 3, lastCommit: 'a3f29e17c8b4' },
+    { name: 'monitoring', status: 'partial', containerCount: 2, type: 'Internal', containerNames: ['postgres', 'redis'], updateCount: 1 }
   ];
   for (const s of stacks) {
     const devId = `stack_${envId}_${s.name}`;
@@ -283,7 +300,186 @@ function buildEnvironment(addDevice, addEntity, opts) {
         container_names: s.containerNames
       })
     );
+    if (s.updateCount) {
+      addEntity(entity(`binary_sensor.${slug}_${s.name}_updates_available`, devId, 'stack_updates_available', 'on', { update_count: s.updateCount }));
+    } else {
+      addEntity(entity(`binary_sensor.${slug}_${s.name}_updates_available`, devId, 'stack_updates_available', 'off'));
+    }
+    if (s.git) {
+      addEntity(
+        entity(`sensor.${slug}_${s.name}_git_sync_status`, devId, 'git_stack_sync_status', s.syncStatus, {
+          last_commit: s.lastCommit
+        })
+      );
+      addEntity(
+        entity(
+          `sensor.${slug}_${s.name}_git_last_sync`,
+          devId,
+          'git_stack_last_sync',
+          new Date(Date.now() - s.lastSyncHoursAgo * 3600e3).toISOString()
+        )
+      );
+      addEntity(
+        entity(`binary_sensor.${slug}_${s.name}_git_sync_error`, devId, 'git_stack_sync_error', s.syncError ? 'on' : 'off', s.syncError ? { sync_error: 'Merge conflict in docker-compose.yml — manual resolution required.' } : {})
+      );
+    }
   }
+}
+
+/** Builds fictional schedule devices/entities matching ha-dockhand's real
+ * 1.9.0+ device hierarchy: a flat schedules_hub for genuinely global
+ * schedules, an env_{id}_Schedules group per environment for env-scoped
+ * ones, and individual schedule_{id}_{type} devices parented to whichever
+ * of those applies via via_device_id — see that repo's helpers.py
+ * _sched_device()/_schedule_group_device() for the real thing this
+ * mirrors. Each schedule device carries next_run (translation_key
+ * 'next_run', state = an ISO timestamp) and last_status (translation_key
+ * 'last_status', state = a status string, attributes carry name/
+ * description/is_system/cron_expression/enabled/environment/
+ * schedule_type) — last_status is the comprehensive/primary entity, per
+ * that repo's own CHANGELOG on why. */
+function buildSchedules(addDevice, addEntity) {
+  const inHours = (h) => new Date(Date.now() + h * 3600e3).toISOString();
+
+  addDevice(device('schedules_hub', ['schedules_hub'], 'Dockhand – Schedules', { model: 'Service' }));
+  addDevice(
+    device('env_1_Schedules', ['env_1_Schedules'], 'Nebula – Schedules', {
+      model: 'Environment Group',
+      via_device_id: 'env_1'
+    })
+  );
+  addDevice(
+    device('env_2_Schedules', ['env_2_Schedules'], 'Aurora – Schedules', {
+      model: 'Environment Group',
+      via_device_id: 'env_2'
+    })
+  );
+  addDevice(
+    device('env_4_Schedules', ['env_4_Schedules'], 'Vega – Schedules', {
+      model: 'Environment Group',
+      via_device_id: 'env_4'
+    })
+  );
+
+  function schedule({ id, type, name, description, viaDeviceId, environment, status, nextRunIso, enabled = true, isSystem = false, errorMessage }) {
+    const devId = `schedule_${id}_${type}`;
+    addDevice(device(devId, [`schedule_${id}_${type}`], `${environment ?? 'Dockhand'} – Schedules – ${name}`, { model: 'Schedule', via_device_id: viaDeviceId }));
+    addEntity(
+      entity(`sensor.${devId}_next_run`, devId, 'next_run', nextRunIso ?? 'unknown', {
+        cron_expression: '0 */4 * * *',
+        enabled,
+        environment: environment ?? null,
+        schedule_type: type
+      })
+    );
+    addEntity(
+      entity(`sensor.${devId}_last_status`, devId, 'last_status', status, {
+        name,
+        description,
+        is_system: isSystem,
+        cron_expression: '0 */4 * * *',
+        enabled,
+        environment: environment ?? null,
+        schedule_type: type,
+        ...(errorMessage ? { error_message: errorMessage } : {})
+      })
+    );
+  }
+
+  schedule({
+    id: 1,
+    type: 'system_cleanup',
+    name: 'Container event cleanup',
+    description: 'Removes old container event logs',
+    viaDeviceId: 'schedules_hub',
+    environment: null,
+    status: 'success',
+    nextRunIso: inHours(0.17),
+    isSystem: true
+  });
+  schedule({
+    id: 2,
+    type: 'container_update',
+    name: 'Update container: web',
+    description: 'Check, scan & auto-update containers',
+    viaDeviceId: 'env_1_Schedules',
+    environment: 'Nebula',
+    status: 'success',
+    nextRunIso: inHours(4)
+  });
+  schedule({
+    id: 3,
+    type: 'git_stack_sync',
+    name: 'Git sync: core',
+    description: 'Pull and redeploy from the linked git repository',
+    viaDeviceId: 'env_1_Schedules',
+    environment: 'Nebula',
+    status: 'running',
+    nextRunIso: null
+  });
+  schedule({
+    id: 4,
+    type: 'container_update',
+    name: 'Update container: postgres',
+    description: 'Check, scan & auto-update containers',
+    viaDeviceId: 'env_2_Schedules',
+    environment: 'Aurora',
+    status: 'failed',
+    nextRunIso: inHours(2),
+    errorMessage: 'Connection timeout'
+  });
+  schedule({
+    id: 5,
+    type: 'image_prune',
+    name: 'Prune images: Aurora',
+    description: 'Prune dangling images only',
+    viaDeviceId: 'env_2_Schedules',
+    environment: 'Aurora',
+    status: 'success',
+    nextRunIso: inHours(12)
+  });
+  schedule({
+    id: 6,
+    type: 'env_update_check',
+    name: 'Update environment: Vega',
+    description: 'Check, scan & auto-update containers',
+    viaDeviceId: 'env_4_Schedules',
+    environment: 'Vega',
+    status: 'success',
+    nextRunIso: null,
+    enabled: false
+  });
+  schedule({
+    id: 7,
+    type: 'git_stack_sync',
+    name: 'Git sync: api',
+    description: 'Pull and redeploy from the linked git repository',
+    viaDeviceId: 'env_2_Schedules',
+    environment: 'Aurora',
+    status: 'skipped',
+    nextRunIso: inHours(3)
+  });
+  schedule({
+    id: 8,
+    type: 'env_update_check',
+    name: 'Update environment: Nebula',
+    description: 'Check, scan & auto-update containers',
+    viaDeviceId: 'env_1_Schedules',
+    environment: 'Nebula',
+    status: 'warning',
+    nextRunIso: inHours(6),
+    errorMessage: 'Some containers could not be scanned'
+  });
+  schedule({
+    id: 9,
+    type: 'container_update',
+    name: 'Update container: redis',
+    description: 'Check, scan & auto-update containers',
+    viaDeviceId: 'env_4_Schedules',
+    environment: 'Vega',
+    status: 'queued',
+    nextRunIso: null
+  });
 }
 
 export function buildMockHass() {
@@ -310,7 +506,9 @@ export function buildMockHass() {
     name: 'Nebula',
     slug: 'nebula',
     connectionType: 'hawser-standard',
-    online: true
+    online: true,
+    labels: ['production', 'critical'],
+    updateChecks: true
   });
   buildEnvironment(addDevice, addEntity, {
     envId: 2,
@@ -333,8 +531,11 @@ export function buildMockHass() {
     connectionType: 'hawser-edge',
     online: true,
     hostPort: { host: '192.168.1.42', port: 2376 },
-    showStatusIcons: true
+    showStatusIcons: true,
+    autoUpdate: true
   });
+
+  buildSchedules(addDevice, addEntity);
 
   return { devices, entities, states };
 }

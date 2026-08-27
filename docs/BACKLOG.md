@@ -39,6 +39,46 @@ permanent.
   there's no technical blocker left. What's open is purely whether these two specific cards
   should gain write actions at all, not how.
 
+## Updates card
+
+- **No automated test covers the `_checking`/`_triggering` → class/disabled/spin behavior** on
+  the "Check for updates"/"Update all" buttons (converted from `ha-button` to `renderIcon()` this
+  cycle). Verified thoroughly by hand via direct browser automation — forcing each state and
+  confirming the right CSS classes, the spin animation, and `tabindex` removal — but that
+  verification isn't captured as a real, repeatable test. `card.test.ts`'s own existing tests only
+  cover pure, exported functions (`sortPendingUpdates`, `shouldShowEnvironmentGroup`); this is
+  DOM/private-state behavior, which doesn't fit that pattern directly and would need a different
+  kind of test (closer to `icon.test.ts`'s own `render()`-based approach) to cover properly.
+  Deferred specifically to avoid taking on a new testing pattern while trying to get this release
+  out — not a decision that it isn't worth testing. Should be picked up for the next cycle: "if it
+  can be tested, it should be" is the standing bar, this is just behind schedule against it.
+
+- **`hide_when_no_updates` could become mode-aware, letting Overview embed the standard editor
+  the same way it already does for Stacks/Containers/Schedules.** Currently blocked by the
+  visibility mechanism itself, not anything Overview-specific: the standalone Updates card's own
+  `hide_when_no_updates` sets HA's native card-level `visibility:` config field, which only works
+  for a real, standalone Lovelace card HA's dashboard directly manages — it can't reach an
+  instance mounted inside another card's own shadow DOM. Overview already works around this today
+  by fully embedding `<dockhand-updates-card>` directly (confirmed — it's not a lighter summary
+  view, it's the real card) and maintaining its own separate `updates_hide_when_no_updates` field,
+  which hides the embedded instance via plain JS conditional rendering (not including the element
+  in the template at all when there's nothing pending) rather than through `visibility:`. That
+  works, but it's a duplicate field living on the wrong card, and it's why Updates can't yet use
+  `_mountGlobalEditor`'s embeddable-editor pattern the way Stacks/Containers/Schedules do — the
+  standard Updates editor still assumes the standalone, `visibility:`-based behavior.
+
+  The fix Raetha's proposed: give Updates' own config two versions of "hide when no updates" —
+  one using `visibility:` for the standalone case (unchanged), one using the plain-conditional
+  approach Overview already implements, with the card itself deciding which applies based on
+  whether it's been mounted with `cardIsEmbedded` (i.e., embedded) or not. Once that split
+  exists, Overview's own `updates_hide_when_no_updates` field and its hand-rolled conditional in
+  `_renderUpdates`'s `updates` section renderer can both be deleted in favor of routing straight
+  through to the embedded card's own config, the same way every other embedded section already
+  works (see `_renderColumn`'s own `updates` section renderer in `dockhand-overview-card/card.ts`
+  for where that hand-rolled conditional currently lives). Deferred to the version after this
+  one, not because of any remaining uncertainty about the approach — just triaged behind other
+  work for this cycle.
+
 ## Cross-card
 
 - **Real-browser / screen-reader verification** of the keyboard interaction pattern (`tabindex`
@@ -85,18 +125,17 @@ permanent.
   environment). If `hass` updates while that same detail view stays open — e.g. the user changes
   HA's UI language mid-edit — the embedded editor won't pick up the new value until the user
   navigates away and back (or switches environments). Low practical impact: the only thing these
-  embedded editors read `hass` for once `hideDevicePicker` is true is `t()` for label text, and
+  embedded editors read `hass` for once `cardIsEmbedded` is true is `t()` for label text, and
   changing UI language mid-edit is a rare scenario. Fix would mean re-pushing `.hass` to whichever
   section editor is currently mounted on every parent update, not just at mount time.
 
 - **`ha-form`'s `visible:` conditional-field-visibility isn't used yet.** Merged into HA's frontend
   `dev` branch 2026-07-17; not in any released HA version as of this writing (checked directly
   against `homeassistant/components/frontend/manifest.json` in HA core's own repo — even 2026.7.4,
-  the latest release, predates it). The two fields that need conditional visibility
-  (Environment card's `custom_sections`, Updates card's `device_id`) currently achieve it by
-  conditionally including/excluding the schema entry in plain JS instead — see
-  `docs/ARCHITECTURE.md` §2. Switch those over to real `visible:` once it ships in a released HA
-  version this repo's floor actually covers, and only then.
+  the latest release, predates it). The one field that needs conditional visibility (Environment
+  card's `custom_sections`) currently achieves it by conditionally including/excluding the schema
+  entry in plain JS instead — see `docs/ARCHITECTURE.md` §2. Switch that over to real `visible:`
+  once it ships in a released HA version this repo's floor actually covers, and only then.
 
 - **Remove `environment_overrides`/`environment_order` backward compatibility.** Renamed to
   `environments_overrides`/`environments_order` in 1.1.0 (see CHANGELOG) — the deprecated fields
@@ -120,7 +159,7 @@ permanent.
   observation that led to deriving `EnvironmentOverrideStacks` etc. via `Omit<...>` — see
   `docs/ARCHITECTURE.md` §3). In principle a template-literal mapped type
   (`{[K in keyof T as \`${P}_${K}\`]: T[K]}`) could derive these the same way, so a new field on one
-  of the 4 reused cards would need nothing added here either. Not implemented: unlike the
+  of the 5 reused cards would need nothing added here either. Not implemented: unlike the
   `EnvironmentOverride*` case, there's no live bug motivating it — `_globalEditorConfig`'s runtime
   prefix scan already picks up a new field regardless of whether it's declared on the type, so the
   gap is purely a compile-time completeness one, not a correctness one. And the cost is real, not
@@ -129,3 +168,53 @@ permanent.
   future person (including future Claude) who inspects `DockhandOverviewCardConfig` while working
   in this file. Revisit only if a real motivating reason shows up (e.g. the hand-declared fields
   actually drift out of sync with a card's config in practice) — not simply because it's possible.
+
+- **A single-environment Overview card given extra dashboard width (e.g. spanning 3 grid columns)
+  currently just stretches, rather than spreading its sections out to use the width.** Confirmed
+  against the actual CSS: `.env-column` is `flex: 1 1 320px` inside a `flex-wrap` `.overview`
+  container — with *multiple* environments, that's exactly why the card already does something
+  like the desired behavior (each environment's own column, wrapping to fill available width), but
+  with a single environment there's only one `.env-column`, and `flex-grow: 1` means that one
+  column stretches to fill all the available width — its children (Environment/Vulnerability/
+  Stacks/etc. cards) are stacked vertically and just render wider individually, not rearranged into
+  a multi-column layout. `getGridOptions()` also defaults to `columns: 'full'`, so a 3-column span
+  is already a user override, not something the card anticipates today.
+
+  There's a real, working precedent for the desired behavior: the standalone Environment card's own
+  "full" display mode already does this — `container-type: inline-size` on the card plus a
+  `@container` query that switches to a 2-column grid once the *card itself* is wide enough (not
+  the viewport). The technique is proven; the gap is that Overview's sub-cards are separate child
+  custom elements (`<dockhand-vulnerability-card>`, `<dockhand-stacks-card>`, etc.), not internal
+  HTML sections of one card's own shadow DOM the way Environment's full mode has — so the query
+  would need to apply to the wrapping `.env-column` div and control how its *children* lay out,
+  and there's a genuine, not-yet-obvious design question about which sections should pair up side
+  by side (Environment + Vulnerabilities? Stacks + Containers? something else?) rather than an
+  arbitrary reflow. Also unresolved: whether an auto-spread layout can coexist with someone
+  deliberately wanting their own sub-card widths respected instead — raised directly, not
+  resolved. Worth trying once there's a concrete need, not speculatively.
+
+## Interactions panel (tap_action/icon_tap_action on card name/icon) — deferred, not rejected
+
+Considered adding Tile's own Interactions pattern (a native `type: 'expandable'` section with
+`tap_action`/`icon_tap_action`, both `selector: { ui_action: {} }`) to this repo's cards, matching
+Tile/Area/Heading's own editor structure. Confirmed genuinely feasible, not just plausible:
+`custom-card-helpers` exports real `handleAction`/`hasAction` utilities (no hand-rolled action-
+execution logic would be needed), and HA's `ui_action` selector supports an `actions` allowlist
+(confirmed against `src/data/selector.ts`), so excluding `more-info`/`toggle` — neither meaningful
+for a card that isn't "about" one single entity — is a real, supported option, not custom code.
+
+**Decided to skip for now**, not because it's hard, but because the value looks low for what it'd
+cost across every card. The reason Tile's version matters so much is that tapping *anywhere* on a
+Tile card triggers `tap_action` — the whole card is the target. None of this repo's cards work that
+way: they're entity-dense (rows, badges, a stats strip), and every one of those already has its own
+specific tap behavior (open that entity's more-info). Adding `tap_action`/`icon_tap_action` here
+would only ever affect two small areas — the name text and the icon badge — not "the card," the way
+it does for Tile. That's a real but narrow surface, and nobody's asked for it yet; this repo's own
+settings-link icon already covers the most obvious real want (jump to Dockhand).
+
+Worth reconsidering if: a real user asks for it, or a future card design genuinely centers on one
+navigable target the way Tile's `entity` does. If revisited, the shape to build is already worked
+out above — `type: 'expandable'`, `ui_action` selector with `actions` filtered to exclude
+`more-info`/`toggle`, `handleAction`/`hasAction` from `custom-card-helpers` for execution — this
+doesn't need re-researching, just implementing.
+

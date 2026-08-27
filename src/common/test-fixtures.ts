@@ -11,6 +11,7 @@ export function makeDevice(overrides: Partial<DeviceRegistryEntry> & { id: strin
     config_entries: [],
     configuration_url: null,
     hw_version: null,
+    via_device_id: null,
     ...overrides
   };
 }
@@ -43,6 +44,12 @@ export function makeHass(opts: {
   devices?: DeviceRegistryEntry[];
   entities?: EntityRegistryEntry[];
   states?: HassEntity[];
+  /** Real HA behavior this repo never reimplements (see common/card-
+   * name.ts) — tests exercising resolveCardName supply their own mock
+   * here rather than this fixture guessing at real HA formatting
+   * behavior, which would risk testing this repo's assumptions about
+   * formatEntityName instead of this repo's own logic. */
+  formatEntityName?: HomeAssistant['formatEntityName'];
 }): HomeAssistant {
   const devices: Record<string, DeviceRegistryEntry> = {};
   for (const d of opts.devices ?? []) devices[d.id] = d;
@@ -53,5 +60,5 @@ export function makeHass(opts: {
   const states: Record<string, HassEntity> = {};
   for (const s of opts.states ?? []) states[s.entity_id] = s;
 
-  return { devices, entities, states } as unknown as HomeAssistant;
+  return { devices, entities, states, formatEntityName: opts.formatEntityName } as unknown as HomeAssistant;
 }

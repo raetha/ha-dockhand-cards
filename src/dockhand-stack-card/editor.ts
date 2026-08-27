@@ -4,25 +4,32 @@ import { fireEvent, type LovelaceCardEditor } from 'custom-card-helpers';
 import type { HaFormSchema } from '../common/ha-form-types';
 
 import type { HomeAssistant } from '../common/ha-types';
-import { getEnvironmentDevices, getEnvId, getStackDevicesForEnvironment, getEnvIdForStackDevice } from '../common/device-utils';
+import { getEnvironmentDevices, getEnvId, getStackDevicesForEnvironment, getEnvIdForStackDevice, getRepresentativeEntityId } from '../common/device-utils';
+import { cardNameFieldSchema, migrateTitleToName } from '../common/card-name';
 import { resolveStackEntities, getStackDropdownOptions } from '../common/entity-resolver';
 import { t } from '../common/i18n';
 import { editorFormStyles } from '../common/editor-styles';
 import { STACK_FRIENDLY_LABEL, type StackTranslationKey } from '../common/const';
-import type { DockhandStackCardConfig } from './types';
+import { DEFAULT_STACK_SECTIONS, STACK_SECTION_ORDER, type DockhandStackCardConfig } from './types';
+
+const SECTION_LABEL_KEY = {
+  status: 'section_status',
+  containers: 'section_stack_containers',
+  git_sync: 'section_git_sync'
+} as const;
 
 export class DockhandStackCardEditor extends LitElement implements LovelaceCardEditor {
   @state() private _config?: DockhandStackCardConfig;
   @state() private _hass?: HomeAssistant;
 
-  static styles = editorFormStyles;
+  static styles = [editorFormStyles];
 
   set hass(hass: HomeAssistant) {
     this._hass = hass;
   }
 
   setConfig(config: DockhandStackCardConfig): void {
-    this._config = config;
+    this._config = migrateTitleToName(config as Record<string, unknown>) as DockhandStackCardConfig;
   }
 
   /** Falls back to deriving the environment from the currently configured
@@ -49,15 +56,33 @@ export class DockhandStackCardEditor extends LitElement implements LovelaceCardE
 
   private _schema(envDevices: ReturnType<typeof getEnvironmentDevices>, stackOptions: { value: string; label: string }[]): HaFormSchema[] {
     return [
-      { name: 'environment_device_id', required: true, selector: { select: { mode: 'dropdown', options: envDevices.map((d) => ({ value: d.deviceId, label: d.name })) } } },
+      { name: 'environment_device_id', required: true, selector: { select: { mode: 'dropdown' as const, options: envDevices.map((d) => ({ value: d.deviceId, label: d.name })) } } },
       {
         name: 'device_id',
         required: true,
         disabled: stackOptions.length === 0,
-        selector: { select: { mode: 'dropdown', options: stackOptions } }
+        selector: { select: { mode: 'dropdown' as const, options: stackOptions } }
       },
-      { name: 'title', selector: { text: {} } },
-      { name: 'show_settings_link', default: true, selector: { boolean: {} } }
+      // Content is everything shaping how this stack is displayed — Name
+      // and the settings link. Named and ordered to match every other
+      // card's Content section. Represents from the stack's own device
+      // (not the environment) — this card is about one specific stack.
+      {
+        name: 'content',
+        type: 'expandable',
+        flatten: true,
+        icon: 'mdi:text-short',
+        title: t(this._hass, 'content_section_heading'),
+        schema: [
+          cardNameFieldSchema(this._config?.device_id && this._hass ? getRepresentativeEntityId(this._hass, this._config.device_id) : undefined, [{ type: 'device' }]),
+          { name: 'show_settings_link', default: true, selector: { boolean: {} } },
+          {
+            name: 'visible_sections',
+            type: 'multi_select',
+            options: Object.fromEntries(STACK_SECTION_ORDER.map((section) => [section, t(this._hass, SECTION_LABEL_KEY[section])]))
+          }
+        ]
+      }
     ];
   }
 
@@ -78,7 +103,7 @@ export class DockhandStackCardEditor extends LitElement implements LovelaceCardE
     return html`
       <ha-form
         .hass=${this._hass}
-        .data=${{ ...this._config, environment_device_id: envDeviceId }}
+        .data=${{ ...this._config, environment_device_id: envDeviceId, visible_sections: this._config.visible_sections ?? DEFAULT_STACK_SECTIONS }}
         .schema=${this._schema(envDevices, stackOptions)}
         .computeLabel=${this._computeLabel}
         .computeHelper=${(schema: HaFormSchema) => (schema.name === 'device_id' && noStacksFound ? t(this._hass, 'no_stacks_found') : '')}
@@ -94,10 +119,12 @@ export class DockhandStackCardEditor extends LitElement implements LovelaceCardE
         return t(this._hass, 'environment');
       case 'device_id':
         return t(this._hass, 'stack');
-      case 'title':
+      case 'name':
         return t(this._hass, 'title_override');
       case 'show_settings_link':
         return t(this._hass, 'show_settings_link');
+      case 'visible_sections':
+        return t(this._hass, 'visible_sections_label');
       default:
         return schema.name;
     }

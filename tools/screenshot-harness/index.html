@@ -3,6 +3,28 @@
 <head>
 <meta charset="utf-8">
 <title>ha-dockhand-cards preview</title>
+<!-- Real, self-hosted Roboto (via @fontsource/roboto, harness-only
+     dependency — see package.json) rather than relying on the browser's
+     font-family fallback chain, which silently resolved to whatever
+     system font this sandbox happens to have installed (DejaVu Sans,
+     not Roboto) since Google Fonts isn't a reachable domain here. Real
+     HA loads real Roboto, and different fonts have genuinely different
+     line-height/glyph metrics — a screenshot rendered with the wrong
+     font can show an alignment discrepancy that doesn't exist in the
+     actual product, or hide one that does. Only the weights this repo
+     actually uses (400 default, 500, 600 — confirmed by grepping every
+     font-weight declaration in src/, not guessed). -->
+<link rel="stylesheet" href="node_modules/@fontsource/roboto/400.css">
+<link rel="stylesheet" href="node_modules/@fontsource/roboto/500.css">
+<link rel="stylesheet" href="node_modules/@fontsource/roboto/600.css">
+<script>
+  // Read before any rendering happens, so there's no flash of the wrong
+  // theme — .light on <html> only ever needs to be present or absent by
+  // the time CSS starts applying, not toggled dynamically afterward.
+  if (new URLSearchParams(location.search).get('theme') === 'light') {
+    document.documentElement.classList.add('light');
+  }
+</script>
 <style>
   :root {
     color-scheme: dark;
@@ -14,22 +36,139 @@
     --primary-color: #0ea5e9;
     --ha-card-border-radius: 12px;
     --ha-card-box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    /* Real HA typography tokens (px-based, scaled by
+       --ha-font-size-scale in production — not em; see
+       docs/ARCHITECTURE.md §12) rather than leaving these undefined,
+       which would exercise only this repo's own CSS fallback values
+       instead of the actual, real-token code path a production HA
+       dashboard uses. Values from HA's own frontend source
+       (src/resources/styles.ts: h1=2xl, h2=xl, h3=l, body=m). */
+    --ha-font-size-xs: 10px;
+    --ha-font-size-s: 12px;
+    --ha-font-size-m: 14px;
+    --ha-font-size-l: 16px;
+    --ha-font-size-xl: 20px;
+    --ha-font-size-2xl: 24px;
+  }
+  /* HA's own real light-theme defaults — genuinely additive on top of
+   * the dark :root block above (which stays the harness's own
+   * default), not a restructure. Font-size tokens are theme-
+   * independent (already correct above), so nothing to override there. */
+  html.light {
+    color-scheme: light;
+    --primary-background-color: #fafafa;
+    --card-background-color: #ffffff;
+    --primary-text-color: #212121;
+    --secondary-text-color: #727272;
+    --divider-color: #e0e0e0;
+    --ha-card-box-shadow: 0 2px 6px rgba(0,0,0,0.12);
   }
   html, body {
     margin: 0;
     padding: 0;
-    background: var(--primary-background-color);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: transparent;
+    font-family: Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     color: var(--primary-text-color);
   }
   #stage {
     display: inline-block;
     padding: 24px;
-    background: var(--primary-background-color);
+    background: transparent;
   }
   .card-slot {
     margin-bottom: 20px;
     width: var(--slot-width, 420px);
+  }
+  .editor-slot {
+    margin-bottom: 20px;
+    width: var(--slot-width, 420px);
+    background: var(--card-background-color);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  /* Styling for HaForm's own shimmed output (ha-shims.mjs) — deliberately
+   * plain/utilitarian, not trying to pixel-match HA's real ha-form/
+   * ha-selector widgets exactly. The goal is "readable enough to judge
+   * spacing and layout," not a pixel-perfect HA clone — see this
+   * directory's README for why that distinction is fine for what this
+   * harness is actually for. */
+  .shim-form-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 4px;
+    border-bottom: 1px solid var(--divider-color);
+    flex-wrap: wrap;
+  }
+  .shim-form-row:last-child {
+    border-bottom: none;
+  }
+  .shim-expansion-panel {
+    border: 1px solid var(--divider-color, #444);
+    border-radius: 8px;
+    margin: 16px 0;
+    overflow: hidden;
+  }
+  .shim-expansion-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 8px;
+    font-weight: 500;
+  }
+  .shim-expansion-content {
+    padding: 4px 8px 8px;
+    border-top: 1px solid var(--divider-color, #444);
+  }
+  .shim-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px;
+  }
+  .shim-grid-cell .shim-form-row {
+    border-bottom: none;
+  }
+  .shim-form-label-col {
+    flex: 1;
+    min-width: 0;
+  }
+  .shim-form-label {
+    font-size: 0.95em;
+  }
+  .shim-form-helper {
+    font-size: 0.8em;
+    color: var(--secondary-text-color);
+    margin-top: 2px;
+  }
+  .shim-form-warning {
+    flex-basis: 100%;
+    font-size: 0.8em;
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.1);
+    padding: 6px 8px;
+    border-radius: 6px;
+  }
+  .shim-select,
+  .shim-textfield {
+    background: var(--primary-background-color);
+    color: var(--primary-text-color);
+    border: 1px solid var(--divider-color);
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 0.9em;
+    min-width: 160px;
+  }
+  .shim-multiselect {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .shim-checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9em;
   }
 </style>
 </head>
@@ -90,6 +229,28 @@
   }
 
   window.__mount = mount;
+
+  // Editor classes are only registered lazily, via each card class's own
+  // getConfigElement() (a dynamic import() under the hood) — exactly how
+  // HA itself instantiates an editor, never document.createElement on the
+  // editor tag directly, since nothing else ever triggers that import to
+  // actually run.
+  async function mountEditor(tag, config, width) {
+    const wrap = document.createElement('div');
+    wrap.className = 'editor-slot';
+    wrap.style.setProperty('--slot-width', (width || 420) + 'px');
+    wrap.id = config.__id;
+    document.getElementById('cards').appendChild(wrap);
+
+    const CardClass = customElements.get(tag);
+    const el = await CardClass.getConfigElement();
+    el.hass = hass;
+    el.setConfig({ type: `custom:${tag}`, ...config });
+    wrap.appendChild(el);
+    return el;
+  }
+
+  window.__mountEditor = mountEditor;
   window.__renderDone = true;
 </script>
 </body>

@@ -3,16 +3,21 @@ import { state } from 'lit/decorators.js';
 import { ref } from 'lit/directives/ref.js';
 import { keyed } from 'lit/directives/keyed.js';
 import { fireEvent, type LovelaceCardEditor } from 'custom-card-helpers';
+import type { HaFormSchema } from '../common/ha-form-types';
 
 import type { HomeAssistant } from '../common/ha-types';
-import { getEnvironmentDevices } from '../common/device-utils';
-import { editorFormStyles } from '../common/editor-styles';
+import { getEnvironmentDevices, getRepresentativeEntityId } from '../common/device-utils';
+import { cardNameFieldSchema } from '../common/card-name';
+import { stripUndefinedKeys } from '../common/config-utils';
+import { editorFormStyles, sortableRowStyles } from '../common/editor-styles';
+import { resolveEnvironmentOrder, renderEnvironmentOrderSection } from '../common/environment-scope';
 import { t, type TranslationKey } from '../common/i18n';
 import { DEFAULT_CUSTOM_SECTIONS } from '../dockhand-environment-card/types';
 import type { DockhandEnvironmentCardConfig } from '../dockhand-environment-card/types';
 import type { DockhandVulnerabilityCardConfig } from '../dockhand-vulnerability-card/types';
 import { DEFAULT_STACKS_BADGES, type DockhandStacksCardConfig } from '../dockhand-stacks-card/types';
 import { DEFAULT_CONTAINERS_BADGES, type DockhandContainersCardConfig } from '../dockhand-containers-card/types';
+import type { DockhandSchedulesCardConfig } from '../dockhand-schedules-card/types';
 import {
   DEFAULT_SECTION_ORDER,
   getEnvironmentOrder,
@@ -20,16 +25,15 @@ import {
   migrateOverviewConfig,
   type DockhandOverviewCardConfig,
   type OverviewSection,
-  type EnvironmentOverride,
-  type EnvironmentOverrideUpdates
+  type EnvironmentOverride
 } from './types';
 
 // Side-effect imports — registers the 4 standalone editors' custom
 // elements so this editor can mount them directly for the per-environment
 // override detail view (see _renderDetailSection). Not needed for the
-// Updates card, whose editor has a scope selector and a native-visibility
-// mechanism that don't apply here — see _renderDetailSection's 'updates'
-// case for why that section is hand-built instead of reused.
+// Updates card — its editor builds a native-visibility mechanism that
+// doesn't apply here — see _renderDetailSection's 'updates' case for why
+// that section is hand-built instead of reused.
 import '../dockhand-environment-card/editor';
 import '../dockhand-vulnerability-card/editor';
 import '../dockhand-stacks-card/editor';
@@ -41,7 +45,8 @@ const SECTION_LABEL_KEY: Record<OverviewSection, TranslationKey> = {
   vulnerabilities: 'label_vulnerabilities',
   stacks: 'label_stacks',
   containers: 'label_containers',
-  updates: 'label_updates'
+  updates: 'label_updates',
+  schedules: 'label_schedules'
 };
 
 const DETAIL_SECTION_LABEL_KEY: Record<OverviewSection, TranslationKey> = {
@@ -49,7 +54,8 @@ const DETAIL_SECTION_LABEL_KEY: Record<OverviewSection, TranslationKey> = {
   vulnerabilities: 'detail_section_vulnerabilities',
   stacks: 'detail_section_stacks',
   containers: 'detail_section_containers',
-  updates: 'detail_section_updates'
+  updates: 'detail_section_updates',
+  schedules: 'detail_section_schedules'
 };
 
 const SECTION_ICON: Record<OverviewSection, string> = {
@@ -57,7 +63,8 @@ const SECTION_ICON: Record<OverviewSection, string> = {
   vulnerabilities: 'mdi:shield-alert',
   stacks: 'mdi:layers',
   containers: 'mdi:docker',
-  updates: 'mdi:arrow-up-circle'
+  updates: 'mdi:arrow-up-circle',
+  schedules: 'mdi:calendar-clock'
 };
 
 const SECTION_CONFIG_KEY: Record<OverviewSection, keyof DockhandOverviewCardConfig> = {
@@ -65,15 +72,31 @@ const SECTION_CONFIG_KEY: Record<OverviewSection, keyof DockhandOverviewCardConf
   vulnerabilities: 'show_vulnerabilities',
   stacks: 'show_stacks',
   containers: 'show_containers',
-  updates: 'show_updates'
+  updates: 'show_updates',
+  schedules: 'show_schedules'
+};
+
+/** Maps an OverviewSection to the corresponding key on EnvironmentOverride
+ * — not the same string in one case ('environments' the section vs.
+ * 'environment' the override key, singular, since one environment's
+ * override only ever concerns its own Environment card, not a list of
+ * them) — used by _renderDetailSection to decide whether that section's
+ * override panel should start expanded. */
+const OVERRIDE_KEY: Record<OverviewSection, keyof EnvironmentOverride> = {
+  environments: 'environment',
+  vulnerabilities: 'vulnerabilities',
+  stacks: 'stacks',
+  containers: 'containers',
+  updates: 'updates',
+  schedules: 'schedules'
 };
 
 // Editors accept type-erased elements from `ref()` — reusing the exact
-// shape each editor's own setConfig/hass/hideDevicePicker expects rather
+// shape each editor's own setConfig/hass/cardIsEmbedded expects rather
 // than importing every editor *class* just for a type.
 interface EmbeddableCardEditor<C> extends HTMLElement {
   hass: HomeAssistant;
-  hideDevicePicker: boolean;
+  cardIsEmbedded: boolean;
   hideTitle: boolean;
   setConfig(config: C): void;
 }
@@ -95,92 +118,35 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
 
   static styles = css`
     ${editorFormStyles}
-    /* font-size/font-weight here match HA's own tokens (confirmed against
-     * HA frontend source: --ha-font-size-s is exactly what HA's own
-     * hui-heading-badges-editor uses for its secondary/description text,
-     * --ha-font-weight-medium is what ha-expansion-panel's own header
-     * uses) rather than a hand-picked em ratio — the previous 0.9em h3
-     * size didn't match HA's equivalent section headers (which don't
-     * shrink at all, just go medium-weight), and hand-picked em values
-     * don't track a user's HA accessibility text-size setting the way
-     * these tokens do (that setting only propagates through the actual
-     * --ha-font-size-* variables, not through a fixed-root em ratio).
-     * Fallback values keep this safe if a token is ever missing. */
-    h3 {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-weight: var(--ha-font-weight-medium, 500);
-      margin: 16px 0 8px;
-      color: var(--primary-text-color);
-    }
-    h3 ha-icon {
-      --mdc-icon-size: 16px;
-    }
-    ha-expansion-panel {
-      margin: 16px 0;
-    }
-    ha-expansion-panel .content {
-      padding: 4px 0 12px;
-    }
-    .env-order-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 4px;
-      border-bottom: 1px solid var(--divider-color);
-    }
-    .env-order-row.hidden {
-      opacity: 0.5;
-    }
-    .env-order-handle {
-      cursor: grab;
-      color: var(--secondary-text-color);
-    }
-    .env-order-name {
-      flex: 1;
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
+    ${sortableRowStyles}
     .section-order-row.disabled {
       opacity: 0.5;
     }
-    /* Deliberately NOT sized down to match the live cards' compact
-     * .settings-link pattern — this is config UI, not a card. HA's own
-     * editors/dialogs use ha-icon-button at its native default size, and
-     * this editor should read the same way, not inherit the cards'
-     * density. Only color is customized (muted, matching the secondary
-     * weight this action has relative to the row's primary content). */
-    .row-action-btn {
-      color: var(--secondary-text-color);
-    }
-    /* No gap between the two action buttons themselves — matches HA's
-     * own edit/remove icon-button pair in hui-heading-badges-editor,
-     * which has no gap between them either (each button's own internal
-     * padding provides the breathing room). The gap that separates this
-     * whole group from the name text comes from .env-order-row's own
-     * gap, since this div is just one more flex child of that row. */
-    .row-actions {
-      display: flex;
-      align-items: center;
-    }
+    /* ha-expansion-panel margin/padding and .row-action-btn/.row-actions/
+     * .order-row's own gap all come from the shared sortableRowStyles now.
+     * Two notes on choices that aren't obvious from the shared CSS alone:
+     * the icon-buttons are deliberately NOT sized down to match the live
+     * cards' compact .header-icon pattern — this is config UI, not a
+     * card, and HA's own editors/dialogs use ha-icon-button at its native
+     * default size — and there's no gap between the two action buttons
+     * themselves, matching HA's own edit/remove icon-button pair in
+     * hui-heading-badges-editor, which has no gap between them either
+     * (each button's own internal padding provides the breathing room). */
     .detail-header {
       display: flex;
       align-items: center;
-      gap: 8px;
-      margin-bottom: 4px;
+      gap: var(--ha-space-2, 8px);
+      margin-bottom: var(--ha-space-1, 4px);
     }
     .detail-title {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: var(--ha-space-2, 8px);
       min-width: 0;
       flex: 1;
     }
     .detail-name {
-      font-size: var(--ha-font-size-m, 1em);
+      font-size: var(--ha-font-size-m, 14px);
       font-weight: 600;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -188,10 +154,19 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
     }
     .detail-badge {
       flex-shrink: 0;
-      font-size: var(--ha-font-size-xs, 0.7em);
+      /* Matches HA's own ha-automation-row-event-chip.ts convention for
+       * this exact kind of small status-text chip (confirmed real
+       * against source, used in Lovelace editors too, not just
+       * automations) — border-radius: var(--ha-border-radius-pill)
+       * (9999px, a true pill/capsule shape, not a rounded rectangle)
+       * and padding: var(--ha-space-1) var(--ha-space-2). Editors match
+       * HA's own conventions directly rather than this repo's own
+       * rendered-card shapes (label-pill/status-chip use a smaller
+       * radius) — the two don't need to agree with each other. */
+      font-size: var(--ha-font-size-xs, 10px);
       font-weight: 500;
-      padding: 2px 8px;
-      border-radius: 10px;
+      padding: var(--ha-space-1, 4px) var(--ha-space-2, 8px);
+      border-radius: var(--ha-border-radius-pill, 9999px);
       background: rgb(from var(--dockhand-accent-color, var(--primary-color)) r g b / 0.15);
       color: var(--dockhand-accent-color, var(--primary-color));
     }
@@ -208,21 +183,22 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
       show_stacks: false,
       show_containers: false,
       show_updates: false,
+      show_schedules: false,
       environment_mode: 'standard',
       ...config
     });
   }
 
+  /** Delegates to the shared resolveEnvironmentOrder (src/common/
+   * environment-scope.ts) rather than its own copy of this logic, which
+   * this used to be — same "unlisted sorts after, alphabetically"
+   * convention as everywhere else this pattern shows up now (Schedules'
+   * own environment order, badge_order), rather than Overview's own
+   * previous behavior of leaving unlisted environments in whatever order
+   * the device registry happened to iterate them in. */
   private _orderedDevices() {
     if (!this._hass) return [];
-    const devices = getEnvironmentDevices(this._hass);
-    const order = getEnvironmentOrder(this._config);
-    if (!order) return devices;
-    return [...devices].sort((a, b) => {
-      const ai = order.indexOf(a.deviceId);
-      const bi = order.indexOf(b.deviceId);
-      return (ai === -1 ? order.length : ai) - (bi === -1 ? order.length : bi);
-    });
+    return resolveEnvironmentOrder(getEnvironmentDevices(this._hass), getEnvironmentOrder(this._config));
   }
 
   private _isSectionShown(section: OverviewSection): boolean {
@@ -237,6 +213,8 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
         return this._config?.show_containers ?? false;
       case 'updates':
         return this._config?.show_updates ?? false;
+      case 'schedules':
+        return this._config?.show_schedules ?? false;
     }
   }
 
@@ -269,11 +247,11 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
       return this._renderSectionSettingsDetail(this._editingSection);
     }
 
-    return this._renderList(orderedDevices);
+    return this._renderList();
   }
 
-  private _renderList(orderedDevices: ReturnType<DockhandOverviewCardEditor['_orderedDevices']>): TemplateResult {
-    if (!this._config) return html``;
+  private _renderList(): TemplateResult {
+    if (!this._config || !this._hass) return html``;
     const orderedSections = this._orderedSections();
 
     return html`
@@ -281,27 +259,43 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
         <ha-icon slot="leading-icon" icon="mdi:format-list-bulleted"></ha-icon>
         <h3 slot="header">${t(this._hass, 'section_order_heading')}</h3>
         <div class="content">
-          <div class="hint">${t(this._hass, 'section_order_hint')}</div>
-          <ha-sortable handle-selector=".env-order-handle" @item-moved=${this._sectionMoved}>
-            <div>${orderedSections.map((s) => this._renderSectionOrderRow(s))}</div>
+          <div class="hint">${t(this._hass, 'order_list_hint')}</div>
+          <div class="bulk-actions">
+            <button class="link-btn" @click=${this._showAllSections}>${t(this._hass, 'select_all_environments')}</button>
+            <span class="bulk-actions-sep">·</span>
+            <button class="link-btn" @click=${this._clearAllSections}>${t(this._hass, 'clear_all_environments')}</button>
+          </div>
+          <ha-sortable handle-selector=".order-handle" @item-moved=${this._sectionMoved}>
+            <div class="order-list">${orderedSections.map((s) => this._renderSectionOrderRow(s))}</div>
           </ha-sortable>
         </div>
       </ha-expansion-panel>
 
-      ${orderedDevices.length > 0
-        ? html`
-            <ha-expansion-panel outlined expanded>
-              <ha-icon slot="leading-icon" icon="mdi:view-column"></ha-icon>
-              <h3 slot="header">${t(this._hass, 'environment_order_heading')}</h3>
-              <div class="content">
-                <div class="hint">${t(this._hass, 'environment_order_hint')}</div>
-                <ha-sortable handle-selector=".env-order-handle" @item-moved=${this._envMoved}>
-                  <div>${orderedDevices.map((d) => this._renderEnvOrderRow(d.deviceId, d.name))}</div>
-                </ha-sortable>
-              </div>
-            </ha-expansion-panel>
-          `
-        : html``}
+      ${renderEnvironmentOrderSection({
+        hass: this._hass,
+        headingKey: 'label_environments',
+        hintKey: 'order_list_hint',
+        icon: 'mdi:web',
+        order: this._config?.environments_order,
+        excluded: this._config?.exclude_device_ids,
+        showExcludeToggle: true,
+        allowReorder: true,
+        onMoved: (order) => this._updateConfig({ environments_order: order }),
+        onToggleExcluded: (deviceId, nowExcluded) => {
+          const current = this._config?.exclude_device_ids ?? [];
+          const next = nowExcluded ? [...current, deviceId] : current.filter((id) => id !== deviceId);
+          this._updateConfig({ exclude_device_ids: next.length > 0 ? next : undefined });
+        },
+        onSolo: (deviceId) => {
+          const all = this._orderedDevices().map((d) => d.deviceId);
+          this._updateConfig({ exclude_device_ids: all.filter((id) => id !== deviceId) });
+        },
+        onSelectAll: () => this._updateConfig({ exclude_device_ids: undefined }),
+        onClearAll: () => this._updateConfig({ exclude_device_ids: this._orderedDevices().map((d) => d.deviceId) }),
+        onEdit: (deviceId) => {
+          this._editingDeviceId = deviceId;
+        }
+      })}
     `;
   }
 
@@ -315,12 +309,19 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
    * field. */
   private _renderSectionOrderRow(section: OverviewSection): TemplateResult {
     const shown = this._isSectionShown(section);
-    const rowHint = section === 'vulnerabilities' ? t(this._hass, 'vulnerabilities_hint') : section === 'updates' ? t(this._hass, 'updates_hint') : undefined;
+    const rowHint =
+      section === 'vulnerabilities'
+        ? t(this._hass, 'vulnerabilities_hint')
+        : section === 'updates'
+          ? t(this._hass, 'updates_hint')
+          : section === 'schedules'
+            ? t(this._hass, 'schedules_overview_hint')
+            : undefined;
 
     return html`
-      <div class="env-order-row section-order-row ${shown ? '' : 'disabled'}" title=${rowHint ?? ''}>
-        <ha-icon class="env-order-handle" icon="mdi:drag-horizontal-variant"></ha-icon>
-        <span class="env-order-name">${t(this._hass, SECTION_LABEL_KEY[section])}</span>
+      <div class="order-row section-order-row ${shown ? '' : 'disabled'}" title=${rowHint ?? ''}>
+        <ha-icon class="order-handle" icon="mdi:drag-horizontal-variant"></ha-icon>
+        <span class="order-name">${t(this._hass, SECTION_LABEL_KEY[section])}</span>
         <div class="row-actions">
           <ha-icon-button class="row-action-btn" label=${t(this._hass, 'override_env_settings')} @click=${this._openSectionSettings(section)}>
             <ha-icon icon="mdi:pencil"></ha-icon>
@@ -388,6 +389,11 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
           ${ref(this._mountGlobalEditor('containers'))}
           @config-changed=${this._globalSectionChanged('containers')}
         ></dockhand-containers-card-editor>`;
+      case 'schedules':
+        return html`<dockhand-schedules-card-editor
+          ${ref(this._mountGlobalEditor('schedules'))}
+          @config-changed=${this._globalSectionChanged('schedules')}
+        ></dockhand-schedules-card-editor>`;
     }
   }
 
@@ -410,6 +416,24 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
     };
   }
 
+  /** Sets every section's own show_X field at once — each section is its
+   * own standalone boolean (not a single exclude-array the way
+   * environments are), so "all"/"none" means setting all six of them
+   * together, not toggling a shared list. */
+  private _showAllSections = (ev: Event): void => {
+    ev.stopPropagation();
+    const patch: Partial<DockhandOverviewCardConfig> = {};
+    for (const key of Object.values(SECTION_CONFIG_KEY)) patch[key] = true;
+    this._updateConfig(patch);
+  };
+
+  private _clearAllSections = (ev: Event): void => {
+    ev.stopPropagation();
+    const patch: Partial<DockhandOverviewCardConfig> = {};
+    for (const key of Object.values(SECTION_CONFIG_KEY)) patch[key] = false;
+    this._updateConfig(patch);
+  };
+
   private _openSectionSettings(section: OverviewSection) {
     return (ev: Event) => {
       ev.stopPropagation();
@@ -421,29 +445,6 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
     ev.stopPropagation();
     this._editingSection = undefined;
   };
-
-  private _renderEnvOrderRow(deviceId: string, name: string): TemplateResult {
-    const hidden = this._config?.exclude_device_ids?.includes(deviceId) ?? false;
-
-    return html`
-      <div class="env-order-row ${hidden ? 'hidden' : ''}">
-        <ha-icon class="env-order-handle" icon="mdi:drag-horizontal-variant"></ha-icon>
-        <span class="env-order-name">${name}</span>
-        <div class="row-actions">
-          <ha-icon-button class="row-action-btn" label=${t(this._hass, 'override_env_settings')} @click=${this._openDetail(deviceId)}>
-            <ha-icon icon="mdi:pencil"></ha-icon>
-          </ha-icon-button>
-          <ha-icon-button
-            class="row-action-btn"
-            label=${hidden ? t(this._hass, 'show_this_environment') : t(this._hass, 'hide_this_environment')}
-            @click=${this._envVisibilityToggled(deviceId)}
-          >
-            <ha-icon icon=${hidden ? 'mdi:eye-off' : 'mdi:eye'}></ha-icon>
-          </ha-icon-button>
-        </div>
-      </div>
-    `;
-  }
 
   private _renderEnvironmentDetail(deviceId: string, name: string): TemplateResult {
     return html`${keyed(
@@ -466,8 +467,16 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
   }
 
   private _renderDetailSection(section: OverviewSection, deviceId: string): TemplateResult {
+    const overrides = getEnvironmentOverrides(this._config);
+    // Starts expanded only if this section already has an override in
+    // place — otherwise collapsed, matching rule 2's "collapsed unless
+    // it's the thing you actually came here to look at" reasoning.
+    // Someone who already overrode this section for this environment
+    // wants to see that immediately; someone who didn't shouldn't need
+    // to expand six panels just to find the one they're about to touch.
+    const hasOverride = Object.keys(overrides?.[deviceId]?.[OVERRIDE_KEY[section]] ?? {}).length > 0;
     return html`
-      <ha-expansion-panel outlined expanded>
+      <ha-expansion-panel outlined ?expanded=${hasOverride}>
         <ha-icon slot="leading-icon" icon=${SECTION_ICON[section]}></ha-icon>
         <h3 slot="header">${t(this._hass, DETAIL_SECTION_LABEL_KEY[section])}</h3>
         <div class="content">${this._renderDetailSectionContent(section, deviceId)}</div>
@@ -515,30 +524,46 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
           ></dockhand-containers-card-editor>
         `;
       case 'updates': {
-        // Not reused from DockhandUpdatesCardEditor: that editor has a
-        // scope selector (not meaningful here, always 'environment') and
+        // Not reused from DockhandUpdatesCardEditor: that editor now
         // builds a native HA visibility condition for hide_when_no_updates
-        // — this Overview card already implements hide-when-no-updates its
-        // own way for nested cards (see card.ts), so reusing that editor
-        // would build a `visibility` condition that's never actually
-        // consulted for cards this component renders directly.
+        // (its own scope selector is gone, migrated to the same
+        // Environments section every other card uses) — this Overview
+        // card already implements hide-when-no-updates its own way for
+        // nested cards (see card.ts), so reusing that editor would build
+        // a `visibility` condition that's never actually consulted for
+        // cards this component renders directly. The Name field itself
+        // still needs the same real picker every other card's override
+        // view gets, though — a plain <ha-input> can't hold a Composed
+        // value (an EntityNameItem[]), only Custom mode's plain string,
+        // which is why this is a small <ha-form> now rather than
+        // hand-rolled inputs.
         const current = overrides?.[deviceId]?.updates ?? {};
+        const schema: HaFormSchema[] = [
+          cardNameFieldSchema(getRepresentativeEntityId(this._hass!, deviceId), [{ type: 'device' }]),
+          { name: 'hide_when_no_updates', default: false, selector: { boolean: {} } }
+        ];
         return html`
-          <div class="row">
-            <ha-input label=${t(this._hass, 'title_override')} .value=${current.title ?? ''} @input=${this._updatesOverrideTitleChanged(deviceId)}></ha-input>
-          </div>
-          <div class="row">
-            <ha-formfield label=${t(this._hass, 'hide_when_no_updates_override')}>
-              <ha-switch .checked=${current.hide_when_no_updates ?? false} @change=${this._updatesOverrideHideChanged(deviceId)}></ha-switch>
-            </ha-formfield>
-          </div>
+          <ha-form
+            .hass=${this._hass}
+            .data=${current}
+            .schema=${schema}
+            .computeLabel=${(s: HaFormSchema) => (s.name === 'name' ? t(this._hass, 'title_override') : t(this._hass, 'hide_when_no_updates_override'))}
+            @value-changed=${this._overrideSectionChanged(deviceId, 'updates')}
+          ></ha-form>
         `;
       }
+      case 'schedules':
+        return html`
+          <dockhand-schedules-card-editor
+            ${ref(this._mountScheduleEditor(overrides?.[deviceId]?.schedules))}
+            @config-changed=${this._overrideSectionChanged(deviceId, 'schedules')}
+          ></dockhand-schedules-card-editor>
+        `;
     }
   }
 
   /** ref() callback factory for the 4 reused standalone editors — sets
-   * hass/hideDevicePicker before calling setConfig so the very first
+   * hass/cardIsEmbedded before calling setConfig so the very first
    * render already reflects both (no flash of a device picker that then
    * disappears). Only runs on mount (see keyed() in
    * _renderEnvironmentDetail, which forces a fresh mount whenever the
@@ -546,13 +571,39 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
    * here, since after that this element's own config-changed events are
    * the sole source of truth for its section of the override, right up
    * until the user switches environments and a new element is mounted. */
-  private _mountEditor<C extends { type: string; device_id: string }>(deviceId: string, type: C['type'], currentOverride: Partial<C> | undefined) {
+  /** `device_id` in the constraint is `string | undefined`, not `string`
+   * — Stacks (and, as more cards migrate, others) now declare it as an
+   * optional legacy field once they support multiple environments (see
+   * that card's own types.ts), even though this specific function always
+   * passes a real value below. Widening the constraint to match is
+   * simpler and more honest than keeping it stricter than the config
+   * shapes it actually needs to accept. */
+  private _mountEditor<C extends { type: string; device_id?: string }>(deviceId: string, type: C['type'], currentOverride: Partial<C> | undefined) {
     return (el?: Element) => {
       if (!el || !this._hass) return;
       const editor = el as unknown as EmbeddableCardEditor<C>;
       editor.hass = this._hass;
-      editor.hideDevicePicker = true;
+      editor.cardIsEmbedded = true;
       editor.setConfig({ type, device_id: deviceId, ...(currentOverride ?? {}) } as C);
+    };
+  }
+
+  /** Same idea as _mountEditor above, not reused directly — that one's
+   * generic constraint requires a `device_id` field, which the Schedules
+   * card's own config type has never had (see that card's own README
+   * for why) and never will just to satisfy this. cardIsEmbedded still
+   * applies the same way — it's what hides Schedules' own Environments
+   * section; there's no per-environment device concept for this override
+   * view to carry in the first place (Overview already knows which
+   * environment this is via the enclosing deviceId, it's just not
+   * something the Schedules override config itself needs). */
+  private _mountScheduleEditor(currentOverride: Partial<DockhandSchedulesCardConfig> | undefined) {
+    return (el?: Element) => {
+      if (!el || !this._hass) return;
+      const editor = el as unknown as EmbeddableCardEditor<Partial<DockhandSchedulesCardConfig>>;
+      editor.hass = this._hass;
+      editor.cardIsEmbedded = true;
+      editor.setConfig({ type: 'custom:dockhand-schedules-card', ...(currentOverride ?? {}) });
     };
   }
 
@@ -580,18 +631,20 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
    * anything. `show_settings_link` isn't excluded: unlike title, a
    * link-visibility preference is genuinely something a user might want
    * uniformly per card type. */
-  private static readonly GLOBAL_SECTION_PREFIX: Record<'environments' | 'vulnerabilities' | 'stacks' | 'containers', string> = {
+  private static readonly GLOBAL_SECTION_PREFIX: Record<'environments' | 'vulnerabilities' | 'stacks' | 'containers' | 'schedules', string> = {
     environments: 'environment',
     vulnerabilities: 'vulnerabilities',
     stacks: 'stacks',
-    containers: 'containers'
+    containers: 'containers',
+    schedules: 'schedules'
   };
 
-  private static readonly GLOBAL_SECTION_TYPE: Record<'environments' | 'vulnerabilities' | 'stacks' | 'containers', string> = {
+  private static readonly GLOBAL_SECTION_TYPE: Record<'environments' | 'vulnerabilities' | 'stacks' | 'containers' | 'schedules', string> = {
     environments: 'custom:dockhand-environment-card',
     vulnerabilities: 'custom:dockhand-vulnerability-card',
     stacks: 'custom:dockhand-stacks-card',
-    containers: 'custom:dockhand-containers-card'
+    containers: 'custom:dockhand-containers-card',
+    schedules: 'custom:dockhand-schedules-card'
   };
 
   /** Builds the config fed into the embedded editor for the
@@ -600,7 +653,7 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
    * default where one exists (matching what the standalone card would
    * show for an unset field, not an arbitrary guess), and writes it
    * under the embedded editor's own (unprefixed) field name. device_id
-   * is a placeholder — harmless, since hideDevicePicker means it's
+   * is a placeholder — harmless, since cardIsEmbedded means it's
    * never rendered or read by anything other than the schema entry
    * that's already omitted. Genuinely safe to scan with no exceptions:
    * the only 2 keys that would otherwise collide with the 'environments'
@@ -609,7 +662,7 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
    * environment_overrides/environment_order collided, and setConfig()
    * always migrates those away before this._config is ever read from
    * here (see migrateOverviewConfig in types.ts). */
-  private _globalEditorConfig(section: 'environments' | 'vulnerabilities' | 'stacks' | 'containers'): Record<string, unknown> {
+  private _globalEditorConfig(section: 'environments' | 'vulnerabilities' | 'stacks' | 'containers' | 'schedules'): Record<string, unknown> {
     const cfg = (this._config ?? {}) as unknown as Record<string, unknown>;
     const prefix = DockhandOverviewCardEditor.GLOBAL_SECTION_PREFIX[section];
     const data: Record<string, unknown> = { type: DockhandOverviewCardEditor.GLOBAL_SECTION_TYPE[section], device_id: '' };
@@ -627,12 +680,12 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
     return data;
   }
 
-  private _mountGlobalEditor(section: 'environments' | 'vulnerabilities' | 'stacks' | 'containers') {
+  private _mountGlobalEditor(section: 'environments' | 'vulnerabilities' | 'stacks' | 'containers' | 'schedules') {
     return (el?: Element) => {
       if (!el || !this._hass) return;
       const editor = el as unknown as EmbeddableCardEditor<Record<string, unknown>>;
       editor.hass = this._hass;
-      editor.hideDevicePicker = true;
+      editor.cardIsEmbedded = true;
       editor.hideTitle = true;
       editor.setConfig(this._globalEditorConfig(section));
     };
@@ -672,7 +725,7 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
    * where "Please select a Dockhand environment." was coming from: the
    * card being mistakenly previewed was dockhand-stacks-card with
    * device_id: '', not dockhand-overview-card. */
-  private _globalSectionChanged(section: 'environments' | 'vulnerabilities' | 'stacks' | 'containers') {
+  private _globalSectionChanged(section: 'environments' | 'vulnerabilities' | 'stacks' | 'containers' | 'schedules') {
     return (ev: CustomEvent<{ config: Record<string, unknown> }>): void => {
       ev.stopPropagation();
       const prefix = DockhandOverviewCardEditor.GLOBAL_SECTION_PREFIX[section];
@@ -740,7 +793,7 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
    * to just that one environment's override sub-object for this one
    * section — never the whole Overview config — so there's no risk of
    * an unrelated key leaking in. */
-  private _overrideSectionChanged<K extends 'environment' | 'vulnerabilities' | 'stacks' | 'containers'>(deviceId: string, section: K) {
+  private _overrideSectionChanged<K extends 'environment' | 'vulnerabilities' | 'stacks' | 'containers' | 'schedules' | 'updates'>(deviceId: string, section: K) {
     return (ev: CustomEvent<{ config: Record<string, unknown> }>): void => {
       ev.stopPropagation();
       const value = Object.fromEntries(Object.entries(ev.detail.config).filter(([key]) => key !== 'type' && key !== 'device_id'));
@@ -748,52 +801,10 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
     };
   }
 
-  private _updatesOverrideTitleChanged(deviceId: string) {
-    return (ev: Event) => {
-      const current = getEnvironmentOverrides(this._config)?.[deviceId]?.updates ?? {};
-      const value: EnvironmentOverrideUpdates = { ...current, title: (ev.target as HTMLInputElement).value };
-      this._updateSectionOverride(deviceId, 'updates', value);
-    };
-  }
-
-  private _updatesOverrideHideChanged(deviceId: string) {
-    return (ev: Event) => {
-      const current = getEnvironmentOverrides(this._config)?.[deviceId]?.updates ?? {};
-      const value: EnvironmentOverrideUpdates = { ...current, hide_when_no_updates: (ev.target as HTMLInputElement).checked };
-      this._updateSectionOverride(deviceId, 'updates', value);
-    };
-  }
-
-  private _envVisibilityToggled(deviceId: string) {
-    return (ev: Event) => {
-      ev.stopPropagation();
-      const current = this._config?.exclude_device_ids ?? [];
-      const hidden = current.includes(deviceId);
-      const next = hidden ? current.filter((id) => id !== deviceId) : [...current, deviceId];
-      this._updateConfig({ exclude_device_ids: next.length > 0 ? next : undefined });
-    };
-  }
-
-  private _openDetail(deviceId: string) {
-    return (ev: Event) => {
-      ev.stopPropagation();
-      this._editingDeviceId = deviceId;
-    };
-  }
-
   private _closeDetail = (ev: Event): void => {
     ev.stopPropagation();
     this._editingDeviceId = undefined;
   };
-
-  private _envMoved(ev: CustomEvent<{ oldIndex: number; newIndex: number }>): void {
-    ev.stopPropagation();
-    const devices = this._orderedDevices();
-    const newOrder = devices.map((d) => d.deviceId);
-    const [moved] = newOrder.splice(ev.detail.oldIndex, 1);
-    newOrder.splice(ev.detail.newIndex, 0, moved);
-    this._updateConfig({ environments_order: newOrder });
-  }
 
   private _sectionMoved(ev: CustomEvent<{ oldIndex: number; newIndex: number }>): void {
     ev.stopPropagation();
@@ -803,9 +814,12 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
     this._updateConfig({ section_order: newOrder });
   }
 
+  /** See DockhandStacksCardEditor's identical method (dockhand-stacks-
+   * card/editor.ts) for the full reasoning — see common/config-utils.ts's
+   * stripUndefinedKeys. */
   private _updateConfig(partial: Partial<DockhandOverviewCardConfig>): void {
     if (!this._config) return;
-    this._config = { ...this._config, ...partial };
+    this._config = stripUndefinedKeys({ ...this._config, ...partial }) as DockhandOverviewCardConfig;
     fireEvent(this, 'config-changed', { config: this._config });
   }
 }

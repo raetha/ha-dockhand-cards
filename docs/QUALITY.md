@@ -47,8 +47,10 @@ quality as possible" means for this repo. Check it before every release.
 - [x] No hardcoded API calls or credentials — reads only `hass.states`/`hass.entities`/
       `hass.devices`, same trust boundary as any other Lovelace card
 - [x] No `localStorage`/`sessionStorage` usage
-- [x] Editors built on HA's own `<ha-form>` schema system (all but Overview, which has sortable
-      lists and cross-editor navigation `<ha-form>` has no model for), verified against present-day
+- [x] Editors built on HA's own `<ha-form>` schema system for their core fields (three —
+      Schedules, Updates, Overview — also interleave a shared hand-built sortable
+      environment-order/exclude section `<ha-form>` has no model for; see
+      `docs/ARCHITECTURE.md` §2), verified against present-day
       HA source rather than assumed from older examples — see `docs/ARCHITECTURE.md` §2 and §7 for
       what that verification actually found, including a case where it caught an earlier pass
       wrongly concluding a component was deprecated when its API had just changed

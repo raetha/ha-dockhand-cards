@@ -4,12 +4,14 @@ import type { LovelaceCard, LovelaceCardEditor } from 'custom-card-helpers';
 
 import type { HomeAssistant, LovelaceGridOptions } from '../common/ha-types';
 import { getEnvironmentDevices } from '../common/device-utils';
+import { resolveIncludedOrdered } from '../common/environment-scope';
 import { hasPendingUpdates } from '../common/updates-visibility';
 import type { DockhandEnvironmentCardConfig } from '../dockhand-environment-card/types';
 import type { DockhandVulnerabilityCardConfig } from '../dockhand-vulnerability-card/types';
 import type { DockhandStacksCardConfig } from '../dockhand-stacks-card/types';
 import type { DockhandContainersCardConfig } from '../dockhand-containers-card/types';
 import type { DockhandUpdatesCardConfig } from '../dockhand-updates-card/types';
+import type { DockhandSchedulesCardConfig } from '../dockhand-schedules-card/types';
 import { DEFAULT_SECTION_ORDER, getEnvironmentOrder, getEnvironmentOverrides, type DockhandOverviewCardConfig, type OverviewSection } from './types';
 import { cardStyles } from './styles';
 
@@ -57,6 +59,7 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
       show_stacks: false,
       show_containers: false,
       show_updates: false,
+      show_schedules: false,
       environment_mode: 'standard'
     };
   }
@@ -73,6 +76,7 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
       show_stacks: false,
       show_containers: false,
       show_updates: false,
+      show_schedules: false,
       environment_mode: 'standard',
       ...config
     };
@@ -91,6 +95,7 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
     if (this._config.show_stacks) perColumn += 3;
     if (this._config.show_containers) perColumn += 3;
     if (this._config.show_updates) perColumn += 3;
+    if (this._config.show_schedules) perColumn += 3;
     // Columns render side by side, not stacked, so overall height is
     // governed by the tallest column, not the sum — but with an unknown
     // number of columns per row (width-dependent), a single column's
@@ -108,12 +113,24 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
   protected render(): TemplateResult {
     if (!this._config || !this._hass) return html``;
 
-    const devices = getEnvironmentDevices(this._hass)
-      .filter((d) => !this._config?.exclude_device_ids?.includes(d.deviceId))
-      .sort((a, b) => this._orderIndex(a.deviceId) - this._orderIndex(b.deviceId));
+    // Overview doesn't expose "scope" as a user-facing concept — it
+    // always behaves like the shared resolver's "selected" mode (opt-out
+    // subset, custom order), just without ever calling it that or
+    // routing through the scope-aware wrapper other cards' legacy
+    // shapes need — Overview never had a legacy scope field to begin
+    // with, so there's nothing here for that wrapper to cover. This is
+    // also a genuine bug fix, not just a dedup: the removed inline
+    // version's own comment claimed unlisted environments would sort
+    // alphabetically among themselves because "getEnvironmentDevices
+    // already sorts alphabetically" — it doesn't (confirmed against that
+    // function's own source), so unlisted environments were actually
+    // left in whatever order the device registry happened to iterate
+    // them in, not alphabetical as claimed. resolveIncludedOrdered does
+    // sort them alphabetically, for real.
+    const devices = resolveIncludedOrdered(getEnvironmentDevices(this._hass), getEnvironmentOrder(this._config), this._config.exclude_device_ids);
 
     if (devices.length === 0) {
-      return html`<div class="empty-note">
+      return html`<div class="card-message">
         <ha-icon icon="mdi:alert-circle-outline"></ha-icon>
         <span>No Dockhand environments found.</span>
       </div>`;
@@ -124,9 +141,10 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
       !this._config.show_vulnerabilities &&
       !this._config.show_stacks &&
       !this._config.show_containers &&
-      !this._config.show_updates
+      !this._config.show_updates &&
+      !this._config.show_schedules
     ) {
-      return html`<div class="empty-note">
+      return html`<div class="card-message">
         <ha-icon icon="mdi:alert-circle-outline"></ha-icon>
         <span>Every section is turned off — edit this card to enable at least one.</span>
       </div>`;
@@ -139,24 +157,16 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
     `;
   }
 
-  /** Position in the user's manual order, or past the end (so it sorts
-   * after every explicitly-ordered environment) if not listed — new
-   * environments added after the order was set just appear at the end,
-   * in their normal alphabetical position relative to each other since
-   * Array.sort is stable and getEnvironmentDevices already sorts
-   * alphabetically. */
-  private _orderIndex(deviceId: string): number {
-    const order = getEnvironmentOrder(this._config);
-    if (!order) return 0;
-    const index = order.indexOf(deviceId);
-    return index === -1 ? order.length : index;
-  }
-
-  /** Same ordering approach as _orderIndex, for sections within a column
-   * instead of environments within the row — a section not present in
-   * the user's saved order (e.g. "updates", added after they'd already
-   * arranged the others) sorts after the ordered ones, in
-   * DEFAULT_SECTION_ORDER's own relative order rather than arbitrarily. */
+  /** Same "unlisted sorts after the ones that are ordered" approach as
+   * resolveEnvironmentOrder (src/common/environment-scope.ts) uses for
+   * environments, for sections within a column instead — a section not
+   * present in the user's saved order (e.g. "updates", added after
+   * they'd already arranged the others) sorts after the ordered ones, in
+   * DEFAULT_SECTION_ORDER's own relative order rather than arbitrarily.
+   * Not the same *function* since sections aren't keyed by device_id and
+   * have no "environment device list" to resolve against — just the same
+   * underlying idea, hand-rolled here rather than forced through a
+   * shared helper that doesn't actually fit this shape. */
   private _orderedSections(): OverviewSection[] {
     const saved = this._config?.section_order;
     if (!saved) return DEFAULT_SECTION_ORDER;
@@ -182,36 +192,83 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
       device_id: deviceId,
       mode: override?.environment?.mode ?? this._config?.environment_mode ?? 'standard',
       ...(override?.environment?.custom_sections !== undefined ? { custom_sections: override.environment.custom_sections } : this._config?.environment_custom_sections !== undefined ? { custom_sections: this._config.environment_custom_sections } : {}),
-      ...(override?.environment?.title !== undefined ? { title: override.environment.title } : {}),
+      ...(override?.environment?.name !== undefined ? { name: override.environment.name } : {}),
       ...mergeOverridableField('show_settings_link', override?.environment?.show_settings_link, this._config?.environment_show_settings_link)
     };
     const vulnCfg: DockhandVulnerabilityCardConfig = {
       type: 'custom:dockhand-vulnerability-card',
       device_id: deviceId,
-      ...(override?.vulnerabilities?.title !== undefined ? { title: override.vulnerabilities.title } : {}),
+      ...(override?.vulnerabilities?.name !== undefined ? { name: override.vulnerabilities.name } : {}),
       ...mergeOverridableField('show_settings_link', override?.vulnerabilities?.show_settings_link, this._config?.vulnerabilities_show_settings_link)
     };
+    // Stacks is now multi-environment-capable (device_id became a legacy
+    // field, kept only so an already-saved single-environment config
+    // keeps working — see that card's own types.ts). Solo'd via
+    // exclude_device_ids here rather than device_id: new code should use
+    // the mechanism every other generated card already does, not the
+    // path that exists solely to keep old configs working.
+    const allEnvDeviceIds = getEnvironmentDevices(this._hass!).map((d) => d.deviceId);
     const stacksCfg: DockhandStacksCardConfig = {
       type: 'custom:dockhand-stacks-card',
-      device_id: deviceId,
-      ...(override?.stacks?.title !== undefined ? { title: override.stacks.title } : {}),
+      exclude_device_ids: allEnvDeviceIds.filter((id) => id !== deviceId),
+      ...(override?.stacks?.name !== undefined ? { name: override.stacks.name } : {}),
       ...mergeOverridableField('visible_badges', override?.stacks?.visible_badges, this._config?.stacks_visible_badges),
-      ...mergeOverridableField('show_settings_link', override?.stacks?.show_settings_link, this._config?.stacks_show_settings_link)
+      ...mergeOverridableField('show_settings_link', override?.stacks?.show_settings_link, this._config?.stacks_show_settings_link),
+      ...mergeOverridableField('group_by', override?.stacks?.group_by, this._config?.stacks_group_by),
+      ...mergeOverridableField('sort_by', override?.stacks?.sort_by, this._config?.stacks_sort_by)
     };
+    // Containers is now multi-environment-capable too — same reasoning
+    // as stacksCfg above.
     const containersCfg: DockhandContainersCardConfig = {
       type: 'custom:dockhand-containers-card',
-      device_id: deviceId,
-      ...(override?.containers?.title !== undefined ? { title: override.containers.title } : {}),
+      exclude_device_ids: allEnvDeviceIds.filter((id) => id !== deviceId),
+      ...(override?.containers?.name !== undefined ? { name: override.containers.name } : {}),
       ...mergeOverridableField('visible_badges', override?.containers?.visible_badges, this._config?.containers_visible_badges),
-      ...mergeOverridableField('show_settings_link', override?.containers?.show_settings_link, this._config?.containers_show_settings_link)
+      ...mergeOverridableField('show_settings_link', override?.containers?.show_settings_link, this._config?.containers_show_settings_link),
+      ...mergeOverridableField('group_by', override?.containers?.group_by, this._config?.containers_group_by),
+      ...mergeOverridableField('sort_by', override?.containers?.sort_by, this._config?.containers_sort_by)
     };
+    // Updates is now multi-environment-capable too — same reasoning as
+    // stacksCfg/containersCfg above.
     const updatesCfg: DockhandUpdatesCardConfig = {
       type: 'custom:dockhand-updates-card',
-      scope: 'environment',
-      device_id: deviceId,
-      ...(override?.updates?.title !== undefined ? { title: override.updates.title } : {})
+      exclude_device_ids: allEnvDeviceIds.filter((id) => id !== deviceId),
+      ...(override?.updates?.name !== undefined ? { name: override.updates.name } : {})
     };
     const updatesHideOverride = override?.updates?.hide_when_no_updates;
+    // No device_id field to set (Schedules never had one) — solo'd to
+    // this column's environment the same way the standalone editor's own
+    // "solo" action works: every other environment excluded. include_global
+    // forced off regardless of any override/global-default value — a
+    // global (no-environment) schedule would otherwise repeat identically
+    // in every column, since it isn't scoped to any one of them.
+    // allEnvDeviceIds already computed above for stacksCfg — reused here.
+    // Defaults to next_run only (excluding the environment badge) when
+    // neither an override nor a global default has been set — matching
+    // what the old show_environment_pill: false used to force
+    // unconditionally, now expressed as visible_badges' own default
+    // rather than a separate forced field. Not left to
+    // resolveVisibleBadges' own default (['next_run', 'environment']
+    // unless grouped by environment) — that default is right for the
+    // standalone card, where nothing else already identifies which
+    // environment a row belongs to, but wrong here, where the column
+    // itself already does. The embedded editor's own multi_select never
+    // offers 'environment' as a choice at all when cardIsEmbedded is
+    // set (see Schedules' own editor.ts), so an explicit override or
+    // global default could never actually contain it — this default is
+    // the only place 'environment' needs to be kept out.
+    const effectiveVisibleBadges = override?.schedules?.visible_badges ?? this._config?.schedules_visible_badges ?? ['next_run'];
+    const scheduleCfg: DockhandSchedulesCardConfig = {
+      type: 'custom:dockhand-schedules-card',
+      exclude_device_ids: allEnvDeviceIds.filter((id) => id !== deviceId),
+      include_global: false,
+      visible_badges: effectiveVisibleBadges,
+      ...(override?.schedules?.name !== undefined ? { name: override.schedules.name } : {}),
+      ...mergeOverridableField('show_settings_link', override?.schedules?.show_settings_link, this._config?.schedules_show_settings_link),
+      ...mergeOverridableField('show_stats', override?.schedules?.show_stats, this._config?.schedules_show_stats),
+      ...mergeOverridableField('group_by', override?.schedules?.group_by, this._config?.schedules_group_by),
+      ...mergeOverridableField('sort_by', override?.schedules?.sort_by, this._config?.schedules_sort_by)
+    };
 
     const sectionRenderers: Record<OverviewSection, () => TemplateResult | typeof nothing> = {
       environments: () =>
@@ -244,12 +301,16 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
           return nothing;
         }
         return html`<dockhand-updates-card .hass=${this._hass} .config=${updatesCfg}></dockhand-updates-card>`;
-      }
+      },
+      schedules: () =>
+        this._config?.show_schedules
+          ? html`<dockhand-schedules-card .hass=${this._hass} .config=${scheduleCfg}></dockhand-schedules-card>`
+          : nothing
     };
 
     return html`
       <div class="env-column">
-        <div class="env-column-title">${name}</div>
+        <div class="column-title">${name}</div>
         ${this._orderedSections().map((section) => sectionRenderers[section]())}
       </div>
     `;

@@ -1,4 +1,5 @@
 import type { LovelaceCardConfig } from 'custom-card-helpers';
+import type { EntityNameItem } from '../common/ha-types';
 
 export type CardMode = 'compact' | 'standard' | 'detailed' | 'full' | 'custom';
 
@@ -38,6 +39,8 @@ export interface DockhandEnvironmentCardConfig extends LovelaceCardConfig {
   /** Only meaningful when mode is 'custom' — which sections to show,
    * independent of any preset mode's fixed combination. */
   custom_sections?: CustomSection[];
-  title?: string;
+  /** Composed (Area/Device/Entity/Floor) or Custom (a plain string) —
+   * see common/card-name.ts. */
+  name?: string | EntityNameItem | EntityNameItem[];
   show_settings_link?: boolean;
 }

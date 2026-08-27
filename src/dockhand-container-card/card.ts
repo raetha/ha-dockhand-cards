@@ -3,12 +3,15 @@ import { state } from 'lit/decorators.js';
 import { fireEvent, type LovelaceCard, type LovelaceCardEditor } from 'custom-card-helpers';
 
 import type { HomeAssistant, LovelaceGridOptions } from '../common/ha-types';
-import { getAllContainerDevices } from '../common/device-utils';
+import { getAllContainerDevices, getRepresentativeEntityId } from '../common/device-utils';
+import { resolveCardName, migrateTitleToName } from '../common/card-name';
 import { resolveContainerEntities, findPrimaryEntityByDomain, type ResolutionResult } from '../common/entity-resolver';
+import { joinWithDividers, mergeSections } from '../common/section-join';
 import type { ContainerTranslationKey } from '../common/const';
-import { barColorClass, formatBytes, getDockhandBaseUrl, SETTINGS_LINK_UNAVAILABLE_ICON } from '../common/format';
-import { t } from '../common/i18n';
-import type { DockhandContainerCardConfig } from './types';
+import { barColorClass, formatBytes, getDockhandBaseUrl } from '../common/format';
+import { renderSettingsLink, renderIcon, onKeydownActivate } from '../common/icon';
+import { CONTAINER_STATE_CLASS, HEALTH_ICON, HEALTH_STATUS_CLASS } from '../common/const';
+import { DEFAULT_CONTAINER_SECTIONS, type DockhandContainerCardConfig } from './types';
 import { cardStyles } from './styles';
 
 const STATE_ICON: Record<string, string> = {
@@ -18,12 +21,6 @@ const STATE_ICON: Record<string, string> = {
   exited: 'mdi:stop-circle',
   dead: 'mdi:close-circle',
   created: 'mdi:circle-outline'
-};
-
-const HEALTH_ICON: Record<string, string> = {
-  healthy: 'mdi:heart',
-  unhealthy: 'mdi:heart-broken',
-  starting: 'mdi:heart-outline'
 };
 
 export class DockhandContainerCard extends LitElement implements LovelaceCard {
@@ -51,10 +48,7 @@ export class DockhandContainerCard extends LitElement implements LovelaceCard {
   }
 
   setConfig(config: DockhandContainerCardConfig): void {
-    if (!config.device_id) {
-      throw new Error('Please select a Dockhand container.');
-    }
-    this._config = { show_settings_link: true, ...config };
+    this._config = { show_settings_link: true, ...(migrateTitleToName(config as Record<string, unknown>) as DockhandContainerCardConfig) };
   }
 
   set config(config: DockhandContainerCardConfig) {
@@ -74,22 +68,22 @@ export class DockhandContainerCard extends LitElement implements LovelaceCard {
     fireEvent(this, 'hass-more-info', { entityId });
   }
 
-  private _onKeydown(entityId: string | null | undefined) {
-    return (e: KeyboardEvent) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        this._moreInfo(entityId);
-      }
-    };
-  }
-
   protected render(): TemplateResult {
     if (!this._config || !this._hass) return html``;
+
+    if (!this._config.device_id) {
+      return html`<ha-card>
+        <div class="card-message error">
+          <ha-icon icon="mdi:alert-circle-outline"></ha-icon>
+          <span>Please select a Dockhand container — edit this card to pick one.</span>
+        </div>
+      </ha-card>`;
+    }
 
     const device = this._hass.devices?.[this._config.device_id];
     if (!device) {
       return html`<ha-card>
-        <div class="error-state core-message">
+        <div class="card-message error">
           <ha-icon icon="mdi:alert-circle-outline"></ha-icon>
           <span>Container device not found. It may have been removed — edit this card to pick another.</span>
         </div>
@@ -114,59 +108,53 @@ export class DockhandContainerCard extends LitElement implements LovelaceCard {
       'blockWrite'
     ]);
     const s = resolution.found;
-    const name = this._config.title || device.name_by_user || device.name || 'Container';
+    const representativeEntityId = getRepresentativeEntityId(this._hass, this._config.device_id);
+    const name = resolveCardName(this._hass, representativeEntityId, this._config.name, device.name_by_user || device.name || 'Container');
     const image = s.state?.state.attributes.image as string | undefined;
     const update = findPrimaryEntityByDomain(this._hass, this._config.device_id, 'update');
     const updatePending = update?.state.state === 'on';
 
     return html`
       <ha-card>
-        <div class="header">
-          <div class="header-left">
-            <div class="icon-badge">
-              <ha-icon icon="mdi:docker"></ha-icon>
+        <div class="body">
+          <div class="card-header">
+            <div class="header-left">
+              ${renderIcon({ baseClass: 'card-badge', icon: 'mdi:docker', static: true })}
+              <div class="stacked-pair">
+                <span class="truncate">${name}</span>
+                ${image ? html`<span class="card-subheader truncate">${image}</span>` : nothing}
+              </div>
             </div>
-            <div class="name-block">
-              <span class="name">${name}</span>
-              ${image ? html`<span class="image-tag">${image}</span>` : nothing}
-            </div>
-          </div>
-          <div class="header-right">
-            ${updatePending
-              ? html`
-                  <span
-                    class="update-chip clickable"
-                    tabindex="0"
-                    role="button"
-                    title=${update?.state.attributes.latest_version
+            <div class="header-right">
+              ${updatePending
+                ? renderIcon({
+                    baseClass: 'header-icon',
+                    icon: 'mdi:package-up',
+                    colorClass: 'warn',
+                    title: update?.state.attributes.latest_version
                       ? `Update available: ${update.state.attributes.installed_version ?? '?'} → ${update.state.attributes.latest_version}`
-                      : 'Update available'}
-                    @click=${() => this._moreInfo(update?.entityId)}
-                    @keydown=${this._onKeydown(update?.entityId)}
-                  >
-                    <ha-icon icon="mdi:package-up"></ha-icon> Update available
-                  </span>
-                `
-              : nothing}
-            ${this._config?.show_settings_link
-              ? base
-                ? html`<span class="settings-link" title=${t(this._hass, 'settings_link_open')} @click=${() => window.open(device.configuration_url!, '_blank', 'noopener,noreferrer')}>
-                    <ha-icon icon="mdi:open-in-new"></ha-icon>
-                  </span>`
-                : html`<span class="settings-link unavailable" title=${t(this._hass, 'settings_link_unavailable')}>
-                    <ha-icon icon=${SETTINGS_LINK_UNAVAILABLE_ICON}></ha-icon>
-                  </span>`
-              : nothing}
+                      : 'Update available',
+                    onClick: () => this._moreInfo(update?.entityId)
+                  })
+                : nothing}
+              ${renderSettingsLink({
+                hass: this._hass,
+                show: this._config?.show_settings_link,
+                href: base ? device.configuration_url : null,
+                tooltipKey: 'settings_link_view_container'
+              })}
+            </div>
           </div>
+          <div class="divider"></div>
+          ${this._renderBody(s)}
         </div>
-        <div class="body">${this._renderBody(s)}</div>
       </ha-card>
     `;
   }
 
   private _renderBody(s: ResolutionResult<ContainerTranslationKey>['found']): TemplateResult {
     if (!s.state) {
-      return html`<div class="unavailable-hint core-message">
+      return html`<div class="card-message warn">
         <ha-icon icon="mdi:alert-circle-outline"></ha-icon>
         <span>This container's state sensor isn't available yet.</span>
       </div>`;
@@ -174,35 +162,34 @@ export class DockhandContainerCard extends LitElement implements LovelaceCard {
 
     const state = s.state.state.state;
     const health = s.health?.state.state;
+    const visible = new Set(this._config?.visible_sections ?? DEFAULT_CONTAINER_SECTIONS);
 
-    return html`
-      <div
-        class="state-row clickable"
-        tabindex="0"
-        role="button"
-        @click=${() => this._moreInfo(s.state!.entityId)}
-        @keydown=${this._onKeydown(s.state!.entityId)}
-      >
-        <span class="state-word ${state}"><ha-icon icon=${STATE_ICON[state] ?? 'mdi:help-circle'}></ha-icon> ${state}</span>
-        ${health
-          ? html`
-              <span
-                class="health-chip ${health} clickable"
-                tabindex="0"
-                role="button"
-                @click=${(e: Event) => {
-                  e.stopPropagation();
-                  this._moreInfo(s.health?.entityId);
-                }}
-                @keydown=${this._onKeydown(s.health?.entityId)}
-              >
-                <ha-icon icon=${HEALTH_ICON[health] ?? 'mdi:heart-outline'}></ha-icon> ${health}
-              </span>
-            `
-          : nothing}
-      </div>
-      ${this._renderMetrics(s)}${this._renderIo(s)}
-    `;
+    const stateContent = visible.has('state')
+      ? html`
+          <div class="hero-row">
+            ${renderIcon({
+              baseClass: 'hero-word',
+              colorClass: CONTAINER_STATE_CLASS[state] as 'ok' | 'warn' | 'error' | 'neutral' | undefined,
+              icon: STATE_ICON[state] ?? 'mdi:help-circle',
+              text: state,
+              onClick: () => this._moreInfo(s.state!.entityId)
+            })}
+            ${health
+              ? renderIcon({
+                  baseClass: 'hero-word health-chip',
+                  colorClass: HEALTH_STATUS_CLASS[health] as 'ok' | 'warn' | 'error' | undefined,
+                  icon: HEALTH_ICON[health] ?? 'mdi:heart-outline',
+                  title: health,
+                  onClick: () => this._moreInfo(s.health?.entityId)
+                })
+              : nothing}
+          </div>
+        `
+      : nothing;
+    const metricsContent = visible.has('metrics') ? this._renderMetrics(s) : nothing;
+    const ioContent = visible.has('io') ? this._renderIo(s) : nothing;
+
+    return joinWithDividers([stateContent, mergeSections(metricsContent, ioContent)]);
   }
 
   private _renderMetrics(s: ResolutionResult<ContainerTranslationKey>['found']): TemplateResult | typeof nothing {
@@ -213,40 +200,44 @@ export class DockhandContainerCard extends LitElement implements LovelaceCard {
     const memLimit = s.memoryLimit ? Number(s.memoryLimit.state.state) : undefined;
 
     return html`
-      <div class="metric-row">
+      <div class="section">
         ${cpu !== undefined
           ? html`
-              <div
-                class="metric-line clickable"
-                tabindex="0"
-                role="button"
-                @click=${() => this._moreInfo(s.cpuPercent?.entityId)}
-                @keydown=${this._onKeydown(s.cpuPercent?.entityId)}
-              >
-                <span class="metric-label"><ha-state-icon .hass=${this._hass} .stateObj=${s.cpuPercent!.state}></ha-state-icon> CPU</span>
-                <span class="metric-value">${cpu.toFixed(1)}%</span>
+              <div class="stacked-pair">
+                <div
+                  class="row clickable"
+                  tabindex="0"
+                  role="button"
+                  @click=${() => this._moreInfo(s.cpuPercent?.entityId)}
+                  @keydown=${onKeydownActivate(() => this._moreInfo(s.cpuPercent?.entityId))}
+                >
+                  ${renderIcon({ baseClass: 'row-icon', hass: this._hass, stateObj: s.cpuPercent!.state, text: 'CPU', static: true })}
+                  <span class="row-right">${cpu.toFixed(1)}%</span>
+                </div>
+                <div class="bar-track"><div class="bar-fill ${barColorClass(cpu)}" style="width:${Math.min(cpu, 100)}%"></div></div>
               </div>
-              <div class="bar-track"><div class="bar-fill ${barColorClass(cpu)}" style="width:${Math.min(cpu, 100)}%"></div></div>
             `
           : nothing}
         ${mem !== undefined
           ? html`
-              <div
-                class="metric-line clickable"
-                tabindex="0"
-                role="button"
-                @click=${() => this._moreInfo(s.memoryPercent?.entityId)}
-                @keydown=${this._onKeydown(s.memoryPercent?.entityId)}
-              >
-                <span class="metric-label"><ha-state-icon .hass=${this._hass} .stateObj=${s.memoryPercent!.state}></ha-state-icon> Memory</span>
-                <span class="metric-value">
-                  ${mem.toFixed(1)}%
-                  ${memUsed !== undefined
-                    ? html`<span class="used">(${formatBytes(memUsed)}${memLimit ? ` / ${formatBytes(memLimit)}` : ''})</span>`
-                    : nothing}
-                </span>
+              <div class="stacked-pair">
+                <div
+                  class="row clickable"
+                  tabindex="0"
+                  role="button"
+                  @click=${() => this._moreInfo(s.memoryPercent?.entityId)}
+                  @keydown=${onKeydownActivate(() => this._moreInfo(s.memoryPercent?.entityId))}
+                >
+                  ${renderIcon({ baseClass: 'row-icon', hass: this._hass, stateObj: s.memoryPercent!.state, text: 'Memory', static: true })}
+                  <span class="row-right">
+                    ${mem.toFixed(1)}%
+                    ${memUsed !== undefined
+                      ? html`(${formatBytes(memUsed)}${memLimit ? ` / ${formatBytes(memLimit)}` : ''})`
+                      : nothing}
+                  </span>
+                </div>
+                <div class="bar-track"><div class="bar-fill ${barColorClass(mem)}" style="width:${Math.min(mem, 100)}%"></div></div>
               </div>
-              <div class="bar-track"><div class="bar-fill ${barColorClass(mem)}" style="width:${Math.min(mem, 100)}%"></div></div>
             `
           : nothing}
       </div>
@@ -264,18 +255,18 @@ export class DockhandContainerCard extends LitElement implements LovelaceCard {
     if (available.length === 0) return nothing;
 
     return html`
-      <div class="io-grid">
+      <div class="grid-2">
         ${available.map(
           (item) => html`
             <div
-              class="io-item clickable"
+              class="row clickable"
               tabindex="0"
               role="button"
               @click=${() => this._moreInfo(item.entry?.entityId)}
-              @keydown=${this._onKeydown(item.entry?.entityId)}
+              @keydown=${onKeydownActivate(() => this._moreInfo(item.entry?.entityId))}
             >
-              <span class="label"><ha-icon icon=${item.icon}></ha-icon> ${item.label}</span>
-              <span>${formatBytes(Number(item.entry!.state.state))}</span>
+              ${renderIcon({ baseClass: 'row-icon', icon: item.icon, text: item.label, static: true })}
+              <span class="row-right">${formatBytes(Number(item.entry!.state.state))}</span>
             </div>
           `
         )}

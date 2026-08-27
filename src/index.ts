@@ -3,8 +3,10 @@ import {
   isEnvironmentDevice,
   isContainerDevice,
   isStackDevice,
+  isScheduleDevice,
   getEnvIdForStackDevice,
   getEnvIdForContainerDevice,
+  getEnvIdForScheduleDevice,
   getEnvDeviceIdForEnvId
 } from './common/device-utils';
 import type { HomeAssistant } from './common/ha-types';
@@ -17,6 +19,7 @@ import { DockhandStacksCard } from './dockhand-stacks-card/card';
 import { DockhandContainersCard } from './dockhand-containers-card/card';
 import { DockhandUpdatesCard } from './dockhand-updates-card/card';
 import { DockhandOverviewCard } from './dockhand-overview-card/card';
+import { DockhandSchedulesCard } from './dockhand-schedules-card/card';
 
 customElements.define('dockhand-environment-card', DockhandEnvironmentCard);
 customElements.define('dockhand-vulnerability-card', DockhandVulnerabilityCard);
@@ -26,6 +29,7 @@ customElements.define('dockhand-stacks-card', DockhandStacksCard);
 customElements.define('dockhand-containers-card', DockhandContainersCard);
 customElements.define('dockhand-updates-card', DockhandUpdatesCard);
 customElements.define('dockhand-overview-card', DockhandOverviewCard);
+customElements.define('dockhand-schedules-card', DockhandSchedulesCard);
 
 // Each card's own editor is registered lazily via its getConfigElement()
 // (dynamically imported, self-registers on first use) to keep the initial
@@ -191,6 +195,32 @@ window.customCards.push({
   description: 'One big dashboard: every environment, with stacks/containers/vulnerabilities alongside it — intended to fill a whole dashboard view.',
   preview: true,
   documentationURL: 'https://github.com/raetha/ha-dockhand-cards'
+});
+
+window.customCards.push({
+  type: 'dockhand-schedules-card',
+  name: 'Dockhand Schedules Card',
+  description: 'Every schedule — container updates, git syncs, environment checks, image prunes, and system jobs — for one environment or all of them.',
+  preview: true,
+  documentationURL: 'https://github.com/raetha/ha-dockhand-cards',
+  getEntitySuggestion(hass, entityId) {
+    const entry = hass.entities?.[entityId];
+    if (!entry || entry.platform !== DOCKHAND_DOMAIN || !entry.device_id) return undefined;
+    if (entry.translation_key !== 'next_run' && entry.translation_key !== 'last_status') return undefined;
+    const device = hass.devices?.[entry.device_id];
+    if (!device || !isScheduleDevice(device)) return undefined;
+    const envId = getEnvIdForScheduleDevice(hass, device);
+    const envDeviceId = envId !== null ? getEnvDeviceIdForEnvId(hass, envId) : null;
+    // No scope/device_id fields anymore — "just this environment" is
+    // expressed the same way the editor's own per-row "solo" action
+    // writes it: exclude every other known environment, same as picking
+    // scope: 'environment' + this device_id used to mean.
+    const excludeOthers = envDeviceId ? Object.values(hass.devices ?? {}).filter((d) => isEnvironmentDevice(d) && d.id !== envDeviceId).map((d) => d.id) : [];
+    return {
+      config: { type: 'custom:dockhand-schedules-card', ...(envDeviceId ? { exclude_device_ids: excludeOthers } : {}) },
+      label: envDeviceId ? 'Schedules in this environment' : 'All schedules'
+    };
+  }
 });
 
 console.info(`%c HA-DOCKHAND-CARDS %c v${CARD_VERSION} `, 'color: white; background: #0ea5e9; font-weight: 700;', 'color: #0ea5e9; background: white; font-weight: 700;');

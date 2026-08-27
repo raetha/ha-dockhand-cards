@@ -25,6 +25,14 @@ for (const file of walk(SRC_DIR)) {
   const text = readFileSync(file, 'utf-8');
   for (const m of text.matchAll(/mdi:([a-z0-9-]+)/g)) names.add(m[1]);
 }
+// Also scan this harness's own mock data — icon names referenced only as a
+// mock entity's own `icon` attribute (not hardcoded anywhere in the actual
+// card source, since real cards resolve icons dynamically via ha-state-icon)
+// would otherwise never be found, leaving those icons rendering empty.
+for (const file of ['mock-data.mjs', 'ha-shims.mjs']) {
+  const text = readFileSync(join(import.meta.dirname, file), 'utf-8');
+  for (const m of text.matchAll(/mdi:([a-z0-9-]+)/g)) names.add(m[1]);
+}
 
 function toCamel(name) {
   return 'mdi' + name.split('-').map((p) => p[0].toUpperCase() + p.slice(1)).join('');

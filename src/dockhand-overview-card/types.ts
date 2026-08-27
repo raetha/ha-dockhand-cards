@@ -1,12 +1,14 @@
 import type { LovelaceCardConfig } from 'custom-card-helpers';
 import type { CardMode, CustomSection, DockhandEnvironmentCardConfig } from '../dockhand-environment-card/types';
-import type { StacksCardBadge, DockhandStacksCardConfig } from '../dockhand-stacks-card/types';
-import type { ContainersCardBadge, DockhandContainersCardConfig } from '../dockhand-containers-card/types';
+import type { StacksCardBadge, StacksGroupBy, StacksSortBy, DockhandStacksCardConfig } from '../dockhand-stacks-card/types';
+import type { ContainersCardBadge, ContainersGroupBy, ContainersSortBy, DockhandContainersCardConfig } from '../dockhand-containers-card/types';
 import type { DockhandVulnerabilityCardConfig } from '../dockhand-vulnerability-card/types';
+import type { ScheduleGroupBy, ScheduleSortBy, ScheduleBadge } from '../dockhand-schedules-card/types';
+import type { EntityNameItem } from '../common/ha-types';
 
-export type OverviewSection = 'environments' | 'vulnerabilities' | 'stacks' | 'containers' | 'updates';
+export type OverviewSection = 'environments' | 'vulnerabilities' | 'stacks' | 'containers' | 'updates' | 'schedules';
 
-export const DEFAULT_SECTION_ORDER: OverviewSection[] = ['environments', 'vulnerabilities', 'updates', 'stacks', 'containers'];
+export const DEFAULT_SECTION_ORDER: OverviewSection[] = ['environments', 'vulnerabilities', 'updates', 'schedules', 'stacks', 'containers'];
 
 /** Per-environment override of any field the standalone Environment/
  * Vulnerability/Stacks/Containers card itself exposes — same fields,
@@ -32,11 +34,40 @@ export const DEFAULT_SECTION_ORDER: OverviewSection[] = ['environments', 'vulner
  * is everywhere else in this design. */
 export type EnvironmentOverrideEnvironment = Omit<DockhandEnvironmentCardConfig, 'type' | 'device_id'>;
 export type EnvironmentOverrideVulnerabilities = Omit<DockhandVulnerabilityCardConfig, 'type' | 'device_id'>;
-export type EnvironmentOverrideStacks = Omit<DockhandStacksCardConfig, 'type' | 'device_id'>;
-export type EnvironmentOverrideContainers = Omit<DockhandContainersCardConfig, 'type' | 'device_id'>;
+/** `environments_order`/`exclude_device_ids` also omitted, alongside the
+ * pre-existing `type`/`device_id` — not override-appropriate now that
+ * Stacks supports multiple environments: Overview already owns which
+ * environment(s) each generated card represents, same reasoning as
+ * EnvironmentOverrideSchedules' own comment. */
+export type EnvironmentOverrideStacks = Omit<DockhandStacksCardConfig, 'type' | 'device_id' | 'environments_order' | 'exclude_device_ids'>;
+export type EnvironmentOverrideContainers = Omit<DockhandContainersCardConfig, 'type' | 'device_id' | 'environments_order' | 'exclude_device_ids'>;
 export interface EnvironmentOverrideUpdates {
-  title?: string;
+  name?: string | EntityNameItem | EntityNameItem[];
   hide_when_no_updates?: boolean;
+}
+/** Hand-declared for the same reason EnvironmentOverrideUpdates is: Omit<>
+ * alone doesn't produce the right shape. Schedules has no `device_id` to
+ * omit in the first place (it never had one — see that card's own
+ * README for why), and its environment-scoping fields
+ * (`environments_order`/`exclude_device_ids`/`include_global`) aren't
+ * override-appropriate here at all — Overview already owns which
+ * environment each column represents, and forces every generated
+ * Schedules card to that one environment plus include_global: false
+ * (see card.ts) so the same global schedules don't repeat in every
+ * column. `visible_badges` is included (unlike the two fields above) —
+ * an override *can* meaningfully ask for the environment badge back on
+ * one specific column even though Overview's own default excludes it
+ * (see card.ts's own comment on why) — but the embedded editor never
+ * offers 'environment' as a choice in the first place when embedded, so
+ * in practice an override here can only ever end up narrowing
+ * ['next_run'] further, never actually adding 'environment' back. */
+export interface EnvironmentOverrideSchedules {
+  name?: string | EntityNameItem | EntityNameItem[];
+  show_settings_link?: boolean;
+  show_stats?: boolean;
+  visible_badges?: ScheduleBadge[];
+  group_by?: ScheduleGroupBy;
+  sort_by?: ScheduleSortBy;
 }
 
 /** One environment's full set of per-card-type overrides — edited via the
@@ -50,6 +81,7 @@ export interface EnvironmentOverride {
   stacks?: EnvironmentOverrideStacks;
   containers?: EnvironmentOverrideContainers;
   updates?: EnvironmentOverrideUpdates;
+  schedules?: EnvironmentOverrideSchedules;
 }
 
 export interface DockhandOverviewCardConfig extends LovelaceCardConfig {
@@ -59,6 +91,13 @@ export interface DockhandOverviewCardConfig extends LovelaceCardConfig {
   show_stacks?: boolean;
   show_containers?: boolean;
   show_updates?: boolean;
+  /** Defaults to false, unlike every sibling show_X field — schedules
+   * existing per-environment (rather than flat, ha-dockhand 1.9.0+ only)
+   * is recent enough that defaulting this on could put an empty or
+   * confusingly-partial section in front of someone running an older
+   * ha-dockhand, the same reasoning the standalone Schedules card's own
+   * README already gives for needing that version. */
+  show_schedules?: boolean;
   /** Passed through to every per-environment Updates card this generates
    * (each is independently scope: 'environment', so this correctly hides
    * only the specific environment's card that has no updates, never
@@ -83,6 +122,7 @@ export interface DockhandOverviewCardConfig extends LovelaceCardConfig {
   vulnerabilities_show_settings_link?: boolean;
   stacks_show_settings_link?: boolean;
   containers_show_settings_link?: boolean;
+  schedules_show_settings_link?: boolean;
   /** Same visible_badges concept as the standalone Stacks-list/
    * Containers-list cards' own config, applied as the shared default for
    * every environment's generated card of that type — same relationship
@@ -90,6 +130,25 @@ export interface DockhandOverviewCardConfig extends LovelaceCardConfig {
    * Environment card's own fields. */
   stacks_visible_badges?: StacksCardBadge[];
   containers_visible_badges?: ContainersCardBadge[];
+  containers_group_by?: ContainersGroupBy;
+  containers_sort_by?: ContainersSortBy;
+  /** Same relationship to the standalone Stacks card's own group_by/
+   * sort_by fields as every other X_fieldname global default here. */
+  stacks_group_by?: StacksGroupBy;
+  stacks_sort_by?: StacksSortBy;
+  /** Same relationship to the standalone Schedules card's own fields as
+   * every other X_fieldname global default above — applied uniformly to
+   * every environment's generated Schedules card. Not included:
+   * environments_order/exclude_device_ids/include_global (Overview
+   * already owns environment scoping for every generated card of every
+   * type; see EnvironmentOverrideSchedules' own comment). visible_badges
+   * *is* included, unlike those three — see card.ts's own comment on why
+   * its default (['next_run'], no environment badge) differs from the
+   * standalone card's own default. */
+  schedules_show_stats?: boolean;
+  schedules_visible_badges?: ScheduleBadge[];
+  schedules_group_by?: ScheduleGroupBy;
+  schedules_sort_by?: ScheduleSortBy;
   /** Per-environment overrides of any field any of the 5 generated card
    * types expose, keyed by device id. Edited via the editor's per-
    * environment detail view — see EnvironmentOverride above. Plural,
