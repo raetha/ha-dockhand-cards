@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
 
+# Restrict all jobs to read-only by default; no job in this workflow
+# writes back to the repository or creates releases.
+permissions:
+  contents: read
+
 jobs:
   # ── HACS plugin (dashboard) validation ─────────────────────────────────
   hacs:
@@ -14,6 +19,11 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run build
       - name: HACS Action
         uses: hacs/action@main
         with:
