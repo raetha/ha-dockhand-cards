@@ -656,7 +656,7 @@ export class DockhandEnvironmentCard extends LitElement implements LovelaceCard 
               : nothing}
           <div class="stacked-pair">
             <span
-              class="truncate ${onlineId ? 'clickable' : ''}"
+              class="truncate env-name ${onlineId ? 'clickable' : ''}"
               tabindex=${onlineId ? 0 : -1}
               role=${onlineId ? 'button' : nothing}
               @click=${() => this._moreInfo(onlineId)}

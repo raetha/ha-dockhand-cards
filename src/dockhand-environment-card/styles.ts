@@ -4,6 +4,20 @@ import { sharedStyles } from '../common/shared-styles';
 export const cardStyles = css`
   ${sharedStyles}
 
+  /* The environment name is a line-height:1 span — .clickable's 6px
+   * border-radius is disproportionately large at that height (~40% of
+   * half-height) and looks pill-shaped instead of a subtle rounded rect.
+   * It also causes overflow:hidden (from .truncate) to clip the first
+   * glyph at the curved corner.  Small padding + negative margin extends
+   * the hover footprint without shifting layout, and the lower border-
+   * radius gives proportions matching a header-icon or row element rather
+   * than a pill.  Scoped here (not in shared-styles) so the standard
+   * .clickable shape is unchanged everywhere else, including label-pill. */
+  .env-name.clickable {
+    padding: 2px 4px;
+    margin: -2px -4px;
+    border-radius: 4px;
+  }
   .breakdown .running {
     color: var(--dockhand-status-ok-color);
   }

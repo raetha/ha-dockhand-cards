@@ -20,6 +20,21 @@ maintain — write each section as the thing you'd want a user to read on
 the Releases page.
 -->
 
+## [1.2.1] - 2026-08-31
+
+Required for compatibility with ha-dockhand 1.9.1.
+
+### Fixed
+
+- **Compatibility with ha-dockhand 1.9.1** (issue #1). ha-dockhand 1.9.1 changes
+  how device identifiers are formatted in the HA registry; this update teaches the
+  cards to recognize both the old and new formats so everything resolves correctly
+  after upgrading. No card configuration changes needed.
+- **Environment card: environment name hover shape** was pill-shaped instead of the
+  standard subtle rounded-rectangle used for rows and icon buttons, and the rounded
+  corners clipped the first letter of the environment name. The hover footprint now
+  matches the style used everywhere else.
+
 ## [1.2.0] - 2026-08-27
 
 ### Added

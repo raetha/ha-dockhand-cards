@@ -1,6 +1,6 @@
 {
   "name": "ha-dockhand-cards",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Lovelace cards for the ha-dockhand Home Assistant integration",
   "private": true,
   "type": "module",
