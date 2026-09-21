@@ -7,9 +7,10 @@ import type { HomeAssistant } from '../common/ha-types';
 import { getEnvironmentDevices, getRepresentativeEntityId } from '../common/device-utils';
 import { cardNameFieldSchema, migrateTitleToName } from '../common/card-name';
 import { stripUndefinedKeys } from '../common/config-utils';
-import { t } from '../common/i18n';
+import { t } from '../common/i18n-editor';
 import { editorFormStyles, sortableRowStyles } from '../common/editor-styles';
-import { renderEnvironmentOrderSection, resolveIncludedOrderedWithLegacy, effectiveExcludeDeviceIds } from '../common/environment-scope';
+import { resolveIncludedOrderedWithLegacy } from '../common/environment-scope';
+import { renderEnvironmentOrderSection, effectiveExcludeDeviceIds } from '../common/environment-scope-editor';
 import { DEFAULT_STACKS_BADGES, type DockhandStacksCardConfig } from './types';
 
 export class DockhandStacksCardEditor extends LitElement implements LovelaceCardEditor {

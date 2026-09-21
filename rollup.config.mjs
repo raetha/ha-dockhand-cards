@@ -8,15 +8,9 @@ import { readFileSync } from 'node:fs';
 const dev = process.env.ROLLUP_WATCH === 'true';
 const { version } = JSON.parse(readFileSync('./package.json', 'utf-8'));
 
-export default {
-  input: 'src/index.ts',
-  output: {
-    file: 'dist/ha-dockhand-cards.js',
-    format: 'es',
-    sourcemap: dev,
-    inlineDynamicImports: true
-  },
-  plugins: [
+/** Shared plugin stack — identical for both bundles. */
+function plugins() {
+  return [
     replace({
       preventAssignment: true,
       values: { __CARD_VERSION__: version }
@@ -35,5 +29,35 @@ export default {
     resolve(),
     typescript({ tsconfig: './tsconfig.json', sourceMap: dev }),
     !dev && terser()
-  ].filter(Boolean)
-};
+  ].filter(Boolean);
+}
+
+export default [
+  // Card bundle — card implementations + card-runtime i18n only.
+  // Editors are NOT included here; they live in the editor bundle below.
+  {
+    input: 'src/index.ts',
+    output: {
+      file: 'dist/ha-dockhand-cards.js',
+      format: 'es',
+      sourcemap: dev
+    },
+    plugins: plugins()
+  },
+  // Editor bundle — all 9 card editors + editor i18n.
+  // Loaded as a second Lovelace resource alongside the card bundle.
+  // Shared utility code (Lit, device-utils, etc.) is duplicated into both
+  // bundles rather than emitted as a shared chunk — shared chunks break
+  // under HACS because HA appends a ?hacstag= cache-buster to registered
+  // resource URLs, making the browser see two different module URLs for the
+  // same chunk and triggering duplicate customElements.define() errors.
+  {
+    input: 'src/editors.ts',
+    output: {
+      file: 'dist/ha-dockhand-cards-editor.js',
+      format: 'es',
+      sourcemap: dev
+    },
+    plugins: plugins()
+  }
+];

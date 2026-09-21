@@ -85,14 +85,14 @@ permanent.
   + `role="button"` + `@keydown` on non-`<button>` elements) — implemented per WAI-ARIA guidance
   but not yet manually verified against NVDA/VoiceOver.
 
-- **Translation coverage is mostly editor-only (v1.1).** `src/common/i18n.ts` covers field labels,
-  section headings, and mode-description hints across all editors, same 11 locales as ha-dockhand,
-  plus one piece of live-card-rendered text: each card's "Open in Dockhand"-style link tooltip.
-  Everything else live-card-rendered (e.g. "Images", "CPU", "Events", health/status words) is still
-  English-only — a much larger string set spread across every card's render methods, not just
-  editors. Extending coverage there is mechanical but sizable; do it incrementally, same discipline
-  as ha-dockhand (translate a string into every locale the same pass it's added, never leave one
-  partially stale).
+- **Translation coverage is mostly editor-only (v1.1).** `src/common/i18n-editor.ts` covers field
+  labels, section headings, and mode-description hints across all editors, same 11 locales as
+  ha-dockhand. `src/common/i18n-card.ts` covers the small set of card-runtime keys (each card's
+  "Open in Dockhand"-style link tooltip and equivalents — 9 keys total). Everything else
+  live-card-rendered (e.g. "Images", "CPU", "Events", health/status words) is still English-only —
+  a much larger string set spread across every card's render methods, not just editors. Extending
+  coverage there is mechanical but sizable; do it incrementally, same discipline as ha-dockhand
+  (translate a string into every locale the same pass it's added, never leave one partially stale).
 
 - **Vulnerability findings list/table card** — the summary card shows aggregate counts only,
   matching what's cheap to poll (`/api/vulnerabilities/count`). A full findings list would need a
@@ -171,11 +171,10 @@ permanent.
 
 - **A single-environment Overview card given extra dashboard width (e.g. spanning 3 grid columns)
   currently just stretches, rather than spreading its sections out to use the width.** Confirmed
-  against the actual CSS: `.env-column` is `flex: 1 1 320px` inside a `flex-wrap` `.overview`
-  container — with *multiple* environments, that's exactly why the card already does something
-  like the desired behavior (each environment's own column, wrapping to fill available width), but
-  with a single environment there's only one `.env-column`, and `flex-grow: 1` means that one
-  column stretches to fill all the available width — its children (Environment/Vulnerability/
+  against the actual CSS: `.overview` is now a CSS Grid (`repeat(auto-fill, minmax(320px, 1fr))`)
+  — with *multiple* environments, `auto-fill` places each `.env-column` in its own grid column,
+  filling available width. With a single environment, `auto-fill` still produces only one grid
+  column and that env-column fills the full width — its children (Environment/Vulnerability/
   Stacks/etc. cards) are stacked vertically and just render wider individually, not rearranged into
   a multi-column layout. `getGridOptions()` also defaults to `columns: 'full'`, so a 3-column span
   is already a user override, not something the card anticipates today.

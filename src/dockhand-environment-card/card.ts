@@ -1,3 +1,4 @@
+import { loadEditor } from '../common/editor-loader';
 import { LitElement, html, svg, nothing, type TemplateResult } from 'lit';
 import { state } from 'lit/decorators.js';
 import { arc } from 'd3-shape';
@@ -128,7 +129,7 @@ export class DockhandEnvironmentCard extends LitElement implements LovelaceCard 
   }
 
   static async getConfigElement(): Promise<LovelaceCardEditor> {
-    await import('./editor');
+    await loadEditor();
     return document.createElement('dockhand-environment-card-editor') as unknown as LovelaceCardEditor;
   }
 

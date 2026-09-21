@@ -1,3 +1,4 @@
+import { loadEditor } from '../common/editor-loader';
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { state } from 'lit/decorators.js';
 import { fireEvent, type LovelaceCard, type LovelaceCardEditor } from 'custom-card-helpers';
@@ -122,7 +123,7 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
   }
 
   static async getConfigElement(): Promise<LovelaceCardEditor> {
-    await import('./editor');
+    await loadEditor();
     return document.createElement('dockhand-stacks-card-editor') as unknown as LovelaceCardEditor;
   }
 
@@ -257,14 +258,6 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
           ${visible.has('environment') ? html`<span class="label-pill">${row.environment}</span>` : nothing}
         </div>
         <div class="row-right">
-          ${containerCount !== undefined && visible.has('container_count')
-            ? renderIcon({
-                baseClass: 'row-icon',
-                icon: 'mdi:docker',
-                text: `${containerCount}`,
-                onClick: () => this._moreInfo(containerCountId)
-              })
-            : nothing}
           ${updatesOn && visible.has('updates')
             ? renderIcon({
                 baseClass: 'row-icon',
@@ -272,6 +265,14 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
                 colorClass: 'warn',
                 text: updateCount !== undefined ? `${updateCount}` : '',
                 onClick: () => this._moreInfo(updatesId)
+              })
+            : nothing}
+          ${containerCount !== undefined && visible.has('container_count')
+            ? renderIcon({
+                baseClass: 'row-icon',
+                icon: 'mdi:docker',
+                text: `${containerCount}`,
+                onClick: () => this._moreInfo(containerCountId)
               })
             : nothing}
         </div>

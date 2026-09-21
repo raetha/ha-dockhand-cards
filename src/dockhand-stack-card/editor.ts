@@ -7,7 +7,7 @@ import type { HomeAssistant } from '../common/ha-types';
 import { getEnvironmentDevices, getEnvId, getStackDevicesForEnvironment, getEnvIdForStackDevice, getRepresentativeEntityId } from '../common/device-utils';
 import { cardNameFieldSchema, migrateTitleToName } from '../common/card-name';
 import { resolveStackEntities, getStackDropdownOptions } from '../common/entity-resolver';
-import { t } from '../common/i18n';
+import { t } from '../common/i18n-editor';
 import { editorFormStyles } from '../common/editor-styles';
 import { STACK_FRIENDLY_LABEL, type StackTranslationKey } from '../common/const';
 import { DEFAULT_STACK_SECTIONS, STACK_SECTION_ORDER, type DockhandStackCardConfig } from './types';

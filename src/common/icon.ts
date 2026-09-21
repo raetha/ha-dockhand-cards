@@ -2,7 +2,7 @@ import { html, nothing, type TemplateResult } from 'lit';
 import type { HassEntity } from 'home-assistant-js-websocket';
 import type { HomeAssistant } from './ha-types';
 import { SETTINGS_LINK_UNAVAILABLE_ICON } from './format';
-import { t, type TranslationKey } from './i18n';
+import { t, type CardTranslationKey } from './i18n-card';
 
 /**
  * The shared Enter/Space-activates-like-a-click keydown handler, used
@@ -163,7 +163,7 @@ export function renderSettingsLink(opts: {
    * format.ts's SETTINGS_LINK_UNAVAILABLE_ICON for why that distinction
    * matters rather than just hiding the icon either way. */
   href: string | null;
-  tooltipKey: TranslationKey;
+  tooltipKey: CardTranslationKey;
   icon?: string;
 }): TemplateResult | typeof nothing {
   if (!opts.show) return nothing;

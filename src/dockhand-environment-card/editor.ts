@@ -8,13 +8,13 @@ import { getEnvironmentDevices, getRepresentativeEntityId } from '../common/devi
 import { cardNameFieldSchema, migrateTitleToName } from '../common/card-name';
 import { resolveEnvironmentEntities } from '../common/entity-resolver';
 import { REQUIRED_KEYS_BY_MODE, ENV_FRIENDLY_LABEL, type EnvTranslationKey } from '../common/const';
-import { t, type TranslationKey } from '../common/i18n';
+import { t, type EditorTranslationKey } from '../common/i18n-editor';
 import { editorFormStyles } from '../common/editor-styles';
 import { CUSTOM_SECTION_ORDER, DEFAULT_CUSTOM_SECTIONS, type CardMode, type DockhandEnvironmentCardConfig } from './types';
 
 const MODE_KEYS = { compact: 'mode_compact', standard: 'mode_standard', detailed: 'mode_detailed', full: 'mode_full', custom: 'mode_custom' } as const;
 
-const SECTION_LABEL_KEY: Record<string, TranslationKey> = {
+const SECTION_LABEL_KEY: Record<string, EditorTranslationKey> = {
   container_counts: 'section_container_counts',
   metrics: 'section_metrics',
   resources: 'section_resources',

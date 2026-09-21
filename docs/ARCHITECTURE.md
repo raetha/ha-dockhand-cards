@@ -29,7 +29,7 @@ Every editor in this repo builds its core config fields as a `schema` array fed 
 `<ha-form>`, rather than hand-rendering individual `ha-select`/`ha-input`/`ha-switch` elements.
 Every multi-environment card (Schedules, Updates, Stacks, Containers, Overview) also interleaves a
 hand-built sortable environment-order/exclude section at root, outside any `<ha-form>` — see the
-shared `renderEnvironmentOrderSection()` in `common/environment-scope.ts` — since drag-reordering
+shared `renderEnvironmentOrderSection()` in `common/environment-scope-editor.ts` — since drag-reordering
 and eye-icon toggles don't map onto `ha-form`'s schema model at all, so that piece stays hand-built
 regardless of how much of the rest of the editor is schema-driven. Minimal schema types live in
 `common/ha-form-types.ts`, declared the same way `ha-types.ts` already declares
@@ -83,7 +83,7 @@ elsewhere in the form.
   list↔detail navigation (§3) don't map onto `ha-form`'s schema model at all. Same reasoning as
   Badges/Features staying hand-built in HA's own reference editors: some UI shapes aren't forms,
   and forcing them to be one doesn't make the result more standard, just harder to read. Order/
-  exclude toggling was generalized into `common/environment-scope.ts`'s
+  exclude toggling was generalized into `common/environment-scope-editor.ts`'s
   `renderEnvironmentOrderSection()` once several editors needed it — Overview's per-section
   override navigation, with its own extra "pencil" action button per row, is the one thing that
   function's own `onEdit` callback exists for (an optional hook, same pattern as its
@@ -995,7 +995,45 @@ grid, not `.grid-2`'s own 2-up or a vertical list) and `.severity-pill` with its
 the shared `.ok`/`.warn`/`.error`/`.accent` set).
 
 **Overview card** (`dockhand-overview-card/styles.ts`) — `.overview` (the outer multi-column
-wrapper) and `.env-column` (one environment's own column) — this card doesn't render `<ha-card>`,
-rows, sections, or a header/hero in the sense every other card does, so none of the shared row-shape
-classes apply to it at all; it's purely compositional, embedding instances of the other cards.
+wrapper, a CSS Grid with `repeat(auto-fill, minmax(320px, 1fr))` when `align_columns` is true, or
+flex-wrap with the `.no-align` class when false) and `.env-column` (one environment's own column —
+always a plain flex column; section slots are height-equalised by JavaScript in aligned mode).
+This card doesn't render `<ha-card>`, rows, sections, or a header/hero in the sense every other
+card does, so none of the shared row-shape classes apply to it at all; it's purely compositional,
+embedding instances of the other cards.
+
+**Why not CSS subgrid:** CSS `grid-template-rows: subgrid` was the natural fit here and was the
+first implementation attempted. Chrome has a confirmed bug in its subgrid intrinsic-sizing pass
+that inflates the second column track's width — pixel-exact, reproducible on both desktop and
+mobile iOS with a fresh bundle — making the second environment column consistently wider than all
+others. The approach was abandoned in favour of JavaScript height equalisation.
+
+**How JS height equalisation works (align_columns: true):** Each `.env-column` is a
+`display: flex; flex-direction: column; gap: 12px` container. `_renderColumn()` wraps every
+section slot in a `<div class="section-wrapper" data-section="…">` — even sections whose content
+is `nothing` — so every column has a stable DOM node for every possible section. After each Lit
+`updated()` lifecycle (deferred one `requestAnimationFrame` to let child cards finish painting),
+`_equalizeColumnHeights()` runs:
+1. Reset all `.section-wrapper` `min-height` values so natural heights are measured.
+2. Group `.env-column` elements into visual rows by their `getBoundingClientRect().top` (±4 px
+   tolerance for subpixel rounding). This step must happen after the reset so column tops reflect
+   the natural layout.
+3. Skip any row with fewer than 2 columns — a lone column (a third environment wrapping to its
+   own row on a narrow viewport, or any single-column mobile layout) must not have `min-height`
+   applied, or it would acquire dead whitespace matching another row's tallest section.
+4. Within each multi-column row, group that row's wrappers by `data-section`, measure each
+   group's heights via `getBoundingClientRect()`, and apply the row-local maximum to every member
+   as `min-height`. Hidden-section wrappers start at zero height and are stretched to act as
+   transparent spacers keeping section boundaries aligned.
+
+A `ResizeObserver` on the `.overview` element re-runs equalization whenever the card's width
+changes (viewport resize, sidebar collapse), so column-count transitions stay correct without a
+re-render.
+
+**Opt-out (align_columns: false):** The editor exposes an "Align sections across columns" boolean
+toggle (config field `align_columns`, default `true`). When false, the card applies the
+`.no-align` class to `.overview`, which switches it to `display: flex; flex-wrap: wrap`, and
+`.env-column` to `flex: 1 1 320px; flex-direction: column`. No `.section-wrapper` divs are
+emitted and no JS equalization runs; any pending rAF is cancelled and the `ResizeObserver` is
+torn down.
 

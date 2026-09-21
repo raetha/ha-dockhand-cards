@@ -188,6 +188,18 @@ export interface DockhandOverviewCardConfig extends LovelaceCardConfig {
    * (newly added ones, e.g. after an update) sort after the ordered
    * ones, in DEFAULT_SECTION_ORDER's relative order. */
   section_order?: OverviewSection[];
+  /** Controls whether JS height equalisation is active across environment
+   * columns. When true (the default), matching section slots (Stacks,
+   * Containers, etc.) are kept the same height across side-by-side
+   * environment columns: after each render, the tallest natural height
+   * in each visual row is applied as min-height to every column's
+   * corresponding slot, so section boundaries line up. A lone column
+   * in its own row (e.g. a third environment wrapping to a new row on a
+   * narrow viewport, or any single-column mobile layout) is left
+   * untouched — no dead whitespace. Set to false for a more compact
+   * flex-wrap layout when section heights differ significantly between
+   * environments. */
+  align_columns?: boolean;
 }
 
 /** Prefers the current environments_overrides key, falling back to the

@@ -6,9 +6,10 @@ import type { HaFormSchema } from '../common/ha-form-types';
 import type { HomeAssistant } from '../common/ha-types';
 import { getEnvironmentDevices, getRepresentativeEntityId } from '../common/device-utils';
 import { cardNameFieldSchema } from '../common/card-name';
-import { t } from '../common/i18n';
+import { t } from '../common/i18n-editor';
 import { sortableRowStyles, editorFormStyles } from '../common/editor-styles';
-import { renderEnvironmentOrderSection, resolveIncludedOrdered } from '../common/environment-scope';
+import { resolveIncludedOrdered } from '../common/environment-scope';
+import { renderEnvironmentOrderSection } from '../common/environment-scope-editor';
 import { type DockhandSchedulesCardConfig, type ScheduleGroupBy, resolveVisibleBadges } from './types';
 
 export class DockhandSchedulesCardEditor extends LitElement implements LovelaceCardEditor {

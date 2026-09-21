@@ -48,6 +48,8 @@ jobs:
         with:
           name: "Dockhand Cards ${{ github.ref_name }}"
           body_path: ${{ steps.changelog.outputs.notes_file }}
-          files: dist/ha-dockhand-cards.js
+          files: |
+            dist/ha-dockhand-cards.js
+            dist/ha-dockhand-cards-editor.js
           draft: false
           prerelease: ${{ contains(github.ref_name, '-') }}

@@ -1,3 +1,4 @@
+import { loadEditor } from '../common/editor-loader';
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { state } from 'lit/decorators.js';
 import { fireEvent, type LovelaceCard, type LovelaceCardEditor } from 'custom-card-helpers';
@@ -16,7 +17,7 @@ import { resolveScheduleEntities } from '../common/entity-resolver';
 import { getDockhandBaseUrl, formatRelativeTime } from '../common/format';
 import { renderSettingsLink, renderIcon, onKeydownActivate } from '../common/icon';
 import { resolveIncludedOrdered, groupRowsByEnvironment, resolveEffectiveGroupBy } from '../common/environment-scope';
-import { t } from '../common/i18n';
+import { t } from '../common/i18n-card';
 import type { DockhandSchedulesCardConfig, ScheduleSortBy, ScheduleGroupBy } from './types';
 import { resolveVisibleBadges } from './types';
 import { cardStyles } from './styles';
@@ -194,7 +195,7 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
   }
 
   static async getConfigElement(): Promise<LovelaceCardEditor> {
-    await import('./editor');
+    await loadEditor();
     return document.createElement('dockhand-schedules-card-editor') as unknown as LovelaceCardEditor;
   }
 

@@ -10,8 +10,9 @@ import { getEnvironmentDevices, getRepresentativeEntityId } from '../common/devi
 import { cardNameFieldSchema } from '../common/card-name';
 import { stripUndefinedKeys } from '../common/config-utils';
 import { editorFormStyles, sortableRowStyles } from '../common/editor-styles';
-import { resolveEnvironmentOrder, renderEnvironmentOrderSection } from '../common/environment-scope';
-import { t, type TranslationKey } from '../common/i18n';
+import { resolveEnvironmentOrder } from '../common/environment-scope';
+import { renderEnvironmentOrderSection } from '../common/environment-scope-editor';
+import { t, type EditorTranslationKey } from '../common/i18n-editor';
 import { DEFAULT_CUSTOM_SECTIONS } from '../dockhand-environment-card/types';
 import type { DockhandEnvironmentCardConfig } from '../dockhand-environment-card/types';
 import type { DockhandVulnerabilityCardConfig } from '../dockhand-vulnerability-card/types';
@@ -40,7 +41,7 @@ import '../dockhand-stacks-card/editor';
 import '../dockhand-containers-card/editor';
 
 
-const SECTION_LABEL_KEY: Record<OverviewSection, TranslationKey> = {
+const SECTION_LABEL_KEY: Record<OverviewSection, EditorTranslationKey> = {
   environments: 'label_environments',
   vulnerabilities: 'label_vulnerabilities',
   stacks: 'label_stacks',
@@ -49,7 +50,7 @@ const SECTION_LABEL_KEY: Record<OverviewSection, TranslationKey> = {
   schedules: 'label_schedules'
 };
 
-const DETAIL_SECTION_LABEL_KEY: Record<OverviewSection, TranslationKey> = {
+const DETAIL_SECTION_LABEL_KEY: Record<OverviewSection, EditorTranslationKey> = {
   environments: 'detail_section_environment',
   vulnerabilities: 'detail_section_vulnerabilities',
   stacks: 'detail_section_stacks',
@@ -185,6 +186,7 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
       show_updates: false,
       show_schedules: false,
       environment_mode: 'standard',
+      align_columns: true,
       ...config
     });
   }
@@ -296,6 +298,15 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
           this._editingDeviceId = deviceId;
         }
       })}
+
+      <ha-form
+        .hass=${this._hass}
+        .data=${this._config}
+        .schema=${[{ name: 'align_columns', default: true, selector: { boolean: {} } }]}
+        .computeLabel=${() => t(this._hass, 'align_columns')}
+        .computeHelper=${() => t(this._hass, 'align_columns_hint')}
+        @value-changed=${this._sectionSettingsChanged}
+      ></ha-form>
     `;
   }
 

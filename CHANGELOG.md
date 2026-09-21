@@ -20,6 +20,39 @@ maintain — write each section as the thing you'd want a user to read on
 the Releases page.
 -->
 
+## [1.3.0] - 2026-09-21
+
+### Changed
+
+- **Update badges in Stacks and Containers list cards now appear leftmost in each row's trailing
+  badge group**, not after the always-visible badges (container count, CPU, memory). Update
+  indicators are the least-frequently visible badge — placing them leftmost means they occupy
+  otherwise-blank space when present, rather than pushing the always-present badges further from
+  the row name they describe.
+- **Overview card gains an "Align sections across columns" toggle** (config field
+  `align_columns`, default `true`) that height-equalises matching section slots across
+  side-by-side environment columns — so the Stacks card for one environment lines up with the
+  Stacks card of the next, and so on. The outer `.overview` is a CSS Grid
+  (`repeat(auto-fill, minmax(320px, 1fr))`); each `.env-column` is a flex column; after each
+  render, JS measures each section slot across all columns in the same visual row and sets the
+  tallest as `min-height` for every column in that row. Columns that appear alone in a row
+  (e.g. a third environment wrapping to its own row on a narrow viewport, or any single-column
+  mobile layout) are untouched, so narrow views never acquire dead whitespace. Set
+  `align_columns: false` in YAML (or toggle off in the editor) for a more compact flex-wrap
+  layout.
+
+### Internal
+
+- **Card and editor JavaScript are now two separate bundles** — `ha-dockhand-cards.js` (card
+  runtime, ~29.7KB gzip) and `ha-dockhand-cards-editor.js` (editor UI, ~28.7KB gzip). The editor
+  bundle loads lazily on first editor open via `import.meta.url`, so browsers that never open a
+  card editor never download it. HACS downloads both assets automatically; no configuration change
+  needed.
+- **Card-runtime and editor-only translations are now split** — `i18n-card.ts` (9 keys: card-
+  rendered tooltip text) and `i18n-editor.ts` (editor field labels, section headings, and mode
+  hints). Previously both lived in a single `i18n.ts` shared by both bundles, which forced all
+  editor translation strings into the card bundle even though cards never need them.
+
 ## [1.2.1] - 2026-08-31
 
 Required for compatibility with ha-dockhand 1.9.1.
@@ -315,6 +348,9 @@ so a user's own icon customization is reflected automatically.
   from `hass.language`. Custom mode's section-checkbox labels specifically are English-only for
   now — see `docs/BACKLOG.md`.
 
-[Unreleased]: https://github.com/raetha/ha-dockhand-cards/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/raetha/ha-dockhand-cards/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/raetha/ha-dockhand-cards/compare/v1.2.1...v1.3.0
+[1.2.1]: https://github.com/raetha/ha-dockhand-cards/compare/v1.2.0...v1.2.1
+[1.2.0]: https://github.com/raetha/ha-dockhand-cards/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/raetha/ha-dockhand-cards/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/raetha/ha-dockhand-cards/releases/tag/v1.0.0

@@ -1,3 +1,4 @@
+import { loadEditor } from '../common/editor-loader';
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { state } from 'lit/decorators.js';
 import { fireEvent, type LovelaceCard, type LovelaceCardEditor } from 'custom-card-helpers';
@@ -47,7 +48,7 @@ export class DockhandStackCard extends LitElement implements LovelaceCard {
   }
 
   static async getConfigElement(): Promise<LovelaceCardEditor> {
-    await import('./editor');
+    await loadEditor();
     return document.createElement('dockhand-stack-card-editor') as unknown as LovelaceCardEditor;
   }
 

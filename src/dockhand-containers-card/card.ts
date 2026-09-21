@@ -1,3 +1,4 @@
+import { loadEditor } from '../common/editor-loader';
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { state } from 'lit/decorators.js';
 import { fireEvent, type LovelaceCard, type LovelaceCardEditor } from 'custom-card-helpers';
@@ -117,7 +118,7 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
   }
 
   static async getConfigElement(): Promise<LovelaceCardEditor> {
-    await import('./editor');
+    await loadEditor();
     return document.createElement('dockhand-containers-card-editor') as unknown as LovelaceCardEditor;
   }
 
@@ -252,15 +253,6 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
           ${visible.has('environment') ? html`<span class="label-pill">${row.environment}</span>` : nothing}
         </div>
         <div class="row-right">
-          ${(health === 'healthy' || health === 'unhealthy' || health === 'starting') && visible.has('health')
-            ? renderIcon({
-                baseClass: 'row-icon',
-                icon: HEALTH_ICON[health] ?? 'mdi:heart-outline',
-                colorClass: HEALTH_STATUS_CLASS[health] as 'ok' | 'warn' | 'error' | undefined,
-                title: health,
-                onClick: () => this._moreInfo(healthId)
-              })
-            : nothing}
           ${row.updateEntityId && visible.has('updates')
             ? renderIcon({
                 baseClass: 'row-icon',
@@ -268,6 +260,15 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
                 colorClass: 'warn',
                 title: 'Update available',
                 onClick: () => this._moreInfo(row.updateEntityId)
+              })
+            : nothing}
+          ${(health === 'healthy' || health === 'unhealthy' || health === 'starting') && visible.has('health')
+            ? renderIcon({
+                baseClass: 'row-icon',
+                icon: HEALTH_ICON[health] ?? 'mdi:heart-outline',
+                colorClass: HEALTH_STATUS_CLASS[health] as 'ok' | 'warn' | 'error' | undefined,
+                title: health,
+                onClick: () => this._moreInfo(healthId)
               })
             : nothing}
           ${cpu !== undefined && visible.has('cpu')

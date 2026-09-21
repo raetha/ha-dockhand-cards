@@ -1,6 +1,6 @@
 {
   "name": "ha-dockhand-cards",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "description": "Lovelace cards for the ha-dockhand Home Assistant integration",
   "private": true,
   "type": "module",
@@ -41,7 +41,7 @@
     "rollup": "^4.18.0",
     "tslib": "^2.6.3",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.11"
   },
   "overrides": {
     "nanoid": "^3.3.18"

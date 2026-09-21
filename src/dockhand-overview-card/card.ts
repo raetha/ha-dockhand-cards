@@ -1,4 +1,5 @@
-import { LitElement, html, nothing, type TemplateResult } from 'lit';
+import { loadEditor } from '../common/editor-loader';
+import { LitElement, html, nothing, type PropertyValues, type TemplateResult } from 'lit';
 import { state } from 'lit/decorators.js';
 import type { LovelaceCard, LovelaceCardEditor } from 'custom-card-helpers';
 
@@ -43,6 +44,21 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
   @state() private _config?: DockhandOverviewCardConfig;
   @state() private _hass?: HomeAssistant;
 
+  /** Pending requestAnimationFrame ID for the next equalisation pass,
+   * stored so it can be cancelled if updated() fires again before the
+   * previous rAF has had a chance to run — prevents redundant back-to-
+   * back layout measurements when _hass updates arrive in quick
+   * succession (every HA entity state push triggers updated()). */
+  private _rafId?: number;
+  /** ResizeObserver watching the .overview grid element so that
+   * _equalizeColumnHeights() is re-run whenever the card's width
+   * changes (e.g. viewport resize or column-count change). */
+  private _resizeObserver?: ResizeObserver;
+  /** The .overview element currently observed, used to avoid
+   * re-subscribing on every updated() call when the element hasn't
+   * changed. */
+  private _observedOverview?: Element;
+
   set hass(hass: HomeAssistant) {
     this._hass = hass;
   }
@@ -65,7 +81,7 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
   }
 
   static async getConfigElement(): Promise<LovelaceCardEditor> {
-    await import('./editor');
+    await loadEditor();
     return document.createElement('dockhand-overview-card-editor') as unknown as LovelaceCardEditor;
   }
 
@@ -78,12 +94,22 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
       show_updates: false,
       show_schedules: false,
       environment_mode: 'standard',
+      align_columns: true,
       ...config
     };
   }
 
   set config(config: DockhandOverviewCardConfig) {
     this.setConfig(config);
+  }
+
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    if (this._rafId !== undefined) cancelAnimationFrame(this._rafId);
+    this._rafId = undefined;
+    this._resizeObserver?.disconnect();
+    this._resizeObserver = undefined;
+    this._observedOverview = undefined;
   }
 
   getCardSize(): number {
@@ -110,6 +136,119 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
     return { columns: 'full', rows: 'auto', min_columns: 6, min_rows: 4 };
   }
 
+  protected updated(changedProperties: PropertyValues): void {
+    super.updated(changedProperties);
+    if (this._config?.align_columns !== false) {
+      // Cancel any queued rAF before scheduling a new one — rapid-fire
+      // _hass updates (one per HA entity state push) would otherwise
+      // accumulate back-to-back layout passes for no net gain.
+      if (this._rafId !== undefined) cancelAnimationFrame(this._rafId);
+      // Defer measurement until after the browser has painted so that
+      // child card heights are finalised (cards render async). A single
+      // rAF is enough for our direct children; child-card internal
+      // rendering is synchronous at this point given Lit's micro-task
+      // scheduling.
+      this._rafId = requestAnimationFrame(() => {
+        this._rafId = undefined;
+        this._equalizeColumnHeights();
+        this._attachResizeObserver();
+      });
+    } else {
+      // align_columns turned off — cancel any pending rAF, tear down the
+      // observer, and clear stale references. The section-wrapper divs
+      // themselves are removed by Lit's re-render, so no min-height
+      // cleanup is needed here.
+      if (this._rafId !== undefined) cancelAnimationFrame(this._rafId);
+      this._rafId = undefined;
+      this._resizeObserver?.disconnect();
+      this._resizeObserver = undefined;
+      this._observedOverview = undefined;
+    }
+  }
+
+  /** Attach (or re-attach) a ResizeObserver on the .overview grid so
+   * _equalizeColumnHeights() is re-run whenever the card width changes
+   * (viewport resize, sidebar collapse, etc.). Skips reattachment when
+   * the same element is already observed to avoid churn on every update. */
+  private _attachResizeObserver(): void {
+    const overview = this.shadowRoot?.querySelector('.overview');
+    if (!overview || overview === this._observedOverview) return;
+    this._resizeObserver?.disconnect();
+    this._resizeObserver = new ResizeObserver(() => {
+      // Reset and re-measure on every resize event — the column count
+      // may have changed, so previous min-heights could be stale.
+      this._equalizeColumnHeights();
+    });
+    this._resizeObserver.observe(overview);
+    this._observedOverview = overview;
+  }
+
+  /** Equalise matching section slots across columns by setting each
+   * .section-wrapper's min-height to the tallest natural height in its
+   * row group. Operates only within visual rows — env-columns that share
+   * the same grid row track — so single-column layouts (mobile, or an
+   * overflow column sitting alone in the last row) never receive
+   * min-height values and never show dead whitespace.
+   *
+   * Algorithm:
+   *  1. Reset all .section-wrapper min-heights so measurements reflect
+   *     natural content heights.
+   *  2. Group .env-column elements into visual rows by their top edge
+   *     (getBoundingClientRect().top, tolerance ±4 px for subpixel).
+   *  3. Skip any row with fewer than 2 columns — nothing to align.
+   *  4. Within each multi-column row, group that row's .section-wrapper
+   *     elements by data-section and apply the row-local maximum height
+   *     as min-height to every member. */
+  private _equalizeColumnHeights(): void {
+    const root = this.shadowRoot;
+    if (!root) return;
+
+    const wrappers = Array.from(root.querySelectorAll<HTMLElement>('.section-wrapper'));
+    if (wrappers.length === 0) return;
+
+    // Step 1: reset so we measure natural heights, not last-pass values.
+    for (const w of wrappers) w.style.minHeight = '';
+
+    // Step 2: group env-columns by visual row. getBoundingClientRect() is
+    // called after the reset so column tops reflect the natural layout.
+    const columns = Array.from(root.querySelectorAll<HTMLElement>('.env-column'));
+    if (columns.length === 0) return;
+
+    const rows: HTMLElement[][] = [];
+    for (const col of columns) {
+      const top = col.getBoundingClientRect().top;
+      const existing = rows.find((r) => Math.abs(r[0].getBoundingClientRect().top - top) < 4);
+      if (existing) {
+        existing.push(col);
+      } else {
+        rows.push([col]);
+      }
+    }
+
+    // Steps 3 & 4: equalise within each multi-column row only.
+    for (const row of rows) {
+      if (row.length < 2) continue;
+
+      const rowWrappers = row.flatMap((col) => Array.from(col.querySelectorAll<HTMLElement>('.section-wrapper')));
+
+      const bySection = new Map<string, HTMLElement[]>();
+      for (const w of rowWrappers) {
+        const s = w.dataset['section'];
+        if (!s) continue;
+        let group = bySection.get(s);
+        if (!group) { group = []; bySection.set(s, group); }
+        group.push(w);
+      }
+
+      for (const group of bySection.values()) {
+        const maxH = Math.max(...group.map((w) => w.getBoundingClientRect().height));
+        if (maxH > 0) {
+          for (const w of group) w.style.minHeight = `${maxH}px`;
+        }
+      }
+    }
+  }
+
   protected render(): TemplateResult {
     if (!this._config || !this._hass) return html``;
 
@@ -128,6 +267,8 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
     // them in, not alphabetical as claimed. resolveIncludedOrdered does
     // sort them alphabetically, for real.
     const devices = resolveIncludedOrdered(getEnvironmentDevices(this._hass), getEnvironmentOrder(this._config), this._config.exclude_device_ids);
+
+    const alignColumns = this._config?.align_columns !== false;
 
     if (devices.length === 0) {
       return html`<div class="card-message">
@@ -151,8 +292,8 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
     }
 
     return html`
-      <div class="overview">
-        ${devices.map((d) => this._renderColumn(d.deviceId, d.name))}
+      <div class=${alignColumns ? 'overview' : 'overview no-align'}>
+        ${devices.map((d) => this._renderColumn(d.deviceId, d.name, alignColumns))}
       </div>
     `;
   }
@@ -175,7 +316,7 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
     return [...saved, ...rest];
   }
 
-  private _renderColumn(deviceId: string, name: string): TemplateResult {
+  private _renderColumn(deviceId: string, name: string, alignColumns: boolean): TemplateResult {
     const override = getEnvironmentOverrides(this._config)?.[deviceId];
 
     // Deliberately NOT `title: override?.environment?.title` etc. for
@@ -236,6 +377,9 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
       ...(override?.updates?.name !== undefined ? { name: override.updates.name } : {})
     };
     const updatesHideOverride = override?.updates?.hide_when_no_updates;
+    // Computed here so the Updates section renderer below can use it
+    // without recomputing.
+    const hideWhenNoUpdates = updatesHideOverride ?? this._config?.updates_hide_when_no_updates ?? false;
     // No device_id field to set (Schedules never had one) — solo'd to
     // this column's environment the same way the standalone editor's own
     // "solo" action works: every other environment excluded. include_global
@@ -270,6 +414,7 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
       ...mergeOverridableField('sort_by', override?.schedules?.sort_by, this._config?.schedules_sort_by)
     };
 
+    const sections = this._orderedSections();
     const sectionRenderers: Record<OverviewSection, () => TemplateResult | typeof nothing> = {
       environments: () =>
         this._config?.show_environments
@@ -293,10 +438,10 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
         // docs/ARCHITECTURE.md). Genuine zero-space collapse is achieved
         // here instead, simply by not including the element in this
         // template at all when there's nothing pending — this is a
-        // plain flex column this card already controls, not HA's
+        // plain grid column this card already controls, not HA's
         // sections grid, so there's no CSS span-validity issue to work
         // around the way there was for the standalone card.
-        const hideWhenNoUpdates = updatesHideOverride ?? this._config?.updates_hide_when_no_updates ?? false;
+        // hideWhenNoUpdates is computed above; reused here.
         if (hideWhenNoUpdates && this._hass && !hasPendingUpdates(this._hass, deviceId)) {
           return nothing;
         }
@@ -308,10 +453,25 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
           : nothing
     };
 
+    // When align_columns is on, wrap every section slot in a
+    // .section-wrapper div — even when the section's content is
+    // `nothing` — so _equalizeColumnHeights() has a stable DOM node for
+    // every slot in every column to measure and equalise. The wrapper
+    // for a hidden section starts at zero height and is stretched to
+    // match the tallest column's corresponding section, acting as a
+    // transparent spacer that keeps section boundaries lined up across
+    // columns without CSS subgrid (which triggers a Chrome bug inflating
+    // the second column track's width).
+    const renderSection = (section: OverviewSection): TemplateResult | typeof nothing => {
+      const content = sectionRenderers[section]();
+      if (!alignColumns) return content;
+      return html`<div class="section-wrapper" data-section=${section}>${content}</div>`;
+    };
+
     return html`
       <div class="env-column">
         <div class="column-title">${name}</div>
-        ${this._orderedSections().map((section) => sectionRenderers[section]())}
+        ${sections.map(renderSection)}
       </div>
     `;
   }

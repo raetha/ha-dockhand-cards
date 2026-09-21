@@ -7,7 +7,7 @@ import type { HomeAssistant } from '../common/ha-types';
 import { getEnvironmentDevices, getEnvId, getContainerDevicesForEnvironment, getEnvIdForContainerDevice, getRepresentativeEntityId } from '../common/device-utils';
 import { cardNameFieldSchema, migrateTitleToName } from '../common/card-name';
 import { resolveContainerEntities, getContainerDropdownOptions } from '../common/entity-resolver';
-import { t } from '../common/i18n';
+import { t } from '../common/i18n-editor';
 import { editorFormStyles } from '../common/editor-styles';
 import { CONTAINER_FRIENDLY_LABEL } from '../common/const';
 import { DEFAULT_CONTAINER_SECTIONS, CONTAINER_SECTION_ORDER, type DockhandContainerCardConfig } from './types';
