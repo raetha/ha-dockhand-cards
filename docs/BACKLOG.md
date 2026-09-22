@@ -108,7 +108,11 @@ permanent.
 - **Dependency version floor: `typescript` capped below 7.0.** `typescript-eslint` cannot run
   against TypeScript 7 yet (hard crash, not a warning, as of TS 7.0's July 2026 GA — no stable
   programmatic API until 7.1, expected ~October 2026). `package.json` pins `^6.0.3`, which a
-  caret range can't cross past on its own. Revisit once `typescript-eslint` adds TS7 support.
+  caret range can't cross past on its own. `.github/dependabot.yml` also carries an `ignore` rule
+  for `typescript >=7.0.0` (added 1.3.1) so Dependabot stops proposing the doomed bump every
+  cycle. Revisit both once `typescript-eslint` adds TS7 support — see
+  [typescript-eslint#10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940) —
+  then remove the ignore rule and let the caret range move normally.
 
 - **Card-picker names/descriptions (`window.customCards`) can't be localized.** Not a gap on this
   repo's side — HA's own picker reads those fields as plain strings with no localization hook,

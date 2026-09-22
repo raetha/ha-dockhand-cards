@@ -6,7 +6,6 @@ import { fireEvent, type LovelaceCard, type LovelaceCardEditor } from 'custom-ca
 import type { HomeAssistant, LovelaceGridOptions } from '../common/ha-types';
 import {
   getEnvironmentDevices,
-  getEnvId,
   getScheduleDevicesForEnvironment,
   getGlobalScheduleDevices,
   getRepresentativeEntityId,
@@ -14,7 +13,7 @@ import {
 } from '../common/device-utils';
 import { resolveCardName, multiEnvCardNameFallback } from '../common/card-name';
 import { resolveScheduleEntities } from '../common/entity-resolver';
-import { getDockhandBaseUrl, formatRelativeTime } from '../common/format';
+import { getDockhandBaseUrl, getInstanceLabel, formatRelativeTime } from '../common/format';
 import { renderSettingsLink, renderIcon, onKeydownActivate } from '../common/icon';
 import { resolveIncludedOrdered, groupRowsByEnvironment, resolveEffectiveGroupBy } from '../common/environment-scope';
 import { t } from '../common/i18n-card';
@@ -63,6 +62,12 @@ export interface ScheduleRow {
   type: string;
   environment?: string;
   environmentDeviceId?: string;
+  /** Only ever set for a global row (environmentDeviceId undefined), and
+   * only when this card's global schedules actually come from more than
+   * one Dockhand instance — see _buildRows. There's nothing to disambiguate
+   * when every global schedule belongs to the same (or the only) instance,
+   * so this stays undefined rather than labeling rows that don't need it. */
+  instanceLabel?: string;
   enabled: boolean;
   status: string | null;
   nextRunIso: string | null;
@@ -108,6 +113,35 @@ export function sortScheduleRows(rows: ScheduleRow[], sortBy: ScheduleSortBy): S
     return byNameThenEnvironment(a, b);
   });
   return sorted;
+}
+
+/** Pure decision logic behind ScheduleRow.instanceLabel: given every global
+ * schedule device's own id and via_device_id (its parent schedules_hub),
+ * plus a way to read a hub device's configuration_url, returns a Map of
+ * schedule-device-id -> instance label — populated only when the global
+ * schedules actually span more than one hub (see ScheduleRow.instanceLabel
+ * for why an unambiguous single-instance case stays unlabeled). Exported
+ * for testability, same reasoning as sortScheduleRows/groupScheduleRows:
+ * _buildRows itself is too tightly coupled to live hass.devices/entity
+ * resolution to test directly (see docs/BACKLOG.md's Updates-card note on
+ * this repo's standing testability bar).
+ */
+export function resolveGlobalInstanceLabels(
+  globalDevices: { id: string; via_device_id: string | null }[],
+  getHubConfigurationUrl: (hubId: string) => string | null | undefined
+): Map<string, string> {
+  const hubIdByDeviceId = new Map<string, string>();
+  for (const device of globalDevices) {
+    if (device.via_device_id) hubIdByDeviceId.set(device.id, device.via_device_id);
+  }
+  if (new Set(hubIdByDeviceId.values()).size <= 1) return new Map();
+
+  const labels = new Map<string, string>();
+  for (const [deviceId, hubId] of hubIdByDeviceId) {
+    const label = getInstanceLabel(getHubConfigurationUrl(hubId));
+    if (label) labels.set(deviceId, label);
+  }
+  return labels;
 }
 
 function groupKeyAndLabel(row: ScheduleRow, groupBy: 'type' | 'status'): { key: string; label: string } {
@@ -254,8 +288,8 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
     // against — see groupScheduleRows' own comment on the bug this once
     // caused).
     const scheduleDevices = envDevices.flatMap((env) => {
-      const envId = getEnvId(this._hass!.devices[env.deviceId]);
-      const devices = envId !== null ? getScheduleDevicesForEnvironment(this._hass!, envId) : [];
+      const envDevice = this._hass!.devices[env.deviceId];
+      const devices = envDevice ? getScheduleDevicesForEnvironment(this._hass!, envDevice) : [];
       return devices.map((device) => ({ device, environmentDeviceId: env.deviceId as string | undefined }));
     });
 
@@ -264,21 +298,30 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
     // on include_global itself (defaulting to true, same opt-out
     // philosophy as environments_order/exclude_device_ids), not on a
     // scope value the way it used to be.
-    if (this._config.include_global !== false) {
-      scheduleDevices.push(...getGlobalScheduleDevices(this._hass).map((device) => ({ device, environmentDeviceId: undefined })));
+    const globalDevices = this._config.include_global !== false ? getGlobalScheduleDevices(this._hass) : [];
+    for (const device of globalDevices) {
+      scheduleDevices.push({ device, environmentDeviceId: undefined });
     }
+    // See resolveGlobalInstanceLabels — only populated (per schedule device
+    // id) when the global schedules actually span more than one instance.
+    const globalInstanceLabels = resolveGlobalInstanceLabels(
+      globalDevices.map((d) => ({ id: d.id, via_device_id: d.via_device_id })),
+      (hubId) => this._hass!.devices[hubId]?.configuration_url
+    );
 
     const rows: ScheduleRow[] = [];
     for (const { device, environmentDeviceId } of scheduleDevices) {
       const { found } = resolveScheduleEntities(this._hass, device.id, ['lastStatus', 'nextRun']);
       if (!found.lastStatus) continue;
       const attrs = found.lastStatus.state.attributes;
+      const instanceLabel = environmentDeviceId === undefined ? globalInstanceLabels.get(device.id) : undefined;
       rows.push({
         entityId: found.lastStatus.entityId,
         name: attrs.name || device.name_by_user || device.name || device.id,
         type: attrs.schedule_type || 'schedule',
         environment: attrs.environment,
         environmentDeviceId,
+        instanceLabel,
         enabled: attrs.enabled !== false,
         status: found.lastStatus.state.state === 'unknown' ? null : found.lastStatus.state.state,
         nextRunIso: found.nextRun && found.nextRun.state.state !== 'unknown' ? found.nextRun.state.state : null
@@ -398,6 +441,16 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
 
     const visibleBadges = resolveVisibleBadges(this._config?.visible_badges, this._config?.group_by);
     const showEnvironment = visibleBadges.includes('environment');
+    // The 'environment' badge is hidden by default once group_by:
+    // 'environment' groups rows into per-environment sections already —
+    // redundant for those rows, but *not* for the "Global" section, which
+    // (deliberately, see groupScheduleRows) never splits by instance. So an
+    // instanceLabel still shows in that default-grouped case even though
+    // showEnvironment is false; it only follows showEnvironment's lead when
+    // the person has explicitly picked their own visible_badges, since at
+    // that point hiding 'environment' is a stated preference, not just
+    // grouping already having covered it.
+    const showInstanceLabel = this._config?.visible_badges ? showEnvironment : true;
     const nextRunText = !row.enabled ? 'disabled' : row.status === 'running' ? 'running' : formatRelativeTime(row.nextRunIso);
 
     return html`
@@ -406,6 +459,7 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
           <ha-icon class="row-icon ${statusIcon.cls}" icon=${statusIcon.icon}></ha-icon>
           <span class="item-name">${row.name}</span>
           ${showEnvironment && row.environment ? html`<span class="label-pill">${row.environment}</span>` : nothing}
+          ${showInstanceLabel && row.instanceLabel ? html`<span class="label-pill">${row.instanceLabel}</span>` : nothing}
         </div>
         ${visibleBadges.includes('next_run') && nextRunText ? html`<span class="row-right">${nextRunText}</span>` : nothing}
       </div>

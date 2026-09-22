@@ -4,7 +4,7 @@ import { fireEvent, type LovelaceCardEditor } from 'custom-card-helpers';
 import type { HaFormSchema } from '../common/ha-form-types';
 
 import type { HomeAssistant } from '../common/ha-types';
-import { getEnvironmentDevices, getEnvId, getStackDevicesForEnvironment, getEnvIdForStackDevice, getRepresentativeEntityId } from '../common/device-utils';
+import { getEnvironmentDevices, getStackDevicesForEnvironment, getEnvIdForStackDevice, getEnvDeviceIdForEnvId, getRepresentativeEntityId } from '../common/device-utils';
 import { cardNameFieldSchema, migrateTitleToName } from '../common/card-name';
 import { resolveStackEntities, getStackDropdownOptions } from '../common/entity-resolver';
 import { t } from '../common/i18n-editor';
@@ -51,7 +51,7 @@ export class DockhandStackCardEditor extends LitElement implements LovelaceCardE
     if (!stackDevice) return undefined;
     const envId = getEnvIdForStackDevice(stackDevice);
     if (envId === null) return undefined;
-    return Object.values(this._hass.devices).find((d) => getEnvId(d) === envId)?.id;
+    return getEnvDeviceIdForEnvId(this._hass, envId, stackDevice) ?? undefined;
   }
 
   private _schema(envDevices: ReturnType<typeof getEnvironmentDevices>, stackOptions: { value: string; label: string }[]): HaFormSchema[] {
@@ -95,10 +95,10 @@ export class DockhandStackCardEditor extends LitElement implements LovelaceCardE
     }
 
     const envDeviceId = this._resolvedEnvDeviceId();
-    const envId = envDeviceId ? getEnvId(this._hass.devices[envDeviceId]) : null;
-    const stackDevices = envId !== null ? getStackDevicesForEnvironment(this._hass, envId) : [];
+    const envDevice = envDeviceId ? this._hass.devices[envDeviceId] : undefined;
+    const stackDevices = envDevice ? getStackDevicesForEnvironment(this._hass, envDevice) : [];
     const stackOptions = getStackDropdownOptions(this._hass, stackDevices);
-    const noStacksFound = envId !== null && stackOptions.length === 0;
+    const noStacksFound = envDevice !== undefined && stackOptions.length === 0;
 
     return html`
       <ha-form

@@ -4,7 +4,7 @@ import { fireEvent, type LovelaceCardEditor } from 'custom-card-helpers';
 import type { HaFormSchema } from '../common/ha-form-types';
 
 import type { HomeAssistant } from '../common/ha-types';
-import { getEnvironmentDevices, getEnvId, getContainerDevicesForEnvironment, getEnvIdForContainerDevice, getRepresentativeEntityId } from '../common/device-utils';
+import { getEnvironmentDevices, getContainerDevicesForEnvironment, getEnvIdForContainerDevice, getEnvDeviceIdForEnvId, getRepresentativeEntityId } from '../common/device-utils';
 import { cardNameFieldSchema, migrateTitleToName } from '../common/card-name';
 import { resolveContainerEntities, getContainerDropdownOptions } from '../common/entity-resolver';
 import { t } from '../common/i18n-editor';
@@ -51,7 +51,7 @@ export class DockhandContainerCardEditor extends LitElement implements LovelaceC
     if (!containerDevice) return undefined;
     const envId = getEnvIdForContainerDevice(containerDevice);
     if (envId === null) return undefined;
-    return Object.values(this._hass.devices).find((d) => getEnvId(d) === envId)?.id;
+    return getEnvDeviceIdForEnvId(this._hass, envId, containerDevice) ?? undefined;
   }
 
   private _schema(envDevices: ReturnType<typeof getEnvironmentDevices>, containerOptions: { value: string; label: string }[]): HaFormSchema[] {
@@ -96,10 +96,10 @@ export class DockhandContainerCardEditor extends LitElement implements LovelaceC
     }
 
     const envDeviceId = this._resolvedEnvDeviceId();
-    const envId = envDeviceId ? getEnvId(this._hass.devices[envDeviceId]) : null;
-    const containerDevices = envId !== null ? getContainerDevicesForEnvironment(this._hass, envId) : [];
+    const envDevice = envDeviceId ? this._hass.devices[envDeviceId] : undefined;
+    const containerDevices = envDevice ? getContainerDevicesForEnvironment(this._hass, envDevice) : [];
     const containerOptions = getContainerDropdownOptions(this._hass, containerDevices);
-    const noContainersFound = envId !== null && containerDevices.length === 0;
+    const noContainersFound = envDevice !== undefined && containerDevices.length === 0;
 
     return html`
       <ha-form

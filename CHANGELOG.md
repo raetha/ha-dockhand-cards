@@ -20,6 +20,55 @@ maintain — write each section as the thing you'd want a user to read on
 the Releases page.
 -->
 
+## [1.3.1] - 2026-09-22
+
+### Added
+
+- **Global schedules now show which Dockhand instance they belong to, once there's more than one.**
+  With two or more Dockhand instances each contributing global schedules (see the global-schedules
+  fix below), there was previously no way to tell from the Schedules card which instance a given
+  row — or a failure — belonged to. Each such row now carries a small pill with that instance's
+  host (e.g. `dockhand.example.com` or `192.168.1.50:3000`) — the same address you configured in
+  Home Assistant to reach that Dockhand server, which every device already carries and can't
+  collide across instances the way environment names or numbers can. Nothing to configure; the
+  pill only appears once global schedules genuinely span more than one instance, and stays silent
+  for the common single-instance case.
+
+### Fixed
+
+- **Containers, Stacks, and Schedules from two different Dockhand instances no longer merge
+  together on the same card.** Every Dockhand instance numbers its own first environment `1`
+  (second `2`, and so on) independently, so if you have more than one Dockhand hub connected to
+  Home Assistant, their environments frequently share the same number. The cards' own
+  environment-scoped lookups were matching on that number alone, so — even though each
+  environment's devices were already correctly separated in Home Assistant's own device registry
+  — a Containers, Stacks, Overview, Updates, or Schedules card would pull in devices from every
+  instance whose environment happened to share a number with the one you'd selected, showing (for
+  example) both NAS's containers under either one. Lookups now also confirm the devices came from
+  the same config entry (the same physical Dockhand instance), which HA already tracks for every
+  device regardless of how old or new it is, so this fix applies immediately with no
+  reconfiguration needed. See `docs/ARCHITECTURE.md` §19 for anyone touching this code later — the
+  numeric env_id alone was never a safe key for this and it's easy to accidentally reintroduce.
+- **The Schedules card's "global schedules" now show up for every configured Dockhand instance,
+  not just one.** Found while fixing the issue above — with two or more Dockhand instances that
+  each have "Enable schedules" on and at least one genuinely global schedule (system cleanup,
+  destination maintenance), only one instance's global schedules were ever showing, silently
+  dropping the others rather than merging them incorrectly like the containers/stacks bug above.
+
+### Internal
+
+- Updated `custom-card-helpers` (1.9.0 → 2.0.0), `rollup` (4.62.2 → 4.63.4), `eslint` (10.8.0 →
+  10.11.0), and `home-assistant-js-websocket` (9.6.0 → 9.7.0). Verified no source changes needed —
+  `custom-card-helpers`' `HomeAssistant`/`fireEvent`/`LovelaceCard*` types are unchanged between
+  1.9.0 and 2.0.0 (confirmed by diffing the published `.d.ts` files directly), and the full
+  `npm run verify` suite (typecheck, lint, 205 tests, build, audit) passes clean against all four.
+  **`typescript` (6.0.3 → 7.0.2) was deliberately left at 6.x**: TypeScript 7 is the new
+  native-compiler release, and `@typescript-eslint` (still on 8.x as of this release) refuses to
+  run against it outright ("typescript-eslint does not support TS 7.0" — see
+  [typescript-eslint#10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940)
+  for tracking). Revisit once that lands; bumping `typescript` alone in the meantime breaks
+  `npm run lint` entirely.
+
 ## [1.3.0] - 2026-09-21
 
 ### Changed
@@ -348,7 +397,8 @@ so a user's own icon customization is reflected automatically.
   from `hass.language`. Custom mode's section-checkbox labels specifically are English-only for
   now — see `docs/BACKLOG.md`.
 
-[Unreleased]: https://github.com/raetha/ha-dockhand-cards/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/raetha/ha-dockhand-cards/compare/v1.3.1...HEAD
+[1.3.1]: https://github.com/raetha/ha-dockhand-cards/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/raetha/ha-dockhand-cards/compare/v1.2.1...v1.3.0
 [1.2.1]: https://github.com/raetha/ha-dockhand-cards/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/raetha/ha-dockhand-cards/compare/v1.1.0...v1.2.0

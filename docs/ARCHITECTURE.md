@@ -1037,3 +1037,52 @@ toggle (config field `align_columns`, default `true`). When false, the card appl
 emitted and no JS equalization runs; any pending rAF is cancelled and the `ResizeObserver` is
 torn down.
 
+
+## 19. Device-registry scoping: numeric env_id is never a safe key by itself
+
+`common/device-utils.ts` resolves "every container/stack/schedule device belonging to this
+environment" by pattern-matching the numeric env_id embedded in ha-dockhand's device identifiers
+(`{entry_id}_container_{env_id}_{name}`, etc. — see ha-dockhand's `helpers.py`). It's tempting to
+treat that number as a unique key on its own. It isn't: every Dockhand instance numbers its own
+first environment `1`, second `2`, and so on, independently — so two different config entries
+(two separate Dockhand instances added to HA) routinely have an "env_1" each, and any lookup keyed
+on the bare number alone will silently merge or misattribute devices across them the moment that
+happens (ha-dockhand-cards#1 — reported as "all containers/stacks from both servers show under
+both").
+
+The fix, and the rule to keep following: every one of these lookups must also confirm
+`sameConfigEntry()` — i.e. that the candidate device's `config_entries` overlaps the reference
+environment device's `config_entries`. `config_entries` is populated by HA itself for every
+device regardless of identifier format (including pre-1.9.0 bare, entry_id-less identifiers), so
+it's the actual source of truth for "same physical Dockhand instance," not something this repo
+needs to reconstruct by parsing an entry_id prefix back out of an identifier string. Every
+`get*DevicesForEnvironment` / `getEnvDeviceForEnvId` / `getScheduleGroupDeviceForEnvironment`
+helper takes the environment's own `DeviceRegistryEntry` (or another same-instance reference
+device) for exactly this reason — resist the urge to "simplify" any of these back down to a bare
+`envId: number` parameter; that's precisely the shape that reintroduces this bug.
+
+Schedules avoid a variant of this by resolving purely through `via_device_id` (an HA-assigned,
+globally unique device id, never a number ha-dockhand made up) — that pattern is preferable to
+identifier pattern-matching wherever a `via_device` link already exists between parent and child,
+and `sameConfigEntry` is the fallback for the cases (containers, stacks) where no such link is
+available end-to-end.
+
+## 20. Labeling a Dockhand *instance* for a person: use `configuration_url`'s host, not env data
+
+A sibling problem to §19: once you have devices correctly *scoped* to one Dockhand instance,
+sometimes you also need to show a person which instance that is — e.g. the Schedules card's
+global-schedule rows once more than one instance contributes global schedules (`common/format.ts`,
+`getInstanceLabel()`, added 1.3.1). The temptation is to borrow something already on-screen for
+that instance — an environment's name, a hub device's own (currently fixed, generic) name — but
+per §19, nothing environment-scoped is safe to use this way: env names and numbers aren't
+guaranteed distinct across instances, and an instance can have several environments with no
+principled way to pick "the" one whose name represents the whole instance.
+
+`getInstanceLabel()` instead reads `device.configuration_url`, which every ha-dockhand device
+already carries (`helpers.py`'s `_ensure_hub_devices`/`_ensure_env_devices` and friends set it on
+every `DeviceInfo`) and derives directly from the URL the person configured in HA to reach that
+Dockhand server. Two config entries can only share that host if they're genuinely pointed at the
+same server — a misconfiguration, not a normal multi-instance setup — so, unlike env_id or an
+environment name, it can't collide by design. No `ha-dockhand` change or extra API call needed;
+this is a card-only read of data the integration already ships. Reach for this (not a
+proxy-borrowed name) anywhere else a card needs to tell two Dockhand instances apart for a person.

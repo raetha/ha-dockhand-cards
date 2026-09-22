@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sortScheduleRows, groupScheduleRows, type ScheduleRow } from './card';
+import { sortScheduleRows, groupScheduleRows, resolveGlobalInstanceLabels, type ScheduleRow } from './card';
 
 function row(overrides: Partial<ScheduleRow> & { name: string }): ScheduleRow {
   return {
@@ -184,5 +184,46 @@ describe('groupScheduleRows', () => {
     const groups = groupScheduleRows(rows, 'status', 'name');
     expect(groups).toHaveLength(1);
     expect(groups[0].label).toBe('Disabled');
+  });
+});
+
+describe('resolveGlobalInstanceLabels', () => {
+  it('returns an empty map when there are no global schedule devices', () => {
+    expect(resolveGlobalInstanceLabels([], () => null)).toEqual(new Map());
+  });
+
+  it('returns an empty map when every global schedule belongs to the same single instance — nothing to disambiguate', () => {
+    const devices = [
+      { id: 'sched_1', via_device_id: 'hub_a' },
+      { id: 'sched_2', via_device_id: 'hub_a' }
+    ];
+    const urls = { hub_a: 'http://dockhand.local:3000' };
+    expect(resolveGlobalInstanceLabels(devices, (hubId) => urls[hubId as keyof typeof urls])).toEqual(new Map());
+  });
+
+  it('labels every schedule once global schedules span more than one instance', () => {
+    const devices = [
+      { id: 'sched_1', via_device_id: 'hub_a' },
+      { id: 'sched_2', via_device_id: 'hub_b' },
+      { id: 'sched_3', via_device_id: 'hub_a' }
+    ];
+    const urls = { hub_a: 'http://192.168.1.50:3000', hub_b: 'https://dockhand.example.com' };
+    const labels = resolveGlobalInstanceLabels(devices, (hubId) => urls[hubId as keyof typeof urls]);
+    expect(labels.get('sched_1')).toBe('192.168.1.50:3000');
+    expect(labels.get('sched_2')).toBe('dockhand.example.com');
+    expect(labels.get('sched_3')).toBe('192.168.1.50:3000');
+  });
+
+  it('leaves a schedule unlabeled if its hub has no via_device_id or no resolvable configuration_url, without dropping the others', () => {
+    const devices = [
+      { id: 'sched_1', via_device_id: 'hub_a' },
+      { id: 'sched_2', via_device_id: 'hub_b' },
+      { id: 'orphan', via_device_id: null }
+    ];
+    const urls = { hub_a: 'http://192.168.1.50:3000', hub_b: null };
+    const labels = resolveGlobalInstanceLabels(devices, (hubId) => urls[hubId as keyof typeof urls]);
+    expect(labels.get('sched_1')).toBe('192.168.1.50:3000');
+    expect(labels.has('sched_2')).toBe(false);
+    expect(labels.has('orphan')).toBe(false);
   });
 });

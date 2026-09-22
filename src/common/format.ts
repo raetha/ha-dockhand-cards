@@ -30,6 +30,33 @@ export function getDockhandBaseUrl(configurationUrl: string | null | undefined):
   }
 }
 
+/**
+ * A short, human label for which Dockhand *instance* a device belongs to —
+ * the host[:port] portion of that device's own configuration_url, i.e. the
+ * same address the user configured in HA to reach that particular Dockhand
+ * server. Every device ha-dockhand creates already carries this, so no
+ * integration change or extra API call is needed to get it.
+ *
+ * Deliberately not env_id or an environment/device name: those are
+ * per-Dockhand-instance-local and collide *by design* the moment there's
+ * more than one instance (every instance numbers its own first environment
+ * `1`; nothing stops two instances' environments sharing a name either).
+ * configuration_url's host doesn't have that problem — two config entries
+ * only ever share one host[:port] if they're genuinely pointed at the same
+ * Dockhand server, which is a misconfiguration, not a normal multi-instance
+ * setup. See ha-dockhand-cards#1 / docs/ARCHITECTURE.md §19 for the bug
+ * class this sidesteps.
+ */
+export function getInstanceLabel(configurationUrl: string | null | undefined): string | null {
+  const origin = getDockhandBaseUrl(configurationUrl);
+  if (!origin) return null;
+  try {
+    return new URL(origin).host;
+  } catch {
+    return null;
+  }
+}
+
 /** Shared by every card's header-icon settings link — shown instead of the normal
  * clickable link when show_settings_link is on but getDockhandBaseUrl
  * couldn't resolve a valid URL. Deliberately not the same as the toggle

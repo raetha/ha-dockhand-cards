@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { formatBytes, barColorClass, formatRelativeTime } from './format';
+import { formatBytes, barColorClass, formatRelativeTime, getInstanceLabel } from './format';
 
 describe('formatBytes', () => {
   it('handles null/undefined/NaN as a dash', () => {
@@ -28,6 +28,28 @@ describe('barColorClass', () => {
     expect(barColorClass(89.9)).toBe('warn');
     expect(barColorClass(90)).toBe('error');
     expect(barColorClass(100)).toBe('error');
+  });
+});
+
+describe('getInstanceLabel', () => {
+  it('returns null for null/undefined/malformed input', () => {
+    expect(getInstanceLabel(null)).toBeNull();
+    expect(getInstanceLabel(undefined)).toBeNull();
+    expect(getInstanceLabel('not a url')).toBeNull();
+    expect(getInstanceLabel('')).toBeNull();
+  });
+
+  it('returns the host (hostname:port) of a configuration_url, dropping scheme and path', () => {
+    expect(getInstanceLabel('http://192.168.1.50:3000/schedules')).toBe('192.168.1.50:3000');
+    expect(getInstanceLabel('https://dockhand.example.com/settings')).toBe('dockhand.example.com');
+  });
+
+  it('differs for two instances on the same host but different ports — the common self-hosted case', () => {
+    expect(getInstanceLabel('http://192.168.1.50:3000/schedules')).not.toBe(getInstanceLabel('http://192.168.1.50:3001/schedules'));
+  });
+
+  it('is stable across different pages on the same Dockhand instance', () => {
+    expect(getInstanceLabel('http://dockhand.local:3000/schedules')).toBe(getInstanceLabel('http://dockhand.local:3000/settings'));
   });
 });
 

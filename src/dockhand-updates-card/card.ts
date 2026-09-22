@@ -4,7 +4,7 @@ import { state } from 'lit/decorators.js';
 import { fireEvent, type LovelaceCard, type LovelaceCardEditor } from 'custom-card-helpers';
 
 import type { HomeAssistant, LovelaceGridOptions } from '../common/ha-types';
-import { getContainerDevicesForEnvironment, getEnvId, getEnvironmentDevices, getRepresentativeEntityId, type EnvironmentDeviceOption } from '../common/device-utils';
+import { getContainerDevicesForEnvironment, getEnvironmentDevices, getRepresentativeEntityId, type EnvironmentDeviceOption } from '../common/device-utils';
 import { resolveIncludedOrderedWithLegacy, resolveEffectiveGroupBy } from '../common/environment-scope';
 import { resolveCardName, migrateTitleToName, multiEnvCardNameFallback } from '../common/card-name';
 import { resolveEnvironmentEntities, findPrimaryEntityByDomain } from '../common/entity-resolver';
@@ -105,13 +105,13 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
     const groups: EnvGroup[] = [];
     const checkUpdatesEntityIds: string[] = [];
     for (const env of envDevices) {
-      const envId = getEnvId(this._hass.devices[env.deviceId]);
-      if (envId === null) continue;
+      const envDevice = this._hass.devices[env.deviceId];
+      if (!envDevice) continue;
 
       const { found } = resolveEnvironmentEntities(this._hass, env.deviceId, ['envBulkUpdate', 'checkUpdates']);
       if (found.checkUpdates) checkUpdatesEntityIds.push(found.checkUpdates.entityId);
 
-      const containerDevices = getContainerDevicesForEnvironment(this._hass, envId);
+      const containerDevices = getContainerDevicesForEnvironment(this._hass, envDevice);
       const updates: PendingUpdate[] = [];
 
       for (const c of containerDevices) {

@@ -9,3 +9,10 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    ignore:
+      # typescript-eslint does not support TypeScript 7 yet (hard runtime
+      # error, not just a peer-dep warning) — see typescript-eslint#10940.
+      # Remove this once that issue ships support, then let Dependabot
+      # propose the typescript 7.x bump normally.
+      - dependency-name: "typescript"
+        versions: [">=7.0.0"]

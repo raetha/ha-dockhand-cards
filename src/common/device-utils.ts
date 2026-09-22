@@ -52,21 +52,43 @@ export function getEnvId(device: DeviceRegistryEntry): number | null {
   return null;
 }
 
+/** True when `device` was created by the same config entry as
+ * `envDevice` — i.e. the same physical Dockhand instance. Every Dockhand
+ * instance numbers its own first environment `1`, so the numeric env_id
+ * alone is never enough to scope a lookup to "this environment": two
+ * separate instances' `env_1` need to stay distinct even though they
+ * share a number. `config_entries` is HA's own record of which config
+ * entry created a device — set by HA itself regardless of identifier
+ * format, so it works for pre-1.9.0 (bare, entry_id-less) identifiers
+ * too — and is the actual source of truth for "same instance", not
+ * something this repo has to reconstruct by parsing entry_id back out
+ * of an identifier string. */
+function sameConfigEntry(device: DeviceRegistryEntry, envDevice: DeviceRegistryEntry): boolean {
+  return device.config_entries.some((id) => envDevice.config_entries.includes(id));
+}
+
 // ha-dockhand container device identifier format:
 //   Pre-1.9.0:  container_{env_id}_{name}             (e.g. "container_1_nginx")
 //   Post-1.9.0: {entry_id}_container_{env_id}_{name}  (e.g. "abc12345-..._container_1_nginx")
 //
 // All matching functions below accept both formats.
-export function getContainerDevicesForEnvironment(hass: HomeAssistant, envId: number): DeviceRegistryEntry[] {
+//
+// Takes the environment's own device (not a bare env_id number) so the
+// match can also require `sameConfigEntry` — see that function's comment
+// for why the number alone isn't a safe scope.
+export function getContainerDevicesForEnvironment(hass: HomeAssistant, envDevice: DeviceRegistryEntry): DeviceRegistryEntry[] {
+  const envId = getEnvId(envDevice);
+  if (envId === null) return [];
   // Old format starts with container_{envId}_, new format has it as an infix.
   const directPrefix = `container_${envId}_`;
   const scopedInfix = `_container_${envId}_`;
-  return Object.values(hass.devices ?? {}).filter((device) =>
-    (device.identifiers ?? []).some(
+  return Object.values(hass.devices ?? {}).filter((device) => {
+    if (!sameConfigEntry(device, envDevice)) return false;
+    return (device.identifiers ?? []).some(
       ([domain, id]) =>
         domain === DOCKHAND_DOMAIN && (id.startsWith(directPrefix) || id.includes(scopedInfix))
-    )
-  );
+    );
+  });
 }
 
 // ha-dockhand stack device identifier format:
@@ -95,15 +117,18 @@ export function getAllContainerDevices(hass: HomeAssistant): DeviceRegistryEntry
   return Object.values(hass.devices ?? {}).filter(isContainerDevice);
 }
 
-export function getStackDevicesForEnvironment(hass: HomeAssistant, envId: number): DeviceRegistryEntry[] {
+export function getStackDevicesForEnvironment(hass: HomeAssistant, envDevice: DeviceRegistryEntry): DeviceRegistryEntry[] {
+  const envId = getEnvId(envDevice);
+  if (envId === null) return [];
   const directPrefix = `stack_${envId}_`;
   const scopedInfix = `_stack_${envId}_`;
-  return Object.values(hass.devices ?? {}).filter((device) =>
-    (device.identifiers ?? []).some(
+  return Object.values(hass.devices ?? {}).filter((device) => {
+    if (!sameConfigEntry(device, envDevice)) return false;
+    return (device.identifiers ?? []).some(
       ([domain, id]) =>
         domain === DOCKHAND_DOMAIN && (id.startsWith(directPrefix) || id.includes(scopedInfix))
-    )
-  );
+    );
+  });
 }
 
 /** Reverse of getContainerDevicesForEnvironment — which env does this container device belong to. */
@@ -128,13 +153,25 @@ export function getEnvIdForStackDevice(device: DeviceRegistryEntry): number | nu
   return null;
 }
 
-/** device_id -> env device_id, for looking up an environment's own device
- * from any child (container/stack) device's env_id. */
-export function getEnvDeviceIdForEnvId(hass: HomeAssistant, envId: number): string | null {
+/** Looks up an environment's own device from any child (container/stack/
+ * schedule) device's env_id — reverse of getContainerDevicesForEnvironment
+ * / getStackDevicesForEnvironment. `referenceDevice` (the child device the
+ * env_id was read from) is required so the match can also confirm
+ * `sameConfigEntry`: env_id alone would otherwise happily resolve to a
+ * same-numbered environment belonging to a completely different Dockhand
+ * instance (see sameConfigEntry's comment). */
+export function getEnvDeviceForEnvId(hass: HomeAssistant, envId: number, referenceDevice: DeviceRegistryEntry): DeviceRegistryEntry | null {
   for (const device of Object.values(hass.devices ?? {})) {
-    if (isEnvironmentDevice(device) && getEnvId(device) === envId) return device.id;
+    if (!isEnvironmentDevice(device) || getEnvId(device) !== envId) continue;
+    if (sameConfigEntry(device, referenceDevice)) return device;
   }
   return null;
+}
+
+/** Convenience wrapper over getEnvDeviceForEnvId for callers that only
+ * need the device_id (e.g. building a card config), not the full device. */
+export function getEnvDeviceIdForEnvId(hass: HomeAssistant, envId: number, referenceDevice: DeviceRegistryEntry): string | null {
+  return getEnvDeviceForEnvId(hass, envId, referenceDevice)?.id ?? null;
 }
 
 // ha-dockhand schedule device identifier format:
@@ -161,50 +198,64 @@ export function getAllScheduleDevices(hass: HomeAssistant): DeviceRegistryEntry[
   return Object.values(hass.devices ?? {}).filter(isScheduleDevice);
 }
 
-/** Find a device by an exact identifier value, accepting both pre-1.9.0 bare
- * identifiers and post-1.9.0 entry_id-prefixed ones. */
-function findDeviceByIdentifier(hass: HomeAssistant, bareIdentifier: string): DeviceRegistryEntry | null {
-  return (
-    Object.values(hass.devices ?? {}).find((d) =>
-      (d.identifiers ?? []).some(
-        ([domain, id]) =>
-          domain === DOCKHAND_DOMAIN &&
-          // Exact match (old format) or prefixed match (new format: {uuid}_{bareIdentifier})
-          (id === bareIdentifier || id.endsWith(`_${bareIdentifier}`))
-      )
-    ) ?? null
+/** Every configured Dockhand instance's own global-schedules hub device —
+ * each config entry that has "Enable schedules" on and at least one
+ * genuinely global schedule gets its own (see ha-dockhand's
+ * _ensure_hub_devices). Plural because with more than one Dockhand
+ * instance connected there's one hub per instance, not one hub overall —
+ * getGlobalScheduleDevices needs schedules parented to any of them, not
+ * just whichever one happens to be enumerated first (see
+ * docs/ARCHITECTURE.md §19's sibling note on this file's env_id scoping
+ * bug — this was the same "picked one arbitrarily" shape, just for a
+ * genuinely-global device instead of an environment-scoped one, so no
+ * `sameConfigEntry` check is needed or possible here). */
+export function getScheduleHubDevices(hass: HomeAssistant): DeviceRegistryEntry[] {
+  return Object.values(hass.devices ?? {}).filter((d) =>
+    (d.identifiers ?? []).some(
+      ([domain, id]) => domain === DOCKHAND_DOMAIN && (id === 'schedules_hub' || id.endsWith('_schedules_hub'))
+    )
   );
 }
 
-/** The hub every genuinely global schedule (environmentId: null) parents
- * to — only present at all when "Enable schedules" is on and at least one
- * global schedule exists (see ha-dockhand's _ensure_hub_devices). */
-export function getScheduleHubDevice(hass: HomeAssistant): DeviceRegistryEntry | null {
-  return findDeviceByIdentifier(hass, 'schedules_hub');
-}
-
 /** An environment's own Schedules group device — only present when that
- * environment has at least one env-scoped schedule. */
-export function getScheduleGroupDeviceForEnvironment(hass: HomeAssistant, envId: number): DeviceRegistryEntry | null {
-  return findDeviceByIdentifier(hass, `env_${envId}_Schedules`);
+ * environment has at least one env-scoped schedule.
+ *
+ * Takes the environment's own device (not a bare env_id number) and
+ * requires sameConfigEntry, same reasoning as getContainerDevicesForEnvironment
+ * — an `endsWith` identifier match alone would happily return a different
+ * Dockhand instance's `env_1_Schedules` group. */
+export function getScheduleGroupDeviceForEnvironment(hass: HomeAssistant, envDevice: DeviceRegistryEntry): DeviceRegistryEntry | null {
+  const envId = getEnvId(envDevice);
+  if (envId === null) return null;
+  const bareIdentifier = `env_${envId}_Schedules`;
+  return (
+    Object.values(hass.devices ?? {}).find((d) => {
+      if (!sameConfigEntry(d, envDevice)) return false;
+      return (d.identifiers ?? []).some(
+        ([domain, id]) =>
+          domain === DOCKHAND_DOMAIN && (id === bareIdentifier || id.endsWith(`_${bareIdentifier}`))
+      );
+    }) ?? null
+  );
 }
 
 /** Every schedule device belonging to one environment, resolved via
  * via_device_id against that environment's own Schedules group — not by
  * parsing the schedule device's own identifier, which carries no env_id. */
-export function getScheduleDevicesForEnvironment(hass: HomeAssistant, envId: number): DeviceRegistryEntry[] {
-  const group = getScheduleGroupDeviceForEnvironment(hass, envId);
+export function getScheduleDevicesForEnvironment(hass: HomeAssistant, envDevice: DeviceRegistryEntry): DeviceRegistryEntry[] {
+  const group = getScheduleGroupDeviceForEnvironment(hass, envDevice);
   if (!group) return [];
   return getAllScheduleDevices(hass).filter((d) => d.via_device_id === group.id);
 }
 
 /** Every genuinely global schedule device (environmentId: null on
- * Dockhand's own data) — parented to schedules_hub rather than any
- * environment's group. */
+ * Dockhand's own data) — parented to any configured instance's own
+ * schedules_hub rather than any environment's group. Collects across
+ * every hub (every Dockhand instance that has one), not just one. */
 export function getGlobalScheduleDevices(hass: HomeAssistant): DeviceRegistryEntry[] {
-  const hub = getScheduleHubDevice(hass);
-  if (!hub) return [];
-  return getAllScheduleDevices(hass).filter((d) => d.via_device_id === hub.id);
+  const hubIds = new Set(getScheduleHubDevices(hass).map((d) => d.id));
+  if (hubIds.size === 0) return [];
+  return getAllScheduleDevices(hass).filter((d) => d.via_device_id !== null && hubIds.has(d.via_device_id));
 }
 
 // Matches both env_{env_id}_Schedules (old) and {entry_id}_env_{env_id}_Schedules (new)

@@ -114,7 +114,7 @@ window.customCards.push({
 
     const suggestions: EntitySuggestion[] = [{ config: { type: 'custom:dockhand-stack-card', device_id: device.id }, label: 'This stack' }];
     const envId = getEnvIdForStackDevice(device);
-    const envDeviceId = envId !== null ? getEnvDeviceIdForEnvId(hass, envId) : null;
+    const envDeviceId = envId !== null ? getEnvDeviceIdForEnvId(hass, envId, device) : null;
     if (envDeviceId) {
       suggestions.push({ config: { type: 'custom:dockhand-stacks-card', device_id: envDeviceId }, label: 'All stacks in this environment' });
     }
@@ -138,7 +138,7 @@ window.customCards.push({
       { config: { type: 'custom:dockhand-container-card', device_id: device.id }, label: 'This container' }
     ];
     const envId = getEnvIdForContainerDevice(device);
-    const envDeviceId = envId !== null ? getEnvDeviceIdForEnvId(hass, envId) : null;
+    const envDeviceId = envId !== null ? getEnvDeviceIdForEnvId(hass, envId, device) : null;
     if (envDeviceId) {
       suggestions.push({
         config: { type: 'custom:dockhand-containers-card', device_id: envDeviceId },
@@ -181,7 +181,7 @@ window.customCards.push({
     const device = hass.devices?.[entry.device_id];
     if (!device || !isContainerDevice(device)) return undefined;
     const envId = getEnvIdForContainerDevice(device);
-    const envDeviceId = envId !== null ? getEnvDeviceIdForEnvId(hass, envId) : null;
+    const envDeviceId = envId !== null ? getEnvDeviceIdForEnvId(hass, envId, device) : null;
     return {
       config: { type: 'custom:dockhand-updates-card', scope: envDeviceId ? 'environment' : 'all', device_id: envDeviceId ?? undefined },
       label: 'Pending updates'
@@ -210,7 +210,7 @@ window.customCards.push({
     const device = hass.devices?.[entry.device_id];
     if (!device || !isScheduleDevice(device)) return undefined;
     const envId = getEnvIdForScheduleDevice(hass, device);
-    const envDeviceId = envId !== null ? getEnvDeviceIdForEnvId(hass, envId) : null;
+    const envDeviceId = envId !== null ? getEnvDeviceIdForEnvId(hass, envId, device) : null;
     // No scope/device_id fields anymore — "just this environment" is
     // expressed the same way the editor's own per-row "solo" action
     // writes it: exclude every other known environment, same as picking

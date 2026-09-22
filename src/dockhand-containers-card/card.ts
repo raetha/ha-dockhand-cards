@@ -4,7 +4,7 @@ import { state } from 'lit/decorators.js';
 import { fireEvent, type LovelaceCard, type LovelaceCardEditor } from 'custom-card-helpers';
 
 import type { HomeAssistant, LovelaceGridOptions } from '../common/ha-types';
-import { getEnvironmentDevices, getContainerDevicesForEnvironment, getEnvId, getRepresentativeEntityId, type EnvironmentDeviceOption } from '../common/device-utils';
+import { getEnvironmentDevices, getContainerDevicesForEnvironment, getRepresentativeEntityId, type EnvironmentDeviceOption } from '../common/device-utils';
 import { resolveCardName, migrateTitleToName, multiEnvCardNameFallback } from '../common/card-name';
 import { resolveIncludedOrderedWithLegacy, groupRowsByEnvironment, resolveEffectiveGroupBy } from '../common/environment-scope';
 import { resolveContainerEntities, findPrimaryEntityByDomain, type ResolutionResult } from '../common/entity-resolver';
@@ -160,8 +160,8 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
     const envDevices = resolveIncludedOrderedWithLegacy(getEnvironmentDevices(this._hass), this._config.environments_order, this._config.exclude_device_ids, this._config.device_id);
 
     const rows: ContainerRow[] = envDevices.flatMap((env) => {
-      const envId = getEnvId(this._hass!.devices[env.deviceId]);
-      const containerDevices = envId !== null ? getContainerDevicesForEnvironment(this._hass!, envId) : [];
+      const envDevice = this._hass!.devices[env.deviceId];
+      const containerDevices = envDevice ? getContainerDevicesForEnvironment(this._hass!, envDevice) : [];
       return containerDevices
         .map((d) => {
           const { found } = resolveContainerEntities(this._hass!, d.id, ['state', 'health', 'cpuPercent', 'memoryPercent']);

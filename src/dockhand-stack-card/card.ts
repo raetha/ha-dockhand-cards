@@ -4,7 +4,7 @@ import { state } from 'lit/decorators.js';
 import { fireEvent, type LovelaceCard, type LovelaceCardEditor } from 'custom-card-helpers';
 
 import type { HomeAssistant, LovelaceGridOptions, DeviceRegistryEntry } from '../common/ha-types';
-import { getAllStackDevices, getEnvIdForStackDevice, getContainerDevicesForEnvironment, getRepresentativeEntityId } from '../common/device-utils';
+import { getAllStackDevices, getEnvIdForStackDevice, getEnvDeviceForEnvId, getContainerDevicesForEnvironment, getRepresentativeEntityId } from '../common/device-utils';
 import { resolveCardName, migrateTitleToName } from '../common/card-name';
 import { resolveStackEntities, resolveContainerEntities, findPrimaryEntityByDomain, type ResolutionResult } from '../common/entity-resolver';
 import { STACK_STATUS_CLASS, type StackTranslationKey } from '../common/const';
@@ -216,8 +216,10 @@ export class DockhandStackCard extends LitElement implements LovelaceCard {
     if (!this._hass) return map;
     const envId = getEnvIdForStackDevice(stackDevice);
     if (envId === null) return map;
+    const envDevice = getEnvDeviceForEnvId(this._hass, envId, stackDevice);
+    if (!envDevice) return map;
 
-    for (const containerDevice of getContainerDevicesForEnvironment(this._hass, envId)) {
+    for (const containerDevice of getContainerDevicesForEnvironment(this._hass, envDevice)) {
       const { found } = resolveContainerEntities(this._hass, containerDevice.id, ['state']);
       const rawName = found.state?.state.attributes.name as string | undefined;
       if (rawName && found.state) {
