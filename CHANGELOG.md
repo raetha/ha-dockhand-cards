@@ -22,7 +22,7 @@ the Releases page.
 
 ## [Unreleased]
 
-## [1.3.2] - 2026-09-23
+## [1.3.2] - 2026-09-24
 
 ### Changed
 
