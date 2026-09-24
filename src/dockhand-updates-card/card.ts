@@ -199,7 +199,8 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
             <div class="header-right">
             ${checkUpdatesEntityIds.length > 0
               ? renderIcon({
-                  baseClass: `header-icon${this._checking ? ' spinning' : ''}`,
+                  baseClass: 'header-icon',
+                  busy: this._checking,
                   icon: 'mdi:refresh',
                   title: this._checking ? 'Checking…' : 'Check for updates',
                   ...(this._checking ? { disabled: true } : { onClick: () => this._triggerCheckUpdates(checkUpdatesEntityIds) })
@@ -207,7 +208,8 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
               : nothing}
             ${bulkButtonIds.length > 0
               ? renderIcon({
-                  baseClass: `header-icon filled${this._triggering ? ' spinning' : ''}`,
+                  baseClass: 'header-icon filled',
+                  busy: this._triggering,
                   icon: 'mdi:arrow-up-circle',
                   text: 'Update all',
                   title: this._triggering ? 'Updating…' : 'Update all',

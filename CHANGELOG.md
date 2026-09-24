@@ -20,6 +20,36 @@ maintain — write each section as the thing you'd want a user to read on
 the Releases page.
 -->
 
+## [Unreleased]
+
+## [1.3.2] - 2026-09-23
+
+### Changed
+
+- **Environment names above each Overview card column are larger.** They're now one size above the
+  card titles beneath them instead of smaller than them, so each column's environment is easy to
+  pick out.
+- **The Updates card's "Update all" and "Check for updates" buttons show a standard loading
+  spinner while working,** instead of spinning their own icon.
+
+### Fixed
+
+- **The Environment card's pending update count now matches the Updates card.** It counted only
+  updates that can be installed in bulk, so updates to Dockhand itself or a Hawser agent, and
+  newer version tags that need the pinned tag changed, appeared on the Updates card but not in the
+  Environment card's count. It now shows the full count, and hovering it breaks the number down by
+  kind when there's more than one. Including newer version tags in the count needs ha-dockhand
+  1.10.2 or later; older releases still show a count, just without those.
+- **No more extra space under a section in the Overview card when some sections are turned
+  off.** Each turned-off section still left a small gap in every column.
+
+### Internal
+
+- Updated `vitest` (4.1.11 → 5.0.1), `jsdom` (29.1.1 → 30.1.1), `globals` (17.7.0 → 17.12.0),
+  `@types/d3-shape` (3.1.8 → 3.2.0), and `@typescript-eslint/parser` and
+  `@typescript-eslint/eslint-plugin` (8.64 → 8.70.1, kept in step). All development-only; nothing
+  in the shipped cards changes.
+
 ## [1.3.1] - 2026-09-22
 
 ### Added
@@ -397,7 +427,8 @@ so a user's own icon customization is reflected automatically.
   from `hass.language`. Custom mode's section-checkbox labels specifically are English-only for
   now — see `docs/BACKLOG.md`.
 
-[Unreleased]: https://github.com/raetha/ha-dockhand-cards/compare/v1.3.1...HEAD
+[Unreleased]: https://github.com/raetha/ha-dockhand-cards/compare/v1.3.2...HEAD
+[1.3.2]: https://github.com/raetha/ha-dockhand-cards/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/raetha/ha-dockhand-cards/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/raetha/ha-dockhand-cards/compare/v1.2.1...v1.3.0
 [1.2.1]: https://github.com/raetha/ha-dockhand-cards/compare/v1.2.0...v1.2.1

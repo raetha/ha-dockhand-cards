@@ -229,6 +229,7 @@ function buildEnvironment(addDevice, addEntity, opts) {
       unhealthy: online ? 1 : 0,
       pending_updates: online ? pendingUpdateCount - pendingSystemUpdateCount : 0,
       pending_system_updates: online ? pendingSystemUpdateCount : 0,
+      pending_version_updates: 0,
       pending_updates_total: online ? pendingUpdateCount : 0
     })
   );

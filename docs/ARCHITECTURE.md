@@ -511,7 +511,9 @@ named attributes on that same "containers" sensor instead of one overloaded one:
 `pending_updates` (bulk-eligible only — excludes system containers, by construction in a shared
 helper rather than by each caller separately remembering to filter them out), `pending_system_updates`
 (system containers only, purely informational), and `pending_updates_total` (the sum — "does
-anything at all need attention"). This repo's visibility check reads `pending_updates_total`
+anything at all need attention"; since ha-dockhand 1.10.2 also including `pending_version_updates`,
+newer-version-tag suggestions, so it equals the number of update entities that are on). The
+Environment card's own update count reads this same total, for the same reason. This repo's visibility check reads `pending_updates_total`
 specifically, not `pending_updates` — the card's own rows already show a system container's
 pending update, so "should this card hide itself" needs the total, not the narrower bulk-eligible
 count; reading the wrong one of the three would reintroduce the exact bug this whole chain of
@@ -907,10 +909,10 @@ curve) than continuing to derive a constant-pixel gap analytically within the ar
   case (Updates card's own "Update all") that needs to read as a prominent action rather than blend
   in with the other, more incidental header icons around it — also switches from the fixed 32×32
   square every plain `.header-icon` uses to auto width + padding, since this is the one case where
-  a header-icon carries real text alongside its own icon. `.spinning` rotates the icon
-  indefinitely — the loading-spinner state a real `ha-button` provided natively, reimplemented here
-  as a small, standalone CSS animation (no existing spin pattern anywhere else in this codebase to
-  reuse). `onClick` is required unless `disabled: true` (a known, meaningful muted
+  a header-icon carries real text alongside its own icon. `busy: true` swaps the icon
+  for a `.spinner` ring (plain CSS, same footprint and color as the icon) while the button's action
+  is in flight — the loading state a real `ha-button` provided natively. Not HA's own
+  `<ha-spinner>`, which a custom card can't count on being registered. `onClick` is required unless `disabled: true` (a known, meaningful muted
   state — the Dockhand link when its own URL couldn't resolve, still intercepts its own click) or
   `static: true` (genuinely, permanently non-interactive by design — a card's own header badge —
   intercepts nothing, so a click passes through untouched to whatever it sits inside) is set
@@ -949,11 +951,11 @@ pieces).
 | `.card-badge` | The header's own fixed-size (28×28) tinted icon box, identifying the card. Always static, rendered via `renderIcon()` (§17). |
 | `.truncate` | Single-line ellipsis truncation — a card's own name, a row's own name, a subheader. Can't be inherited from an ancestor; sits directly on the text element. |
 | `.card-subheader` | A header's own secondary line (hostname:port, a docker image tag) — smaller, secondary-colored text beneath the name. |
-| `.header-icon` (+ `.link-unavailable`, `.filled`, `.spinning`) | Any header icon, clickable or static, either side of a card's own header — an update chip, a feature toggle, the Dockhand link, Environment's own connection-type icon (merged in from a former separate `.conn-icon`, once nothing distinguished them but a stray `flex-shrink: 0`, folded into this class instead) — all one shared shape and treatment, so they visually line up and behave identically regardless of what each one links to. A deliberately larger clickable footprint (32×32) than the icon itself needs — the icon stays at HA's own native, unmodified size, centered within the larger box, a real touch-target improvement over an earlier version of this class that had no explicit size at all. Carries its own `.ok`/`.warn`/`.error`/`.accent`/`.neutral` color modifiers. `.link-unavailable` is the Dockhand link's own muted, non-interactive state when no usable URL could be resolved — additive, so a rule targeting `.header-icon` alone still matches this state too. `.filled`/`.spinning` are Updates card's own two header buttons (converted from `ha-button` this session) — see §17. |
+| `.header-icon` (+ `.link-unavailable`, `.filled`; `.spinner` inside it while busy) | Any header icon, clickable or static, either side of a card's own header — an update chip, a feature toggle, the Dockhand link, Environment's own connection-type icon (merged in from a former separate `.conn-icon`, once nothing distinguished them but a stray `flex-shrink: 0`, folded into this class instead) — all one shared shape and treatment, so they visually line up and behave identically regardless of what each one links to. A deliberately larger clickable footprint (32×32) than the icon itself needs — the icon stays at HA's own native, unmodified size, centered within the larger box, a real touch-target improvement over an earlier version of this class that had no explicit size at all. Carries its own `.ok`/`.warn`/`.error`/`.accent`/`.neutral` color modifiers. `.link-unavailable` is the Dockhand link's own muted, non-interactive state when no usable URL could be resolved — additive, so a rule targeting `.header-icon` alone still matches this state too. `.filled` and the busy spinner are Updates card's own two header buttons (converted from `ha-button` this session) — see §17. |
 | `.clickable` | The shared hover/focus treatment only (background tint, cursor, outline, border-radius) — always additive on top of whatever class gives an element its own identity (`.row.clickable`, `.hero-word.clickable`, `.header-icon.clickable`). Never a replacement for that identity class. |
 | `.section`, `.section-title` | A labeled sub-section (detailed mode's own resource sections, Stack's own git-sync details, and others) — one shared shape, not a separate copy per card. |
 | `.section-title-value` | A trailing count next to a section title, pushed right via `margin-left: auto`. |
-| `.group-header`, `.column-title` | A group label (Schedules/Updates/Stacks/Containers grouping) and a column header — share font-size/line-height with `.section-title`, each with its own distinct structural need (icon layout vs. divider styling vs. minimal padding), so kept as three real, separate shapes. |
+| `.group-header`, `.column-title` | A group label (Schedules/Updates/Stacks/Containers grouping) shares font-size/line-height with `.section-title`. A column header (Overview's per-environment columns) is deliberately larger — `--ha-font-size-l`, one step above `.card-header` — since it names everything beneath it, including those cards' own titles. |
 | `.divider` | A thin horizontal separator line between two sections/rows. Never owned by an individual section — always placed by whichever card composes them together, via `joinWithDividers()`/`mergeSections()` (`common/section-join.ts`) — see §11's own note on this. |
 | `.hero-row`, `.hero-word` | A card's own single most prominent value, centered (Stack's own status, Container's own state, Vulnerability's own total findings). `.hero-row` is the outer, padded (`12px`) row; `.hero-word` the text/icon itself — independently clickable where it has a real entity to link to, and also the shape Container's own health-chip uses (structurally a hero-row icon, not a header one, once `.status-icon` was eliminated). |
 | `.stacked-pair` | A primary line + secondary content stacked `2px` apart (a metric's own label+value row paired with its own bar/sparkline below it) — owns the outer spacing contribution as one unit; its own children don't independently claim padding. |

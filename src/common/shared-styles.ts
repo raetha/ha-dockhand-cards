@@ -228,21 +228,31 @@ export const sharedStyles = css`
   .header-right .header-icon.filled {
     margin-left: 4px;
   }
-  /* The loading-spinner state real ha-button provided natively — no
-   * existing spin pattern anywhere else in this codebase to reuse
-   * (confirmed via search), so this is a new, minimal one: just
-   * rotates whatever icon it's applied to, indefinitely, while a
-   * check/update request is in flight. */
-  @keyframes header-icon-spin {
-    from {
-      transform: rotate(0deg);
-    }
+  /* In-flight state for a header button (renderIcon's busy option): a
+   * plain CSS ring in the icon's own color and footprint, so the button
+   * doesn't shift size, rather than rotating the button's own icon.
+   * Deliberately not HA's own <ha-spinner>: it's an internal element a
+   * custom card can't rely on being registered on every dashboard. */
+  @keyframes dockhand-spin {
     to {
       transform: rotate(360deg);
     }
   }
-  .header-icon.spinning ha-icon {
-    animation: header-icon-spin 1s linear infinite;
+  .spinner {
+    box-sizing: border-box;
+    width: calc(var(--mdc-icon-size, 24px) * 0.75);
+    height: calc(var(--mdc-icon-size, 24px) * 0.75);
+    margin: calc(var(--mdc-icon-size, 24px) * 0.125);
+    border: 2px solid rgb(from currentColor r g b / 0.25);
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: dockhand-spin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .spinner {
+      animation-duration: 2.4s;
+    }
   }
   .body {
     display: flex;
@@ -437,22 +447,13 @@ export const sharedStyles = css`
   .card-message.error {
     color: var(--dockhand-status-error-color);
   }
-  /* The three "content header" variants share exactly two properties
-   * (font-size, color) — extracted into one comma-selector group rather
-   * than tripled across three separate rules, the same pattern
-   * .status-icon/.status-banner's own shared color modifiers use. What's
-   * NOT shared stays separate deliberately: each variant's remaining
-   * properties serve a real structural difference (.section-title's own
-   * icon needs flex/gap layout the other two have no icon to lay out;
-   * .group-header's own uppercase/letter-spacing is what makes it read
-   * as a divider rather than a label; .column-title's own minimal
-   * padding fits a column-header context neither of the other two is
-   * used in) — three class *names* because three real shapes, one
-   * shared rule because two real properties happen to be identical
-   * across all three. */
+  /* The two in-card "content header" variants share exactly these
+   * properties — one comma-selector group rather than two copies. What's
+   * NOT shared stays separate deliberately: .section-title's own icon
+   * needs flex/gap layout; .group-header's own uppercase/letter-spacing is
+   * what makes it read as a divider rather than a label. */
   .section-title,
-  .group-header,
-  .column-title {
+  .group-header {
     font-size: var(--ha-font-size-s, 12px);
     font-weight: 500;
     line-height: 1;
@@ -471,9 +472,13 @@ export const sharedStyles = css`
    * own per-environment column headers. Named generically (not
    * env-specific) since nothing about this class is actually tied to
    * environments; any card arranging content into labeled columns could
-   * reuse it. */
+   * reuse it. One size above .card-header: a column title names
+   * everything beneath it, including the cards' own titles. */
   .column-title {
     padding: 0 4px;
+    font-size: var(--ha-font-size-l, 16px);
+    font-weight: 500;
+    line-height: 1.2;
   }
   .bar-track {
     height: 6px;

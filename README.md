@@ -39,6 +39,8 @@ setup and the release process.
   undercount that specific case rather than breaking (see `CHANGELOG.md`). **ha-dockhand 1.9.0 or
   later** for the Schedules card's own environment-scoped device grouping — on an older release
   the card still works, just showing every schedule as if every environment were included.
+  **ha-dockhand 1.10.2 or later** for the Environment card's update count and "Hide when no
+  updates" to include newer version tags (updates that need the pinned tag changed).
 
 ## Installation
 
@@ -387,7 +389,7 @@ The "Environments" list itself is the same shared drag/exclude/solo component ev
 environment card in this repo uses (see the Schedules card's own section above) — Overview's own
 version adds one more thing the others don't need: that per-row pencil icon for the override view.
 
-<img src="docs/images/overview.png" alt="Overview card: Environments + Stacks + Containers" width="920">
+<img src="docs/images/overview.png" alt="Overview card: Environments + Stacks + Containers, light theme" width="920">
 
 *A real Overview card shows whichever sections you enable, in one column per environment — this
 example enables environments, stacks, and containers together across two environments.*

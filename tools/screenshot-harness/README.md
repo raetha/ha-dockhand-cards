@@ -29,7 +29,12 @@ python3 -m http.server 8931 &
 python3 screenshot.py
 ```
 
-Screenshots land in `tools/screenshot-harness/out/`. Copy whichever ones you want into
+Screenshots land in `tools/screenshot-harness/out/`. `python3 screenshot.py --light` produces the
+`-light.png` variants. A `CARDS` entry can carry an options dict: `theme` fixes it to one theme
+(rendered only by the default run, under its plain file name) and `backdrop` renders it on HA's
+dashboard background instead of a transparent one. Overview uses both, since its column titles sit
+outside any card and would otherwise be unreadable whenever the README's page background doesn't
+match the theme. Copy whichever ones you want into
 `docs/images/` and reference them from `README.md`.
 
 ### Editor screenshots

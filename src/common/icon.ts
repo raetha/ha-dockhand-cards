@@ -63,6 +63,9 @@ type RenderIconBaseOpts = {
    * icon. Omit for an icon-only element (every header-icon usage, and
    * some row-icon ones). */
   text?: string;
+  /** Shows a spinner in place of the icon while an action it started is in
+   * flight (Updates card's own header buttons). Pair with `disabled`. */
+  busy?: boolean;
 };
 
 /**
@@ -111,9 +114,11 @@ export function renderIcon(
   opts: RenderIconBaseOpts &
     ({ onClick: () => void; disabled?: false; static?: false } | { onClick?: undefined; disabled: true; static?: false } | { onClick?: undefined; disabled?: false; static: true })
 ): TemplateResult {
-  const iconEl = opts.stateObj
-    ? html`<ha-state-icon .hass=${opts.hass} .stateObj=${opts.stateObj}></ha-state-icon>`
-    : html`<ha-icon icon=${opts.icon}></ha-icon>`;
+  const iconEl = opts.busy
+    ? html`<span class="spinner" aria-hidden="true"></span>`
+    : opts.stateObj
+      ? html`<ha-state-icon .hass=${opts.hass} .stateObj=${opts.stateObj}></ha-state-icon>`
+      : html`<ha-icon icon=${opts.icon}></ha-icon>`;
   const classes = [opts.baseClass, opts.colorClass, opts.disabled ? 'link-unavailable' : opts.static ? '' : 'clickable'].filter(Boolean).join(' ');
   const style = opts.color ? `color:${opts.color}` : nothing;
   const content = opts.text ? html`${iconEl}${opts.text}` : iconEl;
@@ -122,7 +127,7 @@ export function renderIcon(
     return html`<span class=${classes} style=${style} title=${opts.title ?? ''}>${content}</span>`;
   }
   if (opts.disabled) {
-    return html`<span class=${classes} style=${style} title=${opts.title ?? ''} @click=${(e: Event) => e.stopPropagation()}>${content}</span>`;
+    return html`<span class=${classes} style=${style} title=${opts.title ?? ''} aria-busy=${opts.busy ? 'true' : nothing} @click=${(e: Event) => e.stopPropagation()}>${content}</span>`;
   }
   const onClick = opts.onClick;
   return html`<span

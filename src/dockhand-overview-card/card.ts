@@ -13,7 +13,7 @@ import type { DockhandStacksCardConfig } from '../dockhand-stacks-card/types';
 import type { DockhandContainersCardConfig } from '../dockhand-containers-card/types';
 import type { DockhandUpdatesCardConfig } from '../dockhand-updates-card/types';
 import type { DockhandSchedulesCardConfig } from '../dockhand-schedules-card/types';
-import { DEFAULT_SECTION_ORDER, getEnvironmentOrder, getEnvironmentOverrides, type DockhandOverviewCardConfig, type OverviewSection } from './types';
+import { DEFAULT_SECTION_ORDER, enabledSections, getEnvironmentOrder, getEnvironmentOverrides, type DockhandOverviewCardConfig, type OverviewSection } from './types';
 import { cardStyles } from './styles';
 
 /** Resolves one generated child card's field: a per-environment override
@@ -414,7 +414,7 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
       ...mergeOverridableField('sort_by', override?.schedules?.sort_by, this._config?.schedules_sort_by)
     };
 
-    const sections = this._orderedSections();
+    const sections = this._config ? enabledSections(this._orderedSections(), this._config) : [];
     const sectionRenderers: Record<OverviewSection, () => TemplateResult | typeof nothing> = {
       environments: () =>
         this._config?.show_environments
@@ -453,7 +453,7 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
           : nothing
     };
 
-    // When align_columns is on, wrap every section slot in a
+    // When align_columns is on, wrap every enabled section slot in a
     // .section-wrapper div — even when the section's content is
     // `nothing` — so _equalizeColumnHeights() has a stable DOM node for
     // every slot in every column to measure and equalise. The wrapper

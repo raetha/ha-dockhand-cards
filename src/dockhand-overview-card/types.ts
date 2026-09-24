@@ -10,6 +10,21 @@ export type OverviewSection = 'environments' | 'vulnerabilities' | 'stacks' | 'c
 
 export const DEFAULT_SECTION_ORDER: OverviewSection[] = ['environments', 'vulnerabilities', 'updates', 'schedules', 'stacks', 'containers'];
 
+/** Sections the config turns on, in the given order. A section that's off is
+ * off in every column, so it needs no alignment wrapper — and an empty
+ * wrapper would still take a flex gap, leaving a visible hole. */
+export function enabledSections(sections: OverviewSection[], config: DockhandOverviewCardConfig): OverviewSection[] {
+  const shown: Record<OverviewSection, boolean | undefined> = {
+    environments: config.show_environments,
+    vulnerabilities: config.show_vulnerabilities,
+    stacks: config.show_stacks,
+    containers: config.show_containers,
+    updates: config.show_updates,
+    schedules: config.show_schedules
+  };
+  return sections.filter((s) => shown[s]);
+}
+
 /** Per-environment override of any field the standalone Environment/
  * Vulnerability/Stacks/Containers card itself exposes — same fields,
  * same meaning, just scoped to one environment's column here instead of

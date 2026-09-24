@@ -30,23 +30,44 @@ CARDS = [
         "overview.png",
         920,
         900,
+        # Overview is the one card with text outside a card body (its column
+        # titles), which is unreadable on a transparent PNG once the README's
+        # page background doesn't match the theme. Render it on HA's own
+        # dashboard background instead, in the light theme.
+        {"theme": "light", "backdrop": True},
     ),
 ]
+
+
+async def _open_page(browser, light):
+    page = await browser.new_page(device_scale_factor=2)
+    page.on("pageerror", lambda exc: print("[pageerror]", exc))
+    url = "http://localhost:8931/index.html" + ("?theme=light" if light else "")
+    await page.goto(url)
+    await page.wait_for_function("window.__renderDone === true")
+    return page
 
 
 async def main():
     os.makedirs(OUT_DIR, exist_ok=True)
     async with async_playwright() as p:
         browser = await p.chromium.launch()
-        page = await browser.new_page(device_scale_factor=2)
-        page.on("pageerror", lambda exc: print("[pageerror]", exc))
-        url = "http://localhost:8931/index.html" + ("?theme=light" if LIGHT else "")
-        await page.goto(url)
-        await page.wait_for_function("window.__renderDone === true")
+        pages = {}
 
-        for tag, config, filename, width, height in CARDS:
-            if LIGHT:
-                filename = filename.replace(".png", "-light.png")
+        for tag, config, filename, width, height, *extra in CARDS:
+            opts = extra[0] if extra else {}
+            if "theme" in opts:
+                # Fixed theme: produced once, only by the default (dark) run.
+                if LIGHT:
+                    continue
+                light = opts["theme"] == "light"
+            else:
+                light = LIGHT
+                if LIGHT:
+                    filename = filename.replace(".png", "-light.png")
+            if light not in pages:
+                pages[light] = await _open_page(browser, light)
+            page = pages[light]
             slot_id = filename.replace(".", "_")
             config = dict(config)
             config["__id"] = slot_id
@@ -54,8 +75,17 @@ async def main():
                 "([tag, config]) => window.__mount(tag, config, %d)" % width,
                 [tag, config],
             )
-            await page.wait_for_timeout(500)
             el = page.locator(f"#{slot_id}")
+            if opts.get("backdrop"):
+                await el.evaluate(
+                    """(e) => Object.assign(e.style, {
+                        background: 'var(--primary-background-color)',
+                        padding: '16px',
+                        borderRadius: '12px',
+                        boxSizing: 'content-box'
+                    })"""
+                )
+            await page.wait_for_timeout(500)
             await el.screenshot(path=os.path.join(OUT_DIR, filename), omit_background=True)
             print("saved", filename)
 

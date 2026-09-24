@@ -17,8 +17,11 @@ import { resolveEnvironmentEntities } from './entity-resolver';
  * is the bulk-update-eligible count (excludes system containers, matching
  * what this integration's own bulk-update button would actually act on),
  * `pending_system_updates` is system containers only, and `pending_updates_total`
- * is the sum of both — "does anything at all need attention," regardless
- * of whether it's something ha-dockhand would ever bulk-update. This
+ * is the sum — "does anything at all need attention," regardless
+ * of whether it's something ha-dockhand would ever bulk-update (since
+ * ha-dockhand 1.10.2 that sum also includes `pending_version_updates`,
+ * newer-version-tag suggestions, so it equals the number of update
+ * entities that are on). This
  * card's own rows (dockhand-updates-card/card.ts's `_buildGroups()`)
  * already show a system container's own pending update — it's just as
  * real and just as individually actionable via its own update entity as

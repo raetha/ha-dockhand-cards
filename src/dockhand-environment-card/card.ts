@@ -82,6 +82,25 @@ const EVENT_COLOR_DEFAULT = '#94a3b8';
  * exactly has less value than matching Dockhand's evident intent. If
  * Dockhand fixes this upstream later, this still produces the same
  * result either way. */
+/** The environment's pending update count, matching the Updates card's rows
+ * (one per update entity that's on). ha-dockhand 1.10.2+ reports that as
+ * `pending_updates_total`; older releases' total left out newer-version-tag
+ * suggestions, and releases before 1.8.2 had only `pending_updates`. The
+ * tooltip breaks the total down when there's more than one kind. */
+export function pendingUpdateSummary(attrs: Record<string, unknown>): { count: number; title: string } {
+  const num = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+  const installable = num(attrs.pending_updates);
+  const system = num(attrs.pending_system_updates);
+  const versions = num(attrs.pending_version_updates);
+  const count = typeof attrs.pending_updates_total === 'number' ? num(attrs.pending_updates_total) : installable;
+  const parts = [
+    installable > 0 ? `${installable} installable` : '',
+    system > 0 ? `${system} system` : '',
+    versions > 0 ? `${versions} new version tag${versions === 1 ? '' : 's'}` : ''
+  ].filter(Boolean);
+  return { count, title: parts.length > 1 ? `Pending updates: ${parts.join(', ')}` : 'Pending updates' };
+}
+
 export function eventLookupKey(action: string): string {
   return action.startsWith('health_status') ? 'health_status' : action;
 }
@@ -740,6 +759,7 @@ export class DockhandEnvironmentCard extends LitElement implements LovelaceCard 
     const total = s.containers.state.state ?? '—';
     const unhealthy = Number(c.unhealthy ?? 0);
     const restarting = Number(c.restarting ?? 0);
+    const updates = pendingUpdateSummary(c);
     const id = s.containers.entityId;
 
     const healthClass = unhealthy > 0 ? 'warn' : restarting > 0 ? 'error' : 'ok';
@@ -781,9 +801,9 @@ export class DockhandEnvironmentCard extends LitElement implements LovelaceCard 
         ${renderIcon({
           baseClass: 'stat',
           icon: 'mdi:arrow-up-circle',
-          color: (c.pending_updates ?? 0) > 0 ? 'var(--dockhand-status-warn-color)' : 'var(--secondary-text-color)',
-          text: `${c.pending_updates ?? 0}`,
-          title: 'Pending updates',
+          color: updates.count > 0 ? 'var(--dockhand-status-warn-color)' : 'var(--secondary-text-color)',
+          text: `${updates.count}`,
+          title: updates.title,
           static: true
         })}
         <span class="stat">Total ${total}</span>
