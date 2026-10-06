@@ -38,7 +38,7 @@
     "globals": "^17.12.0",
     "home-assistant-js-websocket": "^9.7.0",
     "jsdom": "^30.1.1",
-    "rollup": "^4.63.3",
+    "rollup": "^4.64.0",
     "tslib": "^2.6.3",
     "typescript": "^6.0.3",
     "vitest": "^5.0.1"
