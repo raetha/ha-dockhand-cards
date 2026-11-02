@@ -3,9 +3,9 @@
 <!--
 Maintainer note: the rules for this file are in docs/development.md -> "Changelog". In short:
 lines describe the net user-facing difference for people installing the cards, not the
-development journey; released sections are frozen; non-user-facing changes go under
-### Internal. Each released section is also the GitHub release's notes (CI publishes it), and
-[Unreleased] is the notes of the current test build.
+development journey; released sections are frozen; non-user-facing changes go in an
+Internal section. Each released section is also the GitHub release's notes (CI publishes it),
+and [Unreleased] is the notes of the current test build.
 -->
 
 ## [Unreleased]
@@ -22,6 +22,7 @@ development journey; released sections are frozen; non-user-facing changes go un
   accessibility, changelog, versioning, branches and releases), `CONTRIBUTING.md` is a short entry
   point for contributors, the versioning notes moved into the guide, `docs/` file names are
   lowercase (`docs/styling.md` and friends), and `CLAUDE.md` and `docs/audits.md` were added.
+  This file's older version headings now use Keep a Changelog's hyphen before the date.
 - Build tooling security fixes: eslint and typescript-eslint are now given minimatch 11 (they still
   ask for 10, which has a denial-of-service advisory), and serialize-javascript is updated. The
   no-longer-needed nanoid override is removed. None of these ship in the cards.
@@ -501,7 +502,7 @@ Required for compatibility with ha-dockhand 1.9.1.
   class name from a previous release still applies. See `docs/ARCHITECTURE.md` §11/§18 for anyone
   interested in the fuller technical details.
 
-## [1.1.0] — 2026-07-28
+## [1.1.0] - 2026-07-28
 
 ### Added
 
@@ -552,7 +553,7 @@ Required for compatibility with ha-dockhand 1.9.1.
 - The Container and Stack card editors' dropdowns now sort alphabetically, matching every other
   dropdown in these editors.
 
-## [1.0.0] — 2026-07-21
+## [1.0.0] - 2026-07-21
 
 Initial release.
 
