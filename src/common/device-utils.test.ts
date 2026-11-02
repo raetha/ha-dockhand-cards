@@ -226,7 +226,7 @@ describe('schedule device resolution', () => {
   it('getGlobalScheduleDevices collects global schedules across every configured Dockhand instance, not just one', () => {
     // Two separate hubs (two config entries), each with their own genuinely
     // global schedule — both must show up, not just whichever hub happened
-    // to be enumerated first (docs/BACKLOG.md's now-fixed "Schedules card"
+    // to be enumerated first (docs/backlog.md's now-fixed "Schedules card"
     // entry).
     const hubA = makeDevice({ id: 'hubA', identifiers: [['dockhand', 'entryA_schedules_hub']], config_entries: ['entryA'] });
     const hubB = makeDevice({ id: 'hubB', identifiers: [['dockhand', 'entryB_schedules_hub']], config_entries: ['entryB'] });

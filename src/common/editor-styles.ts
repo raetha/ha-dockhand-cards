@@ -4,7 +4,7 @@ import { css } from 'lit';
  * Shared styles for the hand-built pieces of this repo's editors — the
  * parts `<ha-form>` doesn't render, not the form fields themselves.
  * Seven of eight editors build their config UI from a `<ha-form>` schema
- * now (see docs/ARCHITECTURE.md); this file's classes are what's left
+ * now (see docs/architecture.md); this file's classes are what's left
  * around that: empty-state rows, environment-filter pickers, sortable
  * lists, and similar structure `<ha-form>` has no equivalent for.
  *

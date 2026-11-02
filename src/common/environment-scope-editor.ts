@@ -73,7 +73,7 @@ export function renderEnvironmentOrderSection(opts: {
    * every card's own render() repeating the same
    * `${this.cardIsEmbedded ? html`` : renderEnvironmentOrderSection(...)}`
    * ternary and risking a future card forgetting it, or one of them
-   * drifting from the others — see docs/EDITOR_DESIGN.md's rule on this:
+   * drifting from the others — see docs/editor-design.md's rule on this:
    * any card with an environment-selection section is expected to
    * support being hidden this way, whether or not it's actually embedded
    * in Overview yet. */

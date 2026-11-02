@@ -19,7 +19,7 @@ export const CARD_VERSION = '__CARD_VERSION__';
  * ha-dockhand: entities are matched by (platform === 'dockhand') +
  * (translation_key === one of these) + (device_id === selected environment),
  * never by parsing unique_id, since unique_id format is documented in
- * ha-dockhand's ARCHITECTURE.md as an internal detail that can change
+ * ha-dockhand's architecture.md as an internal detail that can change
  * between releases. translation_key is the intentional, versioned public
  * surface (it drives strings.json/icons.json and is stable across
  * refactors).
@@ -97,7 +97,7 @@ export type StackTranslationKey = keyof typeof STACK_TRANSLATION_KEYS;
 // Per-schedule entities, resolved against schedule devices. last_status is
 // the comprehensive/primary entity (name, description, is_system, plus the
 // scheduling fields duplicated from next_run) as of ha-dockhand 1.9.0 — see
-// that repo's ARCHITECTURE.md and CHANGELOG for why. next_run stays the
+// that repo's architecture.md and CHANGELOG for why. next_run stays the
 // canonical source for the timestamp value itself.
 export const SCHEDULE_TRANSLATION_KEYS = {
   nextRun: 'next_run',

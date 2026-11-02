@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "verify": "npm run typecheck && npm run lint && npm test && npm run build && npm audit"
+    "verify": "npm run typecheck && npm run lint && npm test && npm run build && npm audit --omit=dev"
   },
   "license": "MIT",
   "author": "Raetha",

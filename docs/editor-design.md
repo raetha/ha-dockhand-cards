@@ -144,7 +144,7 @@ fine standalone; two or more is what this pattern exists for.
 
 ## 6. `<ha-form>` schemas are the standard; hand-built UI is the deliberate exception
 
-See ARCHITECTURE.md §2 for the full technical reasoning. The goal for every *standard* card
+See architecture.md §2 for the full technical reasoning. The goal for every *standard* card
 (anything that isn't Overview — rule 8) is that its editor is expressible as root fields (rule 2)
 plus, where rule 4 applies, the shared Environments section — nothing else hand-built. Rule 4's own
 drag-list is the one recurring exception, for a documented, checked reason (no schema field covers
@@ -167,7 +167,7 @@ configuring a card is trying to do at that moment.
 ## 8. Overview is the one real structural exception
 
 Overview composes *other* cards' own editors for its global-defaults and per-environment-override
-views (ARCHITECTURE.md §3) rather than being a card with its own independent fields — most rules
+views (architecture.md §3) rather than being a card with its own independent fields — most rules
 above don't map onto it cleanly, and that's structural, not an oversight:
 
 - Its own "Sections" list (which section *types* show, in what order) is a genuinely different

@@ -22,7 +22,7 @@ quality as possible" means for this repo. Check it before every release.
 
 - [x] `hacs.json` with `name` and `filename` (no `content_in_root` override — matches
       `custom-cards/boilerplate-card` exactly, since the bundle isn't in the repo tree at all,
-      only ever delivered as a release asset; see the "Releasing" note in the README for how
+      only ever delivered as a release asset; see `docs/development.md` → "Branches and releases" for how
       that's confirmed to be how HACS actually resolves it)
 - [x] Public GitHub repo, MIT `LICENSE`
 - [x] README with install instructions, a config reference, and screenshots for every card (via
@@ -50,8 +50,8 @@ quality as possible" means for this repo. Check it before every release.
 - [x] Editors built on HA's own `<ha-form>` schema system for their core fields (three —
       Schedules, Updates, Overview — also interleave a shared hand-built sortable
       environment-order/exclude section `<ha-form>` has no model for; see
-      `docs/ARCHITECTURE.md` §2), verified against present-day
-      HA source rather than assumed from older examples — see `docs/ARCHITECTURE.md` §2 and §7 for
+      `docs/architecture.md` §2), verified against present-day
+      HA source rather than assumed from older examples — see `docs/architecture.md` §2 and §7 for
       what that verification actually found, including a case where it caught an earlier pass
       wrongly concluding a component was deprecated when its API had just changed
 
@@ -75,7 +75,7 @@ quality as possible" means for this repo. Check it before every release.
       (`.core-message` in shared-styles.ts) rather than showing unstyled text
 - [x] Respects HA theme variables — no hardcoded light/dark assumptions in `ha-card` chrome
 - [x] Theme-overridable status/severity colors via documented CSS custom properties, and a stable
-      class-name structure for card_mod — see `docs/STYLING.md`
+      class-name structure for card_mod — see `docs/styling.md`
 - [ ] Keyboard navigation manually tested in a real browser (implemented via `tabindex`/`role`/
       `@keydown`, not yet verified against a screen reader)
 - [ ] Tested against both light and dark default HA themes on a live instance
@@ -83,5 +83,5 @@ quality as possible" means for this repo. Check it before every release.
 
 ## Known gaps (tracked, not blocking)
 
-See `BACKLOG.md` in this same folder for what's not done yet, `ARCHITECTURE.md` for how this
+See `backlog.md` in this same folder for what's not done yet, `architecture.md` for how this
 repo's pieces fit together and why.

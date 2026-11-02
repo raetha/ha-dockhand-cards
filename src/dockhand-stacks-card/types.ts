@@ -7,7 +7,7 @@ import type { EntityNameItem } from '../common/ha-types';
  * on a stack list with entities the user doesn't care to see per-row.
  * 'environment' is new alongside multi-environment support — same
  * checkbox-group convention as everything else here (docs/
- * EDITOR_DESIGN.md rule 5), not a standalone toggle. */
+ * editor-design.md rule 5), not a standalone toggle. */
 export type StacksCardBadge = 'container_count' | 'updates' | 'type' | 'environment';
 
 export const DEFAULT_STACKS_BADGES: StacksCardBadge[] = ['container_count', 'updates', 'type'];

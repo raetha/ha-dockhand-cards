@@ -126,7 +126,7 @@ useful ones:
   `.row-left`/`.row-right` (below) despite looking almost identical — briefly merged into them
   earlier this same session, then split back out once merging turned out to also merge their gap
   values, which broke once `.header-icon` gained its own 32×32 clickable footprint (see
-  `docs/ARCHITECTURE.md` §11 for the fuller reasoning).
+  `docs/architecture.md` §11 for the fuller reasoning).
 - `.clickable` — the shared hover/focus treatment (a faint background tint, plus cursor/outline),
   additive on top of whatever class gives an element its own identity/meaning — `.row.clickable`,
   `.hero-word.clickable`, `.header-icon.clickable`, and so on; never a replacement for that
@@ -150,7 +150,7 @@ useful ones:
 - `.item-name` — a row's own primary name text, truncating with an ellipsis the same way a header's
   own name does
 - `.label-pill` — a small rounded label (a stack/container type, a custom environment label) —
-  shared by every card that has one, see `docs/ARCHITECTURE.md` §10. `.version-tag-pill` is the
+  shared by every card that has one, see `docs/architecture.md` §10. `.version-tag-pill` is the
   newer version tag one on Updates and Containers rows (additive, so `.label-pill` still matches it); its text uses `--dockhand-status-warn-text-color`
 - `.header-icon` — every header icon on every card, clickable or genuinely static, either side of
   the header: an update chip, a feature toggle, the Dockhand link, and Environment's own
@@ -162,9 +162,9 @@ useful ones:
 - `.row-icon` — a small, non-shrinking icon+optional-text badge on a list row, position-neutral
   (used both as a row's own standalone content, and nested inside `.row-right` as one of several
   trailing badges), clickable or genuinely static (a metric row's own "CPU"/"Memory" label) —
-  shared by every list-shaped card, see `docs/ARCHITECTURE.md` §18
+  shared by every list-shaped card, see `docs/architecture.md` §18
 - `.stat` — a small icon+count summary badge, always static (a container-state count, a
-  schedule-run outcome count) — see `docs/ARCHITECTURE.md` §18
+  schedule-run outcome count) — see `docs/architecture.md` §18
 - `.status-banner` — a colored status indicator, one prominent card-level message with its own
   text; always paired with a `.ok`/`.warn`/`.error`/`.accent` modifier class for which color —
   same shared definition, §10 again
@@ -175,7 +175,7 @@ useful ones:
   classes for color, no modifier for the neutral/positive case
 - `.divider` — a thin horizontal separator line between two sections/rows, placed by whichever
   card composes them together (never owned by an individual section itself) — see
-  `docs/ARCHITECTURE.md` §11's own note on `joinWithDividers()`/`mergeSections()`
+  `docs/architecture.md` §11's own note on `joinWithDividers()`/`mergeSections()`
 
 Example — make every clickable header icon on one card instance a bit larger and more visible:
 
@@ -202,7 +202,7 @@ underlying `renderIcon()` function.
 Full per-card class lists are easiest to read straight from each card's `styles.ts` — they're
 short, flat, and not worth duplicating here in a way that will drift out of sync. For a
 comprehensive reference covering every class in the repo (including ones not meant as public
-`card_mod` hooks), see `docs/ARCHITECTURE.md` §18.
+`card_mod` hooks), see `docs/architecture.md` §18.
 
 ## Periodic cross-card consistency sweep
 
@@ -223,7 +223,7 @@ something already looks obviously wrong.
 The same kind of drift can happen to the documentation itself, not just the CSS — a class gets
 renamed or consolidated during real work, but the doc describing it doesn't get updated in the
 same pass, and nothing catches the mismatch until someone goes looking for a class that no longer
-exists. Periodically re-running the extraction this table (`docs/ARCHITECTURE.md` §18) was built
+exists. Periodically re-running the extraction this table (`docs/architecture.md` §18) was built
 from — every class actually defined in `shared-styles.ts` and each card's own `styles.ts`,
 cross-checked against real template usage — and diffing that against what the docs currently claim
 is a direct, mechanical way to catch this, rather than relying on remembering to update prose by

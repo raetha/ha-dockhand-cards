@@ -37,7 +37,7 @@ function entitiesForDevice(hass: HomeAssistant, deviceId: string): EntityRegistr
 
 /**
  * Resolves the ha-dockhand entities on one device by translation_key —
- * never by parsing unique_id, since ha-dockhand's own ARCHITECTURE.md
+ * never by parsing unique_id, since ha-dockhand's own architecture.md
  * documents that format as an internal detail that can change between
  * releases. translation_key is the stable, intentional contract.
  *

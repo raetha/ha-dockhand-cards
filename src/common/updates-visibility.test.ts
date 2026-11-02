@@ -18,7 +18,7 @@ const ENV_B = 'env-b';
 // baked individual container update entity ids into saved `visibility:`
 // config, which went stale the moment a container was added, removed, or
 // recreated, and produced a 50+-condition array for a real environment
-// with that many containers — see docs/ARCHITECTURE.md.
+// with that many containers — see docs/architecture.md.
 function hassWithPendingUpdates(deviceId: string, entityId: string, count: number | undefined) {
   const entity = makeEntity({ entity_id: entityId, device_id: deviceId, translation_key: 'containers' });
   const state = makeState({

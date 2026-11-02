@@ -78,7 +78,7 @@ spacing/layout/grouping, not to judge exact widget styling.
 
 - `mock-data.mjs` builds a fake `hass.devices`/`hass.entities`/`hass.states` set, matching
   ha-dockhand's actual entity schema (translation_key + device identifiers) — see
-  `docs/ARCHITECTURE.md` §1 for the real contract this mirrors. Edit this file to change the
+  `docs/architecture.md` §1 for the real contract this mirrors. Edit this file to change the
   fictional names/values, or add more containers/stacks.
 - `ha-shims.mjs` provides minimal replacements for the Home Assistant frontend components the
   cards and editors use (`ha-icon`, `ha-state-icon`, `ha-card`, `ha-switch`, `ha-formfield`,
