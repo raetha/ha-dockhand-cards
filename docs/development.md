@@ -84,6 +84,18 @@ GitHub Actions, which are pinned to full commit SHAs with the version in a comme
 hard crash, not a warning; typescript-eslint#10940). `package.json`'s `^6.0.3` can't reach 7.x and
 Dependabot ignores `typescript >=7.0.0`; remove that ignore once typescript-eslint supports TS 7.
 
+**`overrides` in `package.json`** force a newer version of a dependency's dependency when the
+package that pulls it in hasn't moved yet. Remove each once that package catches up:
+
+- `minimatch` `^11.0.1`: eslint, `@eslint/config-array` and typescript-eslint still ask for
+  minimatch 10, which has a denial-of-service advisory fixed only in 11. Linting gives identical
+  results with 11. Remove once eslint and typescript-eslint depend on minimatch 11 (`npm ls
+  minimatch` shows no "overridden").
+
+Advisories in build tooling don't fail `npm run verify` (it audits only what ships in the
+bundles); CI's report-only `npm audit` step shows them as a warning, and Dependabot's security
+updates open pull requests for the ones with a fix.
+
 ## Translations
 
 Home Assistant's translation system only covers backend strings (an integration's

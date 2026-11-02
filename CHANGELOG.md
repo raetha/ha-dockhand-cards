@@ -22,6 +22,9 @@ development journey; released sections are frozen; non-user-facing changes go un
   accessibility, changelog, versioning, branches and releases), `CONTRIBUTING.md` is a short entry
   point for contributors, the versioning notes moved into the guide, `docs/` file names are
   lowercase (`docs/styling.md` and friends), and `CLAUDE.md` and `docs/audits.md` were added.
+- Build tooling security fixes: eslint and typescript-eslint are now given minimatch 11 (they still
+  ask for 10, which has a denial-of-service advisory), and serialize-javascript is updated. The
+  no-longer-needed nanoid override is removed. None of these ship in the cards.
 
 ## [1.5.0] - 2026-10-19
 

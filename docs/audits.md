@@ -43,3 +43,8 @@ first.
 - Dependabot targets `dev`, weekly for npm (was daily).
 - The six open Dependabot pull requests (#32–#37) targeted `main`; to be retargeted to `dev` and
   reviewed once this lands.
+- `npm audit` found 14 advisories, all in build tooling. Fixed: minimatch (forced to 11 with an
+  override; eslint and typescript-eslint still ask for 10), serialize-javascript (lockfile
+  refresh); undici via Dependabot's pull request. Left: deepmerge (low, pulled in by
+  `@rollup/plugin-node-resolve`; no fixed deepmerge release exists yet). The `nanoid` override was
+  no longer needed and is gone.
