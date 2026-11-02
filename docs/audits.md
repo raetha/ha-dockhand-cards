@@ -41,8 +41,9 @@ first.
   pinned to commit SHAs, verified against their tags with `git ls-remote`. `hacs/action` was on
   `@main`; now pinned to 22.5.0.
 - Dependabot targets `dev`, weekly for npm (was daily).
-- The six open Dependabot pull requests (#32–#37) targeted `main`; to be retargeted to `dev` and
-  reviewed once this lands.
+- The six open Dependabot pull requests (#32–#37) targeted `main` and each rewrote the lockfile,
+  so their updates were applied together in one pull request into `dev` (taking the newest
+  release in each range), and the six were closed.
 - `npm audit` found 14 advisories, all in build tooling. Fixed: minimatch (forced to 11 with an
   override; eslint and typescript-eslint still ask for 10), serialize-javascript (lockfile
   refresh); undici via Dependabot's pull request. Left: deepmerge (low, pulled in by
