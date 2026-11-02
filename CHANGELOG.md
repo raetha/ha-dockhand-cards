@@ -25,6 +25,9 @@ development journey; released sections are frozen; non-user-facing changes go un
 - Build tooling security fixes: eslint and typescript-eslint are now given minimatch 11 (they still
   ask for 10, which has a denial-of-service advisory), and serialize-javascript is updated. The
   no-longer-needed nanoid override is removed. None of these ship in the cards.
+- Dependency updates for build and test tooling: typescript-eslint 8.72.1, globals 17.14.0, jsdom
+  30.1.3, home-assistant-js-websocket 9.8.1 (type definitions only), and undici 8.12.3, which fixes
+  a high-severity advisory in the test environment.
 
 ## [1.5.0] - 2026-10-19
 
