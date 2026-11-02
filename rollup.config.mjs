@@ -6,7 +6,9 @@ import minifyHTML from '@lit-labs/rollup-plugin-minify-html-literals';
 import { readFileSync } from 'node:fs';
 
 const dev = process.env.ROLLUP_WATCH === 'true';
-const { version } = JSON.parse(readFileSync('./package.json', 'utf-8'));
+// CI's test builds pass their own version (e.g. 1.5.1-dev.12) so the console banner shows it.
+const version =
+  process.env.CARD_VERSION || JSON.parse(readFileSync('./package.json', 'utf-8')).version;
 
 /** Shared plugin stack — identical for both bundles. */
 function plugins() {

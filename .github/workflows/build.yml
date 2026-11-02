@@ -1,0 +1,166 @@
+name: Build
+
+# Branches (docs/development.md -> "Branches and releases"): work lands on `dev`, and each
+# release is one squash-merged pull request from `dev` into `main`.
+# Every push and pull request: changelog check, `npm run verify` (typecheck, lint, tests, build,
+# npm audit) and HACS validation.
+# Push to main: if package.json's version has no `v<version>` tag yet, tag it and publish the
+# GitHub release (the changelog section as notes, the built cards attached; HACS installs from
+# these), delete the test builds, then reset `dev` to `main` when they hold the same files.
+# Push to dev: publish a test build as a GitHub pre-release (`v<next patch>-dev.<run>`), which
+# HACS offers once the repository's Pre-release switch is on; older test builds are deleted.
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Actions are pinned to exact commits (version in the comment); Dependabot
+# (.github/dependabot.yml) proposes updates weekly.
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Check the changelog
+        run: node tools/release.mjs check
+
+      - name: Typecheck, lint, test, build, audit what ships
+        run: npm run verify
+
+      # Advisories in build and lint tooling (never shipped) often have no fix for a while: they
+      # show as a warning here instead of failing every run. Full reviews look at them.
+      - name: Audit build tooling (report only)
+        continue-on-error: true
+        run: npm audit
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist
+          path: dist/*.js
+          if-no-files-found: error
+
+  hacs:
+    name: HACS validation
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: hacs/action@d556e736723344f83838d08488c983a15381059a # 22.5.0
+        with:
+          category: plugin
+
+  release:
+    needs: [verify, hacs]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist
+
+      - name: Publish the release if this version has no tag yet
+        run: |
+          set -e
+          version=$(node tools/release.mjs version)
+          tag="v$version"
+          if gh api "repos/$GH_REPO/git/ref/tags/$tag" >/dev/null 2>&1; then
+            echo "$tag already exists: nothing to release"
+            exit 0
+          fi
+          node tools/release.mjs notes "$version" > notes.md
+          gh release create "$tag" --target "$GITHUB_SHA" --title "Dockhand Cards $tag" \
+            --notes-file notes.md dist/ha-dockhand-cards.js dist/ha-dockhand-cards-editor.js
+          echo "Released $tag"
+
+      - name: Delete test builds
+        run: |
+          set -e
+          gh release list --limit 100 --json tagName,isPrerelease --jq '.[] | select(.isPrerelease) | .tagName' |
+            { grep -E '^v[0-9.]+-dev\.[0-9]+$' || true; } | while read -r old; do
+              gh release delete "$old" --yes --cleanup-tag
+            done
+
+  sync-dev:
+    needs: release
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Reset dev to main if they match
+        run: |
+          set -e
+          git rev-parse -q --verify origin/dev >/dev/null || { echo "no dev branch"; exit 0; }
+          if git diff --quiet origin/main origin/dev; then
+            git push --force origin origin/main:refs/heads/dev
+            echo "dev reset to main"
+          else
+            echo "::warning::dev has changes that aren't on main: left as it is"
+          fi
+
+  test-build:
+    needs: [verify, hacs]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build and publish the test build
+        run: |
+          set -e
+          version=$(node tools/release.mjs version)
+          if gh api "repos/$GH_REPO/git/ref/tags/v$version" >/dev/null 2>&1; then tagged=true; else tagged=false; fi
+          dev=$(node tools/release.mjs dev-version "$GITHUB_RUN_NUMBER" "$tagged")
+          tag="v$dev"
+          CARD_VERSION="$dev" npm run build
+          node tools/release.mjs notes Unreleased --test-build "$GITHUB_RUN_NUMBER" > notes.md
+          gh release create "$tag" --target "$GITHUB_SHA" --prerelease \
+            --title "Dockhand Cards $tag (test build)" \
+            --notes-file notes.md dist/ha-dockhand-cards.js dist/ha-dockhand-cards-editor.js
+          gh release list --limit 100 --json tagName,isPrerelease --jq '.[] | select(.isPrerelease) | .tagName' |
+            { grep -E '^v[0-9.]+-dev\.[0-9]+$' | grep -vx "$tag" || true; } | while read -r old; do
+              gh release delete "$old" --yes --cleanup-tag
+            done
+          echo "Published test build $tag"

@@ -601,7 +601,7 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
 
   /** The section types whose Overview-level global default reuses that
    * card's own real editor, instead of a hand-duplicated schema — see
-   * docs/ARCHITECTURE.md's entry on this. (The Updates editor skips its
+   * docs/architecture.md's entry on this. (The Updates editor skips its
    * native HA `visibility:` condition when cardIsEmbedded, since Overview
    * hides an embedded Updates card itself.)
    *
@@ -692,7 +692,7 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
    * the user changed. This is what makes adding a new field to one of
    * these cards' editors "just work" on both the read and write-back
    * directions, with nothing in this file to remember to touch at all —
-   * see docs/ARCHITECTURE.md §4 for why this scan needs no exceptions
+   * see docs/architecture.md §4 for why this scan needs no exceptions
    * of any kind now (environments_overrides/environments_order were
    * renamed specifically to stop colliding with the 'environments'
    * prefix; migrateOverviewConfig in types.ts, called from setConfig,

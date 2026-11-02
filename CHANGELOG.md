@@ -1,26 +1,27 @@
 # Changelog
 
 <!--
-Maintainer note: same discipline as ha-dockhand's CHANGELOG — entries describe
-net user-facing functionality, not the development journey. Bugs found and
-fixed within the same still-unreleased cycle don't get their own "Fixed"
-entry — there's nothing to disclose about something that never shipped
-broken. That history doesn't need to live anywhere long-term once the fix
-has landed: the code (with a comment where the reasoning isn't obvious) and
-git history are enough. The one exception is a genuinely reusable technical
-gotcha — a pattern likely to bite again, not just "this had a bug" — which
-belongs in docs/ARCHITECTURE.md. docs/BACKLOG.md is for what's not done yet only;
-don't use it as a changelog substitute (this repo did, for a while — see the
-top of that file).
-
-This file's dated sections double as GitHub release notes: release.yml
-extracts the section matching the pushed tag and uses it as the release
-body verbatim, so there's no separate "special" release announcement to
-maintain — write each section as the thing you'd want a user to read on
-the Releases page.
+Maintainer note: the rules for this file are in docs/development.md -> "Changelog". In short:
+lines describe the net user-facing difference for people installing the cards, not the
+development journey; released sections are frozen; non-user-facing changes go under
+### Internal. Each released section is also the GitHub release's notes (CI publishes it), and
+[Unreleased] is the notes of the current test build.
 -->
 
 ## [Unreleased]
+
+### Internal
+
+- New development workflow: work lands on a `dev` branch and each release is one pull request into
+  `main`, after which CI tags and publishes the release itself (no more pushing tags by hand).
+  Every push to `dev` publishes a test build as a GitHub pre-release, which HACS offers once the
+  repository's Pre-release switch is on. Dependabot now proposes updates weekly into `dev`, and the
+  workflow's actions are pinned to commit SHAs. `npm run verify` now fails only on advisories in
+  the dependencies that ship in the cards; advisories in build tooling show as a CI warning.
+- Developer docs reorganised: `docs/development.md` is the guide (setup, translations,
+  accessibility, changelog, versioning, branches and releases), `CONTRIBUTING.md` is a short entry
+  point for contributors, the versioning notes moved into the guide, `docs/` file names are
+  lowercase (`docs/styling.md` and friends), and `CLAUDE.md` and `docs/audits.md` were added.
 
 ## [1.5.0] - 2026-10-19
 

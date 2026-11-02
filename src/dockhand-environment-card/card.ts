@@ -665,7 +665,7 @@ export class DockhandEnvironmentCard extends LitElement implements LovelaceCard 
            * MDI (different icon sets, no shared naming convention), and
            * ha-dockhand doesn't currently expose the icon choice as
            * attribute data anyway — documented as a real, deliberately
-           * deferred gap in docs/BACKLOG.md, not an oversight. This is a
+           * deferred gap in docs/backlog.md, not an oversight. This is a
            * fixed generic icon, not an attempt at the per-environment one —
            * mdi:web specifically because that's Dockhand's own actual
            * default (icon: data.icon || 'globe' when an environment is

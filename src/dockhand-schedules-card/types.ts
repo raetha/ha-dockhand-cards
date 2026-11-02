@@ -32,7 +32,7 @@ export interface DockhandSchedulesCardConfig extends LovelaceCardConfig {
   show_stats?: boolean;
   /** Which optional per-row details show — same shape as Stacks/
    * Containers' own visible_badges (checkboxes under one shared "Row
-   * details" heading, not standalone toggles — see docs/EDITOR_DESIGN.md
+   * details" heading, not standalone toggles — see docs/editor-design.md
    * rule 5). 'environment' replaces what was a standalone
    * show_environment_pill boolean; see resolveVisibleBadges for the
    * context-sensitive default this carries forward unchanged (hidden

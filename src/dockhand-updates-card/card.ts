@@ -45,7 +45,7 @@ interface EnvGroup {
 }
 
 /** Alphabetical by name — the one sort this card offers (no group_by/
- * sort_by choice here; see docs/EDITOR_DESIGN.md rule 1 and the
+ * sort_by choice here; see docs/editor-design.md rule 1 and the
  * README's own Updates section for why). */
 export function sortPendingUpdates(updates: PendingUpdate[]): PendingUpdate[] {
   return [...updates].sort((a, b) => a.name.localeCompare(b.name));

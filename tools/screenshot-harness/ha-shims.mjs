@@ -339,7 +339,7 @@ class HaForm extends HTMLElement {
         widget = `<select class="shim-select" disabled>${opts.map((o) => `<option ${o.value === value ? 'selected' : ''}>${o.label}</option>`).join('')}</select>`;
       } else if (field.selector?.entity_name !== undefined) {
         // Not a simulation of HA's real Composed/Custom picker (see
-        // docs/EDITOR_DESIGN.md on why that's not attempted here) — just
+        // docs/editor-design.md on why that's not attempted here) — just
         // enough to confirm the field renders and shows the right
         // default, using the same disabled-textfield look as a plain
         // text field so a placeholder doesn't look like a broken widget.

@@ -5,7 +5,7 @@ re-proposing something that might already be covered. This file is for what's **
 only. Once an item ships, remove it — the shipped behavior is what the code and `CHANGELOG.md`
 already describe; this file doesn't need to also carry its history. Genuinely reusable technical
 gotchas (not "this got fixed", but "here's a pattern worth remembering") belong in
-`docs/ARCHITECTURE.md` instead.
+`docs/architecture.md` instead.
 
 ## Environment Card
 
@@ -49,7 +49,7 @@ gotchas (not "this got fixed", but "here's a pattern worth remembering") belong 
   aloud.
 
 - **Contrast of Home Assistant's own colors.** Status text, icons and buttons use HA's theme
-  colors unchanged (deliberately — see CONTRIBUTING's Accessibility section), and several fall
+  colors unchanged (deliberately — see `docs/development.md` → "Accessibility and colors"), and several fall
   below WCAG AA in HA's default light theme (warning orange is under 2:1 on white). That's for
   themes to solve, and `a11y.py` excuses it. Revisit only if HA changes its defaults or a user
   reports a case a theme can't fix.
@@ -65,7 +65,7 @@ gotchas (not "this got fixed", but "here's a pattern worth remembering") belong 
 
 - **Card resize support (`getGridOptions`): picker-preview length isn't controllable.** No card-
   side property or CSS hook distinguishes "rendering for the add-card picker" from "rendering on
-  a real, editable dashboard" — see `docs/ARCHITECTURE.md`. The Overview card's environments-only
+  a real, editable dashboard" — see `docs/architecture.md`. The Overview card's environments-only
   default (see README) is the accepted mitigation, not a true fix; if HA ever adds a real
   preview-scoped hook, revisit making Vulnerabilities/Stacks/Containers on-by-default again.
 
@@ -91,8 +91,8 @@ gotchas (not "this got fixed", but "here's a pattern worth remembering") belong 
   2026.8 (frontend 20260729.0 — confirmed in `ha-form.ts`/`types.ts` at that tag), above this repo's
   2026.6 floor. The one field that needs conditional visibility (Environment card's
   `custom_sections`) achieves it by conditionally including/excluding the schema entry in plain JS
-  instead — see `docs/ARCHITECTURE.md` §2 — which works fine. Not worth raising the floor for on its
-  own (dropping 2026.6/2026.7 support is a major change under `docs/SEMVER.md`); switch over
+  instead — see `docs/architecture.md` §2 — which works fine. Not worth raising the floor for on its
+  own (dropping 2026.6/2026.7 support is a major change under `docs/development.md` → "Versioning"); switch over
   whenever the floor reaches 2026.8 for some other reason.
 
 - **Remove `environment_overrides`/`environment_order` backward compatibility.** Renamed to
@@ -101,7 +101,7 @@ gotchas (not "this got fixed", but "here's a pattern worth remembering") belong 
   in `dockhand-overview-card/types.ts` still fall back to them for reading, and the editor's
   `migrateOverviewConfig()` still normalizes them away on load. This was done specifically while
   ha-dockhand-cards has very close to zero real users (1.0.0 had just shipped, no stars, no visible
-  adoption). **Target: 2.0.0.** Removing the fallback is a major change under `docs/SEMVER.md`, and
+  adoption). **Target: 2.0.0.** Removing the fallback is a major change under `docs/development.md` → "Versioning", and
   Raetha decided (Oct 2026, after 1.3.2) to defer it to the next major rather than make a policy
   exception — not because any real configs are expected to still use the old keys. Removal means:
   delete both deprecated fields from the config interface, delete the fallback branch in each

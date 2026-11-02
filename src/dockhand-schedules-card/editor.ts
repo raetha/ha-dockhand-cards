@@ -167,7 +167,7 @@ export class DockhandSchedulesCardEditor extends LitElement implements LovelaceC
           // established convention for this exact shape of thing — more
           // than one optional per-row detail (next-run time and the
           // environment pill) — rather than two standalone toggles. See
-          // docs/EDITOR_DESIGN.md rule 5.
+          // docs/editor-design.md rule 5.
           // 'environment' option omitted (not merely unchecked) when
           // embedded — same reasoning as include_global: once every
           // generated card is solo'd to one environment, the option

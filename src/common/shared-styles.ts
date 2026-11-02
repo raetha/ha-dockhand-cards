@@ -16,7 +16,7 @@ import { css } from 'lit';
 export const sharedStyles = css`
   :host {
     /*
-     * Customization hooks — see docs/STYLING.md. These are the only
+     * Customization hooks — see docs/styling.md. These are the only
      * values a theme is expected to override; layout/spacing/typography
      * are left as plain CSS and are card_mod's job, not a theme's.
      */
@@ -454,7 +454,7 @@ export const sharedStyles = css`
   }
   /** The one pill shape used everywhere a small rounded label appears —
    * a stack/container type, an environment/stack custom label, anything
-   * of that shape (see ARCHITECTURE.md §11 for the shared-class
+   * of that shape (see architecture.md §11 for the shared-class
    * rationale). Color is the one thing callers still set themselves
    * (inline style, for label-pill's own user-defined label colors) —
    * everything about the *shape* stays fixed here.
@@ -612,7 +612,7 @@ export const sharedStyles = css`
   /* The large, prominent status text at the top of a single-device card
    * (a container's own state, a stack's own status) — inherits its own
    * font-size/weight from the outer .hero-row wrapper it's always used
-   * within, rather than declaring its own; see ARCHITECTURE.md §11 for
+   * within, rather than declaring its own; see architecture.md §11 for
    * the shared-class rationale. */
   .hero-word {
     display: inline-flex;
@@ -678,7 +678,7 @@ export const sharedStyles = css`
    * one card's own data; a bare .label would risk the same kind of
    * accidental collision a plain, unscoped class name always risks
    * once reused across several cards' own templates (see
-   * ARCHITECTURE.md §11).
+   * architecture.md §11).
    *
    * Color modifiers (.ok/.warn/.error/.accent) match .status-icon/
    * .status-banner's own convention exactly, not a separate naming
@@ -796,11 +796,11 @@ export const sharedStyles = css`
    * works nested several levels deep in one specific card's own layout
    * doesn't read as something safe to reuse elsewhere, which is exactly
    * why this shape had drifted into multiple local copies before being
-   * unified here (see ARCHITECTURE.md §11). */
+   * unified here (see architecture.md §11). */
   /* Moved here from the Schedules card's own styles.ts once Stacks
    * needed the identical thing for its own new group_by support —
    * shared, not duplicated, the same principle this repo already
-   * applies to editor code (docs/EDITOR_DESIGN.md rule 5's own
+   * applies to editor code (docs/editor-design.md rule 5's own
    * reasoning). Same font-size as .section-title (Environment card's
    * own content-header style, below) — both are the same concept, a
    * header for a chunk of content, one just happens to be a group
@@ -877,7 +877,7 @@ export const sharedStyles = css`
    * "Check for updates," which use the real <ha-button> component
    * instead (confirmed safe to use directly: it's a transitive import of
    * <ha-icon-button>, which is loaded by hui-root.ts, the Lovelace
-   * dashboard root itself — see docs/ARCHITECTURE.md §11). Its own
+   * dashboard root itself — see docs/architecture.md §11). Its own
    * native variant values already carry this repo's own semantic
    * colors (brand≈accent, success≈ok, warning≈warn, danger≈error), so
    * there's no reason to hand-roll a status-chip-based button when the
