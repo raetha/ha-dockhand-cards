@@ -10,6 +10,12 @@ and [Unreleased] is the notes of the current test build.
 
 ## [Unreleased]
 
+### Added
+
+- **Test builds.** Upcoming changes are now published as test builds (pre-releases such as
+  `v1.5.1-dev.42`) that HACS can install once the Dockhand Cards **Pre-release** switch is turned
+  on; the README's new "Test builds" section explains how, and how to go back.
+
 ### Internal
 
 - New development workflow: work lands on a `dev` branch and each release is one pull request into
@@ -21,7 +27,8 @@ and [Unreleased] is the notes of the current test build.
 - Developer docs reorganised: `docs/development.md` is the guide (setup, translations,
   accessibility, changelog, versioning, branches and releases), `CONTRIBUTING.md` is a short entry
   point for contributors, the versioning notes moved into the guide, `docs/` file names are
-  lowercase (`docs/styling.md` and friends), and `CLAUDE.md` and `docs/audits.md` were added.
+  lowercase (`docs/styling.md` and friends), `tools/` is now `scripts/` (matching ha-dockhand),
+  and `CLAUDE.md` and `docs/audits.md` were added.
   This file's older version headings now use Keep a Changelog's hyphen before the date.
 - Build tooling security fixes: eslint and typescript-eslint are now given minimatch 11 (they still
   ask for 10, which has a denial-of-service advisory), and serialize-javascript is updated. The

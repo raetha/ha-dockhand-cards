@@ -31,7 +31,7 @@ before changing anything. This file is the short version.
 
 - `npm ci` once, then `npm run verify` (typecheck, lint, tests, build, audit of shipped
   dependencies): what CI runs. Batch related edits and verify once; prose-only changes need no test run.
-- After markup or color changes, `tools/screenshot-harness/a11y.py` (axe-core, both themes).
+- After markup or color changes, `scripts/screenshot-harness/a11y.py` (axe-core, both themes).
 - For geometry or layout claims, measure (DOM sizes, path data) rather than trusting a look at a
   screenshot; when the owner reports something different from what a screenshot seemed to show,
   believe the report and re-check numerically.

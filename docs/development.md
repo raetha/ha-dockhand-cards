@@ -12,8 +12,8 @@ considered and set aside are in [backlog.md](backlog.md); reviews are recorded i
 | `src/index.ts`, `src/editors.ts` | Entry points of the two bundles: the cards, and their editors |
 | `src/dockhand-*-card/` | One folder per card: `card.ts`, `editor.ts`, `types.ts`, styles, tests |
 | `src/common/` | Shared code: entity and device resolution, formatting, translations, styles |
-| `tools/release.mjs` | Changelog check, release notes and test-build versions, used by CI |
-| `tools/screenshot-harness/` | Renders the built cards against mock data: README screenshots and the accessibility check |
+| `scripts/release.mjs` | Changelog check, release notes and test-build versions, used by CI |
+| `scripts/screenshot-harness/` | Renders the built cards against mock data: README screenshots and the accessibility check |
 | `docs/` | This guide, architecture, quality checklist, editor design, styling reference, backlog, audits |
 | `.github/workflows/build.yml` | All of CI: checks, releases, test builds (see "What CI does") |
 
@@ -50,8 +50,8 @@ npm run verify   # typecheck + lint + test + build + audit of shipped dependenci
 ```
 
 The individual steps (`npm run typecheck`, `npm run lint`, `npm test`, `npm run build`) also run
-on their own. `package.json`'s `scripts` block is the place for repeatable tasks; there's no
-separate scripts folder.
+on their own. Everyday tasks are `package.json` scripts; `scripts/` holds the release helper CI
+uses and the screenshot harness.
 
 Before changing entity resolution, editor components, CSS or container-query patterns, or the
 card-picker preview, read [architecture.md](architecture.md). Before opening a pull request, go
@@ -70,7 +70,7 @@ The other way to try a change on a real install is the test build every push to 
 
 ### Screenshots and the icon list
 
-See `tools/screenshot-harness/README.md`. It renders the real built bundle against fictional mock
+See `scripts/screenshot-harness/README.md`. It renders the real built bundle against fictional mock
 data in a headless browser, with no Home Assistant involved. It's also where to regenerate
 `icon-paths.json` after adding a new `mdi:` icon anywhere in the cards, or the icon renders blank
 in screenshots.
@@ -115,7 +115,7 @@ terms where it has one.
 
 ## Accessibility and colors
 
-`tools/screenshot-harness/a11y.py` runs axe-core's WCAG 2.1 A/AA rules over every card and editor
+`scripts/screenshot-harness/a11y.py` runs axe-core's WCAG 2.1 A/AA rules over every card and editor
 in both themes. Run it after any change to a card's markup or colors; it exits non-zero on any
 violation.
 
@@ -155,7 +155,7 @@ user should read on the Releases page.
 ## Versioning
 
 Semantic versioning. The canonical policy is ha-dockhand's
-[`docs/SEMVER.md`](https://github.com/raetha/ha-dockhand/blob/main/docs/SEMVER.md); what follows
+[`docs/semver.md`](https://github.com/raetha/ha-dockhand/blob/main/docs/semver.md); what follows
 is only what's specific to the cards.
 
 - **Major:** renaming a card's `type`, removing a card, renaming or removing a YAML config key
@@ -209,7 +209,7 @@ so a version is released exactly once, when its tag doesn't exist yet.
 
 `.github/workflows/build.yml`, on every push and pull request:
 
-- `node tools/release.mjs check`: `CHANGELOG.md` has `[Unreleased]` and a section for
+- `node scripts/release.mjs check`: `CHANGELOG.md` has `[Unreleased]` and a section for
   `package.json`'s version.
 - `npm run verify`: typecheck, lint, tests, build, and `npm audit --omit=dev` (the dependencies
   that end up in the bundles).

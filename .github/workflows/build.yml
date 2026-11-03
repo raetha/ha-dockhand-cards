@@ -40,7 +40,7 @@ jobs:
       - run: npm ci
 
       - name: Check the changelog
-        run: node tools/release.mjs check
+        run: node scripts/release.mjs check
 
       - name: Typecheck, lint, test, build, audit what ships
         run: npm run verify
@@ -87,13 +87,13 @@ jobs:
       - name: Publish the release if this version has no tag yet
         run: |
           set -e
-          version=$(node tools/release.mjs version)
+          version=$(node scripts/release.mjs version)
           tag="v$version"
           if gh api "repos/$GH_REPO/git/ref/tags/$tag" >/dev/null 2>&1; then
             echo "$tag already exists: nothing to release"
             exit 0
           fi
-          node tools/release.mjs notes "$version" > notes.md
+          node scripts/release.mjs notes "$version" > notes.md
           gh release create "$tag" --target "$GITHUB_SHA" --title "Dockhand Cards $tag" \
             --notes-file notes.md dist/ha-dockhand-cards.js dist/ha-dockhand-cards-editor.js
           echo "Released $tag"
@@ -150,12 +150,12 @@ jobs:
       - name: Build and publish the test build
         run: |
           set -e
-          version=$(node tools/release.mjs version)
+          version=$(node scripts/release.mjs version)
           if gh api "repos/$GH_REPO/git/ref/tags/v$version" >/dev/null 2>&1; then tagged=true; else tagged=false; fi
-          dev=$(node tools/release.mjs dev-version "$GITHUB_RUN_NUMBER" "$tagged")
+          dev=$(node scripts/release.mjs dev-version "$GITHUB_RUN_NUMBER" "$tagged")
           tag="v$dev"
           CARD_VERSION="$dev" npm run build
-          node tools/release.mjs notes Unreleased --test-build "$GITHUB_RUN_NUMBER" > notes.md
+          node scripts/release.mjs notes Unreleased --test-build "$GITHUB_RUN_NUMBER" > notes.md
           gh release create "$tag" --target "$GITHUB_SHA" --prerelease \
             --title "Dockhand Cards $tag (test build)" \
             --notes-file notes.md dist/ha-dockhand-cards.js dist/ha-dockhand-cards-editor.js

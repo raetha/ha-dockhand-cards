@@ -214,7 +214,7 @@ disagree with each other (e.g. the Container/Stack hero-word size mismatch, or a
 happens one card at a time, in different sessions, so no single diff makes it visible.
 
 What actually catches this is periodically generating screenshots for all cards via
-`tools/screenshot-harness/` and looking at them side by side, deliberately checking whether the
+`scripts/screenshot-harness/` and looking at them side by side, deliberately checking whether the
 same *kind* of element (a status word, an icon+text row, a small badge/chip, a section header)
 looks the same across every card that has one — not just whether each card looks right in
 isolation. Worth doing this before any release that touches shared visual elements, not only when

@@ -21,7 +21,7 @@ first.
    `codeql database create --build-mode=none` over a copy of the tracked files only, then
    `database analyze` with the `javascript-security-and-quality` and `actions-security-and-quality`
    suites).
-3. **Tests and build:** `npm run verify`; `tools/screenshot-harness/a11y.py` (no violations).
+3. **Tests and build:** `npm run verify`; `scripts/screenshot-harness/a11y.py` (no violations).
 4. **Quality bar:** every item in `docs/quality.md` still true of the code.
 5. **Security of the design:** the cards only read Home Assistant state (never Dockhand's API);
    nothing a card renders is inserted as raw HTML; links built from entity data (release notes,
