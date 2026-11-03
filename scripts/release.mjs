@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // Release helpers for CI (.github/workflows/build.yml) and release pull requests.
 //
-//   node scripts/release.mjs check                      changelog has [Unreleased] and a section
-//                                                     for package.json's version
+//   node scripts/release.mjs check [--release]          changelog has [Unreleased]; with --release
+//                                                     (pull requests into and pushes to main), also
+//                                                     a dated section for package.json's version
 //   node scripts/release.mjs version                    package.json's version
 //   node scripts/release.mjs dev-version <run> <tagged> the test build's version: the next patch
 //                                                     once the current version is tagged
@@ -44,12 +45,16 @@ export function sections(changelog) {
   return out;
 }
 
-/** Problems that should fail CI: no [Unreleased] section, or no section for the version. */
-export function check(changelog, version) {
+/** Problems that should fail CI. On `dev`, package.json holds the expected next version, which
+ * has no section until the release pull request dates it; `release` (pull requests into and
+ * pushes to main) requires that dated section, so an undated release can't merge. */
+export function check(changelog, version, release = false) {
   const found = sections(changelog);
   const problems = [];
   if (!found.has('Unreleased')) problems.push('CHANGELOG.md has no "## [Unreleased]" section');
-  if (!found.has(version)) problems.push(`CHANGELOG.md has no section for version ${version}`);
+  if (release && !found.has(version)) {
+    problems.push(`CHANGELOG.md has no dated section for version ${version}: date it in the release pull request`);
+  }
   return problems;
 }
 
@@ -86,7 +91,7 @@ function main(argv) {
   const [cmd, ...args] = argv;
   switch (cmd) {
     case 'check': {
-      const problems = check(changelog, version);
+      const problems = check(changelog, version, args.includes('--release'));
       for (const p of problems) console.error(`::error file=CHANGELOG.md::${p}`);
       if (problems.length) process.exit(1);
       console.log(`CHANGELOG.md OK for ${version}`);
@@ -104,7 +109,7 @@ function main(argv) {
       break;
     }
     default:
-      console.error('usage: release.mjs check | version | dev-version <run> <tagged> | notes <version> [--test-build <run>]');
+      console.error('usage: release.mjs check [--release] | version | dev-version <run> <tagged> | notes <version> [--test-build <run>]');
       process.exit(2);
   }
 }

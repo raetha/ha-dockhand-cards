@@ -158,6 +158,12 @@ Semantic versioning. The canonical policy is ha-dockhand's
 [`docs/semver.md`](https://github.com/raetha/ha-dockhand/blob/main/docs/semver.md); what follows
 is only what's specific to the cards.
 
+**`dev` holds the expected next version.** When the first change after a release lands on `dev`,
+`package.json` (and `package-lock.json`'s two copies: `npm version X.Y.Z --no-git-tag-version`)
+moves to the version that change calls for; a later change that calls for more raises it. Test
+builds carry it, and release reviews re-check it. The changelog stays `[Unreleased]` until the
+release pull request dates it.
+
 - **Major:** renaming a card's `type`, removing a card, renaming or removing a YAML config key
   *without* a working backward-compatible fallback, or dropping support for an entity or attribute
   shape a released version reads. A rename *with* a verified, unconditional fallback (the old key
@@ -187,43 +193,52 @@ Adopted `try/` work is squash-merged into `dev`; ideas dropped for good get a li
 
 Day to day:
 
-1. Branch from `dev` (or commit to it directly for small changes), add the `[Unreleased]` line, run
-   `npm run verify`.
-2. Open a pull request into `dev`; squash-merge it once CI is green.
-3. Install the test build from HACS to try it on a real dashboard.
+1. Claude runs `dev`: small, safe changes are committed to it directly; anything else goes on a
+   `try/<topic>` branch with a pull request into `dev`, which Claude squash-merges once CI is
+   green. Either way the `[Unreleased]` line comes with the change and `npm run verify` passes.
+2. The owner installs the test build from HACS to try it on a real dashboard.
+3. `dev` stays releasable: a change that needs the owner's decision first waits on its `try/`
+   branch (a draft pull request) until they've seen it.
 
 Releasing (the owner decides when):
 
 1. Open a release pull request from `dev` into `main` titled "Dockhand Cards X.Y.Z". In it:
    rename `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD` with a fresh empty `## [Unreleased]`
-   above, update the compare links at the bottom of `CHANGELOG.md`, and set `package.json`'s
-   `version` (and `package-lock.json`'s two copies, e.g. `npm version X.Y.Z --no-git-tag-version`).
-   The body is the new changelog section.
+   above, update the compare links at the bottom of `CHANGELOG.md`, and check `package.json`'s
+   version is still the right one for what's in the release. The body is the new changelog
+   section.
 2. Squash-merge it. CI tags `vX.Y.Z`, publishes the release with the built files attached and the
    changelog section as notes, deletes the test builds, and resets `dev` to `main`.
 
 Nothing else is needed: no tags pushed by hand, no version scripts. The release is created by CI,
-so a version is released exactly once, when its tag doesn't exist yet.
+so a version is released exactly once, when its tag doesn't exist yet. CI refuses a pull request
+into `main` whose version has no dated changelog section, so an undated release can't merge (a
+merge into `main` that releases nothing needs `dev` back on the released version).
 
 ### What CI does
 
 `.github/workflows/build.yml`, on every push and pull request:
 
-- `node scripts/release.mjs check`: `CHANGELOG.md` has `[Unreleased]` and a section for
-  `package.json`'s version.
+- `node scripts/release.mjs check`: `CHANGELOG.md` has `[Unreleased]`; for pull requests into
+  `main` and pushes to `main`, also a dated section for `package.json`'s version.
 - `npm run verify`: typecheck, lint, tests, build, and `npm audit --omit=dev` (the dependencies
   that end up in the bundles).
 - `npm audit` over everything, report only: advisories in build and lint tooling often have no
   fix for a while, so they show as a warning rather than failing every run.
 - HACS validation (`hacs/action`, category plugin).
 
+- `CI passed`: a gate job that passes only when every check above did. It's the one status check
+  the `main` ruleset requires, so jobs can change without touching the ruleset.
+
 Then, on a push to `main`, the release and sync-dev jobs; on a push to `dev`, the test build.
+Every checkout uses `persist-credentials: false` except sync-dev's, the one job that pushes with
+git, so the workflow token isn't left on disk for dependencies' scripts or tests to read.
 
 ### Test builds
 
 Every push to `dev` publishes a GitHub pre-release with the built files, tagged
-`v<next patch>-dev.<run>` (for example `v1.5.1-dev.42` while 1.5.0 is the latest release, or
-`v1.6.0-dev.43` once a release pull request has set 1.6.0), so it sorts above the installed
+`v<expected next version>-dev.<run>` (for example `v1.6.0-dev.43` while `dev` holds 1.6.0; right
+after a release, before `dev` moves on, `v<next patch>-dev.<run>`), so it sorts above the installed
 release. Its notes are the `[Unreleased]` section, and the cards' console banner shows the test
 build's version. Older test builds are deleted, so there's only ever one.
 
@@ -238,7 +253,8 @@ The owner sets these (sessions can't read most of them):
 
 - **Settings → Rules → Rulesets:** one for `main` (target: the default branch), **enforcement
   Active**: restrict deletions, block force pushes, require a pull request before merging with
-  squash as the only allowed method. No required approvals.
+  squash as the only allowed method. No required approvals. **Require status checks:**
+  `CI passed`. **Require code scanning results:** CodeQL.
 - **Settings → General → Pull Requests:** squash merging only; **Automatically delete head
   branches** on.
 - **Settings → Branches:** a classic branch protection rule for `dev`: nothing required,

@@ -11,16 +11,19 @@ before changing anything. This file is the short version.
 ## How we work
 
 - **Branches** (`docs/development.md` → "Branches and releases"): never push to `main`; it gets one
-  squash-merged pull request per release. Adopted work goes on `dev`; experiments that may be
-  dropped go on `try/<topic>` branches off `dev`. Push branches and open pull requests; no zip
-  packages.
+  squash-merged pull request per release, which the owner merges. Claude runs `dev`: small, safe
+  changes go straight to it, anything else through a `try/<topic>` branch and pull request that
+  Claude squash-merges once CI is green. `dev` must stay releasable; a change that needs the
+  owner's decision waits on its `try/` branch. No zip packages.
 - Every change adds a line under `## [Unreleased]` in `CHANGELOG.md`, written for people installing
   the cards (`docs/development.md` → "Changelog"; non-user-facing changes under `### Internal`).
   Released sections are frozen.
-- **Never bump a version or date the changelog unless the owner asks.** That's the release pull
-  request (`dev` → `main`): it sets `package.json`'s version and dates the section; CI then tags,
-  publishes the release, and resets `dev` to `main`.
-- Each push to `dev` publishes a test build (`v<next patch>-dev.<run>` pre-release) that the owner
+- **`dev` holds the expected next version:** with the first change after a release, set
+  `package.json` (`npm version X.Y.Z --no-git-tag-version`) to what that change calls for under
+  the semver policy, and raise it when a later change calls for more; say what and why in a line.
+  Never date the changelog or open the release pull request unless the owner asks: that pull
+  request (`dev` → `main`) dates the section; CI then tags, publishes the release, and resets `dev`.
+- Each push to `dev` publishes a test build (`v<version>-dev.<run>` pre-release) that the owner
   installs through HACS's Pre-release switch to test on a real dashboard.
 - The cards and ha-dockhand are tightly coupled: when fixing a card problem, consider whether the
   integration should change too, and fix the same bug everywhere it occurs.
@@ -56,3 +59,5 @@ before changing anything. This file is the short version.
   Dependabot ignores it until then.
 - Sessions can't read Actions settings, secrets or security alerts through the proxy: ask the
   owner. A "full review" follows the checklist at the top of `docs/audits.md`.
+- HACS not showing the cards' icon in its store panel is an upstream HACS bug
+  (hacs/integration#5171, #5223): nothing to fix here.

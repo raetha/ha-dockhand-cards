@@ -35,6 +35,9 @@ gotchas (not "this got fixed", but "here's a pattern worth remembering") belong 
 
 ## Cross-card
 
+- **Pill padding `3px 8px`** was tried and reverted: leave pills as they are for now. Revisit only
+  as part of a wider look at pill sizing across all cards.
+
 - **Test coverage of the card renderers.** ha-dockhand's tests cover every line; here the shared
   modules in `src/common` are at about 85% but the cards' own `card.ts` render code mostly isn't
   exercised (about 36% overall), and the editors not at all. DOM tests like

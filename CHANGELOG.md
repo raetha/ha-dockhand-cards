@@ -18,6 +18,10 @@ and [Unreleased] is the notes of the current test build.
 
 ### Internal
 
+- CI hardening: a single `CI passed` check gates releases, and no job keeps the workflow token on
+  disk unless it pushes with git (`persist-credentials: false`).
+- `dev` now carries the expected next version, so test builds are numbered as the release they lead
+  to; CI only requires a dated changelog section for pull requests into `main`.
 - New development workflow: work lands on a `dev` branch and each release is one pull request into
   `main`, after which CI tags and publishes the release itself (no more pushing tags by hand).
   Every push to `dev` publishes a test build as a GitHub pre-release, which HACS offers once the
