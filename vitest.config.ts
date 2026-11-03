@@ -7,7 +7,7 @@ export default defineConfig({
     // `// @vitest-environment jsdom` comment at the top of its file.
     environment: 'node',
     setupFiles: ['./src/test-setup.ts'],
-    include: ['src/**/*.test.ts', 'tools/*.test.mjs'],
+    include: ['src/**/*.test.ts', 'scripts/*.test.mjs'],
     coverage: {
       reporter: ['text', 'html'],
       include: ['src/common/**/*.ts']

@@ -26,7 +26,7 @@ quality as possible" means for this repo. Check it before every release.
       that's confirmed to be how HACS actually resolves it)
 - [x] Public GitHub repo, MIT `LICENSE`
 - [x] README with install instructions, a config reference, and screenshots for every card (via
-      `tools/screenshot-harness/` — real rendered output against fictional mock data, not a live
+      `scripts/screenshot-harness/` — real rendered output against fictional mock data, not a live
       instance)
 - [ ] GitHub repo description + topics set (`home-assistant`, `hacs`, `lovelace`,
       `home-assistant-card`, `dockhand`) — set on GitHub itself, not in this repo

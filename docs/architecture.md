@@ -565,7 +565,7 @@ wherever a value lands exactly on HA's own scale:
 Both are set on `<html>` at the root, so they inherit through this repo's own shadow DOM. Always
 written with a fallback (`var(--ha-space-2, 8px)`) for an HA version old enough to predate the
 tokens, and for the screenshot harness, which doesn't load HA's real styles — the harness instead
-defines these tokens directly (`tools/screenshot-harness/index.html`) with the same real values, so
+defines these tokens directly (`scripts/screenshot-harness/index.html`) with the same real values, so
 testing exercises the actual-token code path rather than only ever the fallback.
 
 **Every `--ha-font-size-*` fallback in this repo is a direct px value from the table above, not an
