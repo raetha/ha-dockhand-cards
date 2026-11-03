@@ -35,7 +35,8 @@ and [Unreleased] is the notes of the current test build.
   no-longer-needed nanoid override is removed. None of these ship in the cards.
 - Dependency updates for build and test tooling: typescript-eslint 8.72.1, globals 17.14.0, jsdom
   30.1.3, home-assistant-js-websocket 9.8.1 (type definitions only), and undici 8.12.3, which fixes
-  a high-severity advisory in the test environment.
+  a high-severity advisory in the test environment. Then eslint 10.14.0, rollup 4.67.4,
+  @rollup/plugin-typescript 12.3.1, vitest 5.1.0 and tslib 2.9.1.
 
 ## [1.5.0] - 2026-10-19
 
