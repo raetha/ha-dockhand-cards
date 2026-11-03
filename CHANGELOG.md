@@ -10,6 +10,12 @@ and [Unreleased] is the notes of the current test build.
 
 ## [Unreleased]
 
+### Changed
+
+- Versions show without a leading "v": HACS shows release tags, which from this release are plain
+  version numbers (`1.5.2`, test builds such as `1.5.3-dev.42`), like most other HACS
+  repositories. Earlier releases keep their `v` tags.
+
 ## [1.5.1] - 2026-11-03
 
 ### Added

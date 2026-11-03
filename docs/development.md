@@ -207,7 +207,7 @@ Releasing (the owner decides when):
    above, update the compare links at the bottom of `CHANGELOG.md`, and check `package.json`'s
    version is still the right one for what's in the release. The body is the new changelog
    section.
-2. Squash-merge it. CI tags `vX.Y.Z`, publishes the release with the built files attached and the
+2. Squash-merge it. CI tags `X.Y.Z` (no leading "v": HACS shows tag names; releases up to 1.5.1 are tagged `vX.Y.Z`), publishes the release with the built files attached and the
    changelog section as notes, deletes the test builds, and resets `dev` to `main`.
 
 Nothing else is needed: no tags pushed by hand, no version scripts. The release is created by CI,
@@ -237,8 +237,8 @@ git, so the workflow token isn't left on disk for dependencies' scripts or tests
 ### Test builds
 
 Every push to `dev` publishes a GitHub pre-release with the built files, tagged
-`v<expected next version>-dev.<run>` (for example `v1.6.0-dev.43` while `dev` holds 1.6.0; right
-after a release, before `dev` moves on, `v<next patch>-dev.<run>`), so it sorts above the installed
+`<expected next version>-dev.<run>` (for example `1.6.0-dev.43` while `dev` holds 1.6.0; right
+after a release, before `dev` moves on, `<next patch>-dev.<run>`), so it sorts above the installed
 release. Its notes are the `[Unreleased]` section, and the cards' console banner shows the test
 build's version. Older test builds are deleted, so there's only ever one.
 

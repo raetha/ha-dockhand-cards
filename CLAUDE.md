@@ -23,7 +23,7 @@ before changing anything. This file is the short version.
   the semver policy, and raise it when a later change calls for more; say what and why in a line.
   Never date the changelog or open the release pull request unless the owner asks: that pull
   request (`dev` → `main`) dates the section; CI then tags, publishes the release, and resets `dev`.
-- Each push to `dev` publishes a test build (`v<version>-dev.<run>` pre-release) that the owner
+- Each push to `dev` publishes a test build (`<version>-dev.<run>` pre-release) that the owner
   installs through HACS's Pre-release switch to test on a real dashboard.
 - The cards and ha-dockhand are tightly coupled: when fixing a card problem, consider whether the
   integration should change too, and fix the same bug everywhere it occurs.

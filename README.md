@@ -61,7 +61,7 @@ This repository is available in the default HACS catalog.
 
 ### Test builds
 
-Upcoming changes are published as test builds (pre-releases such as `v1.5.1-dev.42`) before
+Upcoming changes are published as test builds (pre-releases such as `1.5.3-dev.42`) before
 they're released, for anyone willing to try them early. To get them through HACS:
 
 1. Go to **Settings → Devices & services → Entities**, search for the Dockhand Cards
