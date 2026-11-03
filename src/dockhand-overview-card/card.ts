@@ -436,7 +436,7 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
         // (native HA visibility, meant for a card HA directly manages) —
         // this nested instance is created inside this card's own shadow
         // DOM, so HA's visibility mechanism never reaches it (see
-        // docs/ARCHITECTURE.md). Genuine zero-space collapse is achieved
+        // docs/architecture.md). Genuine zero-space collapse is achieved
         // here instead, simply by not including the element in this
         // template at all when there's nothing pending — this is a
         // plain grid column this card already controls, not HA's

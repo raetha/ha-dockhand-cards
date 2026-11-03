@@ -68,7 +68,7 @@ export function getTotalPendingUpdates(hass: HomeAssistant, deviceIds: string[])
 
 /** Builds the `visibility:` config HA's own hui-card.ts natively
  * understands (a real, first-class dashboard feature — see
- * docs/ARCHITECTURE.md for why this replaced an earlier
+ * docs/architecture.md for why this replaced an earlier
  * getGridOptions()-based approach). One numeric_state condition per
  * environment device, OR'd together when there's more than one — HA's
  * own condition schema, not something this card invented.

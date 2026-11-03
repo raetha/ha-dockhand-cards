@@ -1,6 +1,6 @@
 [![HACS Badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/default)
 [![Release](https://img.shields.io/github/v/release/raetha/ha-dockhand-cards?style=for-the-badge)](https://github.com/raetha/ha-dockhand-cards/releases)
-[![Validation](https://img.shields.io/github/actions/workflow/status/raetha/ha-dockhand-cards/ci.yml?label=validation&style=for-the-badge)](https://github.com/raetha/ha-dockhand-cards/actions/workflows/ci.yml)
+[![Validation](https://img.shields.io/github/actions/workflow/status/raetha/ha-dockhand-cards/build.yml?branch=main&label=build&style=for-the-badge)](https://github.com/raetha/ha-dockhand-cards/actions/workflows/build.yml)
 
 <p align="center">
   <img src="docs/brand/logo.png" alt="Dockhand logo">
@@ -72,7 +72,7 @@ a few things:
   rather than breaking the card; the editor tells you what to enable for more.
 - **Everything opens.** Any value backed by an entity opens that entity's details when clicked.
 - **Your icons and colors.** Entity icons follow your customizations, and colors follow your
-  Home Assistant theme (see [Styling](docs/STYLING.md)).
+  Home Assistant theme (see [Styling](docs/styling.md)).
 
 The screenshots use made-up data.
 
@@ -365,10 +365,11 @@ usable with your setup, please open an issue.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, testing against a real Home Assistant
-instance, and the release process. How the cards work and why is in
-[ARCHITECTURE.md](docs/ARCHITECTURE.md); ideas already considered are in
-[BACKLOG.md](docs/BACKLOG.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to report issues and send changes, and
+[development.md](docs/development.md) for setup, testing against a real Home Assistant instance,
+and how releases and test builds work. How the cards work and why is in
+[architecture.md](docs/architecture.md); ideas already considered are in
+[backlog.md](docs/backlog.md).
 
 ---
 

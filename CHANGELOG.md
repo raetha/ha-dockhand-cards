@@ -1,26 +1,34 @@
 # Changelog
 
 <!--
-Maintainer note: same discipline as ha-dockhand's CHANGELOG — entries describe
-net user-facing functionality, not the development journey. Bugs found and
-fixed within the same still-unreleased cycle don't get their own "Fixed"
-entry — there's nothing to disclose about something that never shipped
-broken. That history doesn't need to live anywhere long-term once the fix
-has landed: the code (with a comment where the reasoning isn't obvious) and
-git history are enough. The one exception is a genuinely reusable technical
-gotcha — a pattern likely to bite again, not just "this had a bug" — which
-belongs in docs/ARCHITECTURE.md. docs/BACKLOG.md is for what's not done yet only;
-don't use it as a changelog substitute (this repo did, for a while — see the
-top of that file).
-
-This file's dated sections double as GitHub release notes: release.yml
-extracts the section matching the pushed tag and uses it as the release
-body verbatim, so there's no separate "special" release announcement to
-maintain — write each section as the thing you'd want a user to read on
-the Releases page.
+Maintainer note: the rules for this file are in docs/development.md -> "Changelog". In short:
+lines describe the net user-facing difference for people installing the cards, not the
+development journey; released sections are frozen; non-user-facing changes go in an
+Internal section. Each released section is also the GitHub release's notes (CI publishes it),
+and [Unreleased] is the notes of the current test build.
 -->
 
 ## [Unreleased]
+
+### Internal
+
+- New development workflow: work lands on a `dev` branch and each release is one pull request into
+  `main`, after which CI tags and publishes the release itself (no more pushing tags by hand).
+  Every push to `dev` publishes a test build as a GitHub pre-release, which HACS offers once the
+  repository's Pre-release switch is on. Dependabot now proposes updates weekly into `dev`, and the
+  workflow's actions are pinned to commit SHAs. `npm run verify` now fails only on advisories in
+  the dependencies that ship in the cards; advisories in build tooling show as a CI warning.
+- Developer docs reorganised: `docs/development.md` is the guide (setup, translations,
+  accessibility, changelog, versioning, branches and releases), `CONTRIBUTING.md` is a short entry
+  point for contributors, the versioning notes moved into the guide, `docs/` file names are
+  lowercase (`docs/styling.md` and friends), and `CLAUDE.md` and `docs/audits.md` were added.
+  This file's older version headings now use Keep a Changelog's hyphen before the date.
+- Build tooling security fixes: eslint and typescript-eslint are now given minimatch 11 (they still
+  ask for 10, which has a denial-of-service advisory), and serialize-javascript is updated. The
+  no-longer-needed nanoid override is removed. None of these ship in the cards.
+- Dependency updates for build and test tooling: typescript-eslint 8.72.1, globals 17.14.0, jsdom
+  30.1.3, home-assistant-js-websocket 9.8.1 (type definitions only), and undici 8.12.3, which fixes
+  a high-severity advisory in the test environment.
 
 ## [1.5.0] - 2026-10-19
 
@@ -494,7 +502,7 @@ Required for compatibility with ha-dockhand 1.9.1.
   class name from a previous release still applies. See `docs/ARCHITECTURE.md` §11/§18 for anyone
   interested in the fuller technical details.
 
-## [1.1.0] — 2026-07-28
+## [1.1.0] - 2026-07-28
 
 ### Added
 
@@ -545,7 +553,7 @@ Required for compatibility with ha-dockhand 1.9.1.
 - The Container and Stack card editors' dropdowns now sort alphabetically, matching every other
   dropdown in these editors.
 
-## [1.0.0] — 2026-07-21
+## [1.0.0] - 2026-07-21
 
 Initial release.
 

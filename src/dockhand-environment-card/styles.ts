@@ -6,7 +6,7 @@ export const cardStyles = css`
 
   /*
    * This card's own colors, as custom properties so a theme or card_mod can
-   * change any of them (docs/STYLING.md). Event icons use HA's status colors
+   * change any of them (docs/styling.md). Event icons use HA's status colors
    * in Dockhand's grouping (start green, stop red, change amber, health
    * blue). The rest have no HA equivalent and default to Dockhand's colors.
    */

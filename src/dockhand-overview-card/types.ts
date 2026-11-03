@@ -36,7 +36,7 @@ export function enabledSections(sections: OverviewSection[], config: DockhandOve
  * hand-declared separately, on purpose: a hand-declared parallel
  * interface is exactly the kind of duplication that silently broke
  * per-environment visible_badges overrides for a while (see
- * docs/ARCHITECTURE.md §3) — that specific bug was in the *runtime*
+ * docs/architecture.md §3) — that specific bug was in the *runtime*
  * extraction handlers, already fixed by making those generic, but the
  * *type* had the same duplication risk sitting right next to it, just
  * without a way to fail loudly yet. `Omit<..., 'type' | 'device_id'>`
@@ -180,11 +180,11 @@ export interface DockhandOverviewCardConfig extends LovelaceCardConfig {
    * inconsistency (singular "environment", unlike every sibling
    * plural-when-about-the-section key) and removes the one case where
    * a top-level key collided with a global-defaults section prefix
-   * (see docs/ARCHITECTURE.md §4). Read via getEnvironmentOverrides(),
+   * (see docs/architecture.md §4). Read via getEnvironmentOverrides(),
    * never directly, so this fallback can be deleted from that one
    * function (and this field from this interface) once enough time has
    * passed that remaining old-style saved configs are a non-issue —
-   * tracked in docs/BACKLOG.md with a target date. */
+   * tracked in docs/backlog.md with a target date. */
   environment_overrides?: Record<string, EnvironmentOverride>;
   exclude_device_ids?: string[];
   /** Device ids in the order the user dragged them to, in the editor.
@@ -196,7 +196,7 @@ export interface DockhandOverviewCardConfig extends LovelaceCardConfig {
   environments_order?: string[];
   /** @deprecated Renamed to `environments_order` (see above) — same
    * migration, same reasoning, same removal tracking in
-   * docs/BACKLOG.md. Read via getEnvironmentOrder(), never directly. */
+   * docs/backlog.md. Read via getEnvironmentOrder(), never directly. */
   environment_order?: string[];
   /** Section order within each environment's column, user-arranged in
    * the editor the same way environments_order is. Sections not listed
@@ -242,7 +242,7 @@ export function getEnvironmentOrder(config: DockhandOverviewCardConfig | undefin
  * always in the post-rename shape from the moment the editor loads,
  * before any of its own code ever reads or writes either key again. This
  * is what lets _globalEditorConfig's generic prefix scan (see
- * docs/ARCHITECTURE.md §4) skip needing a denylist of its own: by the
+ * docs/architecture.md §4) skip needing a denylist of its own: by the
  * time it runs, the deprecated keys it would otherwise have to exclude
  * simply aren't present in memory anymore. The live card (card.ts)
  * doesn't need this: it never writes anything back, and

@@ -212,7 +212,7 @@ export function getAllScheduleDevices(hass: HomeAssistant): DeviceRegistryEntry[
  * instance connected there's one hub per instance, not one hub overall —
  * getGlobalScheduleDevices needs schedules parented to any of them, not
  * just whichever one happens to be enumerated first (see
- * docs/ARCHITECTURE.md §19's sibling note on this file's env_id scoping
+ * docs/architecture.md §19's sibling note on this file's env_id scoping
  * bug — this was the same "picked one arbitrarily" shape, just for a
  * genuinely-global device instead of an environment-scoped one, so no
  * `sameConfigEntry` check is needed or possible here). */

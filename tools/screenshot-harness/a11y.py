@@ -9,7 +9,7 @@ Run from this folder with the harness server up (see README.md):
 
 Catches what can be checked mechanically — missing accessible names, roles,
 contrast, invalid ARIA — not whether the cards make sense to a screen-reader
-user. That still needs a manual pass (see docs/BACKLOG.md).
+user. That still needs a manual pass (see docs/backlog.md).
 
 Elements rendered by this harness's own stand-ins for Home Assistant
 components (ha-shims.mjs) rather than the cards are skipped: they say nothing

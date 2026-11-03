@@ -124,7 +124,7 @@ export function sortScheduleRows(rows: ScheduleRow[], sortBy: ScheduleSortBy): S
  * for why an unambiguous single-instance case stays unlabeled). Exported
  * for testability, same reasoning as sortScheduleRows/groupScheduleRows:
  * _buildRows itself is too tightly coupled to live hass.devices/entity
- * resolution to test directly (see docs/BACKLOG.md's Updates-card note on
+ * resolution to test directly (see docs/backlog.md's Updates-card note on
  * this repo's standing testability bar).
  */
 export function resolveGlobalInstanceLabels(

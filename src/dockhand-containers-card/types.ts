@@ -9,7 +9,7 @@ import type { EntityNameItem } from '../common/ha-types';
  * user also turn them off independent of that gives the same
  * decluttering value the requested updates toggle does. 'environment'
  * is new alongside multi-environment support — same checkbox-group
- * convention as everything else here (docs/EDITOR_DESIGN.md rule 5),
+ * convention as everything else here (docs/editor-design.md rule 5),
  * not a standalone toggle. */
 export type ContainersCardBadge = 'health' | 'updates' | 'cpu' | 'memory' | 'environment';
 

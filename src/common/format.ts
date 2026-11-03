@@ -120,7 +120,7 @@ export function getDockhandBaseUrl(configurationUrl: string | null | undefined):
  * configuration_url's host doesn't have that problem — two config entries
  * only ever share one host[:port] if they're genuinely pointed at the same
  * Dockhand server, which is a misconfiguration, not a normal multi-instance
- * setup. See ha-dockhand-cards#1 / docs/ARCHITECTURE.md §19 for the bug
+ * setup. See ha-dockhand-cards#1 / docs/architecture.md §19 for the bug
  * class this sidesteps.
  */
 export function getInstanceLabel(configurationUrl: string | null | undefined): string | null {

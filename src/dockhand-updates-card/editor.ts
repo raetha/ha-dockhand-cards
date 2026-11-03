@@ -172,7 +172,7 @@ export class DockhandUpdatesCardEditor extends LitElement implements LovelaceCar
    * condition rebuilt too. Uses HA's own native card visibility feature
    * (hui-card.ts) rather than anything hand-rolled: a real display: none
    * on the card's own wrapper, correctly freeing its grid space for a
-   * sibling to flow into — see docs/ARCHITECTURE.md for why an earlier
+   * sibling to flow into — see docs/architecture.md for why an earlier
    * getGridOptions()-based approach couldn't achieve that. Removes
    * `visibility` entirely from the saved config when the toggle is off,
    * rather than leaving a stale condition behind.

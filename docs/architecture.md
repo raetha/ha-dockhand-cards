@@ -12,7 +12,7 @@ Almost every entity this repo reads is resolved via **`translation_key`**, scope
 `entity-resolver.ts`, all thin wrappers around one generic `resolveEntities<K>()`) — never by
 parsing `unique_id`, which is an implementation detail of ha-dockhand's, not a stable contract for
 this repo to depend on. `translation_key` *is* that contract (see ha-dockhand's own
-`ARCHITECTURE.md` §1 — renaming one there is a breaking change for this repo, by design on both
+`architecture.md` §1 — renaming one there is a breaking change for this repo, by design on both
 sides).
 
 A small set of ha-dockhand entities have **no `translation_key` at all, by design** — anything
@@ -50,7 +50,7 @@ source properly, turned out to already exist:**
   display toggles live) uses this now — nothing hand-built there anymore. `warning` is *not*
   forwarded to the nested `<ha-form>` this renders internally — a field with a `.warning` attached
   has to stay in the outer schema, not inside an `expandable` entry (the Environment card's `mode`
-  field is the live example; see `docs/EDITOR_DESIGN.md` rule 2).
+  field is the live example; see `docs/editor-design.md` rule 2).
 - **`type: 'grid'`** — real too (`ha-form-grid.ts`), `grid-template-columns: repeat(auto-fit,
   minmax(column_min_width ?? 200px, 1fr))`, so narrow fields (boolean toggles, mainly) naturally
   sit side by side without any layout CSS this repo would otherwise need to write. Same
@@ -60,7 +60,7 @@ source properly, turned out to already exist:**
 something built here — confirmed against `src/data/selector.ts` and by finding it in HA's own
 Tile/Area/Heading card editors first. Gives Composed (Area/Device/Entity/Floor) and Custom (plain
 text) modes entirely for free, rendered by HA's own already-loaded `<ha-selector>` at runtime. See
-`docs/EDITOR_DESIGN.md` rule 3 for the full mechanism and `common/card-name.ts` for what this repo
+`docs/editor-design.md` rule 3 for the full mechanism and `common/card-name.ts` for what this repo
 actually supplies (an entity id to resolve Composed values against, and a fallback matching each
 card's pre-existing default).
 
@@ -180,7 +180,7 @@ Reusing an editor this way needs three things that aren't obvious from the stand
   edited forces a fresh mount instead of Lit reusing the existing node with stale data. One
   consequence of only setting `.hass` at mount time: if `hass` updates while the same detail view
   stays open, the embedded editor won't see the new value until the user navigates away and back —
-  a known, low-impact limitation (`docs/BACKLOG.md`), since these editors only use `hass` for
+  a known, low-impact limitation (`docs/backlog.md`), since these editors only use `hass` for
   translated label text once the device picker is hidden.
 - **`ev.stopPropagation()` as the first line of whatever handles the embedded editor's
   `config-changed`.** Without it, the embedded editor's own raw event (still typed as e.g.
@@ -282,7 +282,7 @@ rewrite of a dashboard nobody ever reopens in the editor — there's no mechanis
 card to write back to its own stored YAML (confirmed against HA's own Heading card, which handles
 an analogous old-config-shape case the same "read forever, never force a save" way). The deprecated
 fields, the fallback branches, and `migrateOverviewConfig()` itself are tracked for removal in
-2.0.0 in `docs/BACKLOG.md` (removing them is a major change under `docs/SEMVER.md`).
+2.0.0 in `docs/backlog.md` (removing them is a major change under `docs/development.md` → "Versioning").
 
 **A card that generates another card's config must not pass explicit `undefined` for a field the
 target card defaults via `{ default, ...config }` in its own `setConfig()`.** Object spread copies
@@ -380,7 +380,7 @@ don't necessarily offer the same API:
 - **`ha-expansion-panel` has a real, native `no-collapse` boolean attribute** (confirmed against
   `ha-expansion-panel.ts`) — set alongside `expanded` to make a panel permanently open, no click
   target to collapse it at all. Used on every environment-order/exclude section as of this writing,
-  a maintainer decision revisited more than once already (see `docs/EDITOR_DESIGN.md` rule 4) —
+  a maintainer decision revisited more than once already (see `docs/editor-design.md` rule 4) —
   removing just this one attribute is the entire change needed if that decision changes again,
   nothing else about how the section renders depends on it.
 - HA's `ha-assist-chip`/`ha-filter-chip`/`ha-input-chip` don't fit a plain static informational
@@ -950,7 +950,7 @@ curve) than continuing to derive a constant-pixel gap analytically within the ar
 A fast lookup for every class actually in use across the repo, built directly against the current
 codebase (every shared class below confirmed genuinely referenced in at least one card's own
 template — none are stale/leftover). Complements §11's own prose reasoning for *why* certain
-decisions were made; this is a flatter "what does this class do" table. `docs/STYLING.md`'s own
+decisions were made; this is a flatter "what does this class do" table. `docs/styling.md`'s own
 "card_mod hooks" section is the subset of these meant as stable, public targeting points for
 end-user customization — this table is the fuller, internal-development reference, including
 classes not meant as public hooks at all (state-color modifiers, card-specific chart/layout
