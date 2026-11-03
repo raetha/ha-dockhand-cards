@@ -10,11 +10,18 @@ and [Unreleased] is the notes of the current test build.
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-11-03
+
 ### Added
 
 - **Test builds.** Upcoming changes are now published as test builds (pre-releases such as
   `v1.5.1-dev.42`) that HACS can install once the Dockhand Cards **Pre-release** switch is turned
   on; the README's new "Test builds" section explains how, and how to go back.
+
+### Changed
+
+- The README's build badge works again: HACS shows the README of the latest release, whose badge
+  pointed at a workflow that no longer exists and so showed as failing.
 
 ### Internal
 
@@ -616,7 +623,8 @@ so a user's own icon customization is reflected automatically.
   from `hass.language`. Custom mode's section-checkbox labels specifically are English-only for
   now — see `docs/BACKLOG.md`.
 
-[Unreleased]: https://github.com/raetha/ha-dockhand-cards/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/raetha/ha-dockhand-cards/compare/v1.5.1...HEAD
+[1.5.1]: https://github.com/raetha/ha-dockhand-cards/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/raetha/ha-dockhand-cards/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/raetha/ha-dockhand-cards/compare/v1.3.2...v1.4.0
 [1.3.2]: https://github.com/raetha/ha-dockhand-cards/compare/v1.3.1...v1.3.2
