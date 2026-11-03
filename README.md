@@ -59,6 +59,22 @@ This repository is available in the default HACS catalog.
 4. When updating, replace both files and add or bump a version on the resource URL, e.g.
    `/local/ha-dockhand-cards.js?v=1.4.0`, so browsers load the new files
 
+### Test builds
+
+Upcoming changes are published as test builds (pre-releases such as `v1.5.1-dev.42`) before
+they're released, for anyone willing to try them early. To get them through HACS:
+
+1. Go to **Settings → Devices & services → Entities**, search for the Dockhand Cards
+   **Pre-release** switch that HACS creates (it's disabled by default), and enable it
+2. Turn the switch on. HACS then offers the latest test build as an update; install it and
+   refresh your browser
+3. To go back to releases, turn the switch off, then in HACS open Dockhand Cards, choose **⋮ →
+   Redownload** and pick the latest release
+
+The browser console shows which version is loaded (`HA-DOCKHAND-CARDS v1.5.1-dev.42`); include it
+when reporting a problem. The changes in a test build are listed in its
+[release notes](https://github.com/raetha/ha-dockhand-cards/releases).
+
 ---
 
 ## Cards

@@ -44,7 +44,7 @@ gotchas (not "this got fixed", but "here's a pattern worth remembering") belong 
 
 - **Real-browser / screen-reader verification** of the keyboard interaction pattern (`tabindex`
   + `role="button"` + `@keydown` on non-`<button>` elements) — implemented per WAI-ARIA guidance
-  and checked automatically by `tools/screenshot-harness/a11y.py`, but not yet manually verified
+  and checked automatically by `scripts/screenshot-harness/a11y.py`, but not yet manually verified
   against NVDA/VoiceOver, which is what tells you whether the cards actually make sense read
   aloud.
 

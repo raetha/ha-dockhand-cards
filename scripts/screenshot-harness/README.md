@@ -12,7 +12,7 @@ that's the point of it existing as a separate tool rather than screenshotting a 
 ## Setup (one-time)
 
 ```bash
-cd tools/screenshot-harness
+cd scripts/screenshot-harness
 npm install                        # installs @mdi/js (icon path data) and @fontsource/roboto
 pip install playwright
 python3 -m playwright install chromium
@@ -23,13 +23,13 @@ python3 -m playwright install chromium
 ```bash
 # from the repo root
 npm run build                      # produces dist/ha-dockhand-cards.js
-cp dist/*.js tools/screenshot-harness/      # card and editor bundles
-cd tools/screenshot-harness
+cp dist/*.js scripts/screenshot-harness/      # card and editor bundles
+cd scripts/screenshot-harness
 python3 -m http.server 8931 &
 python3 screenshot.py
 ```
 
-Screenshots land in `tools/screenshot-harness/out/`. `python3 screenshot.py --light` produces the
+Screenshots land in `scripts/screenshot-harness/out/`. `python3 screenshot.py --light` produces the
 `-light.png` variants. A `CARDS` entry can carry an options dict: `theme` fixes it to one theme
 (rendered only by the default run, under its plain file name) and `backdrop` renders it on HA's
 dashboard background instead of a transparent one. Overview uses both, since its column titles sit
@@ -130,7 +130,7 @@ If you add a new `mdi:xxx` icon anywhere in `src/`, `icon-paths.json` needs rege
 icon renders blank in screenshots:
 
 ```bash
-cd tools/screenshot-harness
+cd scripts/screenshot-harness
 node extract-icons.mjs
 ```
 

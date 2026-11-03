@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 // Release helpers for CI (.github/workflows/build.yml) and release pull requests.
 //
-//   node tools/release.mjs check                      changelog has [Unreleased] and a section
+//   node scripts/release.mjs check                      changelog has [Unreleased] and a section
 //                                                     for package.json's version
-//   node tools/release.mjs version                    package.json's version
-//   node tools/release.mjs dev-version <run> <tagged> the test build's version: the next patch
+//   node scripts/release.mjs version                    package.json's version
+//   node scripts/release.mjs dev-version <run> <tagged> the test build's version: the next patch
 //                                                     once the current version is tagged
 //                                                     (<tagged> = true|false), so HACS offers
 //                                                     it as an update over the installed release
-//   node tools/release.mjs notes <version> [--test-build <run>]
+//   node scripts/release.mjs notes <version> [--test-build <run>]
 //                                                     release notes: that changelog section plus
 //                                                     install text (version "Unreleased" for
 //                                                     test builds)
