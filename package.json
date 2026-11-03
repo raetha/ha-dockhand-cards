@@ -41,7 +41,7 @@
     "rollup": "^4.64.5",
     "tslib": "^2.6.3",
     "typescript": "^6.0.3",
-    "vitest": "^5.0.4"
+    "vitest": "^5.0.5"
   },
   "overrides": {
     "minimatch": "^11.0.1"
