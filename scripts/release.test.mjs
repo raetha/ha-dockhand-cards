@@ -30,9 +30,11 @@ describe('release tool', () => {
     expect(s.get('1.0.0')).toBe('- First.');
   });
 
-  it('requires [Unreleased] and a section for the current version', () => {
+  it('requires [Unreleased], and a dated section only for a release', () => {
     expect(check(CHANGELOG, '1.1.0')).toEqual([]);
-    expect(check(CHANGELOG, '1.2.0')).toHaveLength(1);
+    expect(check(CHANGELOG, '1.2.0')).toEqual([]); // expected next version on dev
+    expect(check(CHANGELOG, '1.1.0', true)).toEqual([]);
+    expect(check(CHANGELOG, '1.2.0', true)).toHaveLength(1); // undated release
     expect(check(CHANGELOG.replace('## [Unreleased]', ''), '1.1.0')).toHaveLength(1);
   });
 
