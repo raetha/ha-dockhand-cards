@@ -187,10 +187,12 @@ Adopted `try/` work is squash-merged into `dev`; ideas dropped for good get a li
 
 Day to day:
 
-1. Branch from `dev` (or commit to it directly for small changes), add the `[Unreleased]` line, run
-   `npm run verify`.
-2. Open a pull request into `dev`; squash-merge it once CI is green.
-3. Install the test build from HACS to try it on a real dashboard.
+1. Claude runs `dev`: small, safe changes are committed to it directly; anything else goes on a
+   `try/<topic>` branch with a pull request into `dev`, which Claude squash-merges once CI is
+   green. Either way the `[Unreleased]` line comes with the change and `npm run verify` passes.
+2. The owner installs the test build from HACS to try it on a real dashboard.
+3. `dev` stays releasable: a change that needs the owner's decision first waits on its `try/`
+   branch (a draft pull request) until they've seen it.
 
 Releasing (the owner decides when):
 
@@ -217,7 +219,12 @@ so a version is released exactly once, when its tag doesn't exist yet.
   fix for a while, so they show as a warning rather than failing every run.
 - HACS validation (`hacs/action`, category plugin).
 
+- `CI passed`: a gate job that passes only when every check above did. It's the one status check
+  the `main` ruleset requires, so jobs can change without touching the ruleset.
+
 Then, on a push to `main`, the release and sync-dev jobs; on a push to `dev`, the test build.
+Every checkout uses `persist-credentials: false` except sync-dev's, the one job that pushes with
+git, so the workflow token isn't left on disk for dependencies' scripts or tests to read.
 
 ### Test builds
 
@@ -238,7 +245,8 @@ The owner sets these (sessions can't read most of them):
 
 - **Settings → Rules → Rulesets:** one for `main` (target: the default branch), **enforcement
   Active**: restrict deletions, block force pushes, require a pull request before merging with
-  squash as the only allowed method. No required approvals.
+  squash as the only allowed method. No required approvals. **Require status checks:**
+  `CI passed`. **Require code scanning results:** CodeQL.
 - **Settings → General → Pull Requests:** squash merging only; **Automatically delete head
   branches** on.
 - **Settings → Branches:** a classic branch protection rule for `dev`: nothing required,
