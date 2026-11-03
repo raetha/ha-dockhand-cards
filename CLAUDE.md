@@ -18,10 +18,12 @@ before changing anything. This file is the short version.
 - Every change adds a line under `## [Unreleased]` in `CHANGELOG.md`, written for people installing
   the cards (`docs/development.md` → "Changelog"; non-user-facing changes under `### Internal`).
   Released sections are frozen.
-- **Never bump a version or date the changelog unless the owner asks.** That's the release pull
-  request (`dev` → `main`): it sets `package.json`'s version and dates the section; CI then tags,
-  publishes the release, and resets `dev` to `main`.
-- Each push to `dev` publishes a test build (`v<next patch>-dev.<run>` pre-release) that the owner
+- **`dev` holds the expected next version:** with the first change after a release, set
+  `package.json` (`npm version X.Y.Z --no-git-tag-version`) to what that change calls for under
+  the semver policy, and raise it when a later change calls for more; say what and why in a line.
+  Never date the changelog or open the release pull request unless the owner asks: that pull
+  request (`dev` → `main`) dates the section; CI then tags, publishes the release, and resets `dev`.
+- Each push to `dev` publishes a test build (`v<version>-dev.<run>` pre-release) that the owner
   installs through HACS's Pre-release switch to test on a real dashboard.
 - The cards and ha-dockhand are tightly coupled: when fixing a card problem, consider whether the
   integration should change too, and fix the same bug everywhere it occurs.
