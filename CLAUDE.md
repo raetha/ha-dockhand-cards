@@ -57,3 +57,5 @@ before changing anything. This file is the short version.
   Dependabot ignores it until then.
 - Sessions can't read Actions settings, secrets or security alerts through the proxy: ask the
   owner. A "full review" follows the checklist at the top of `docs/audits.md`.
+- HACS not showing the cards' icon in its store panel is an upstream HACS bug
+  (hacs/integration#5171, #5223): nothing to fix here.
