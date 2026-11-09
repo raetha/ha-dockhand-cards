@@ -16,6 +16,12 @@ and [Unreleased] is the notes of the current test build.
   version numbers (`1.5.2`, test builds such as `1.5.3-dev.42`), like most other HACS
   repositories. Earlier releases keep their `v` tags.
 
+### Fixed
+
+- Updates card: ready for ha-dockhand 2.0, which keeps each environment's Update all button and
+  makes it unavailable while nothing can be updated. An unavailable one is now ignored, so the card
+  doesn't offer Update all, or list an environment with nothing pending, because of it.
+
 ## [1.5.1] - 2026-11-03
 
 ### Added
