@@ -101,7 +101,10 @@ export type StackTranslationKey = keyof typeof STACK_TRANSLATION_KEYS;
 // canonical source for the timestamp value itself.
 export const SCHEDULE_TRANSLATION_KEYS = {
   nextRun: 'next_run',
-  lastStatus: 'last_status'
+  lastStatus: 'last_status',
+  // ha-dockhand 2.0+, only for schedule types Dockhand can run or pause.
+  run: 'schedule_run',
+  enabled: 'schedule_enabled'
 } as const;
 
 export type ScheduleTranslationKey = keyof typeof SCHEDULE_TRANSLATION_KEYS;

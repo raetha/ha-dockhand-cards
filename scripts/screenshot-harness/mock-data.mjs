@@ -486,6 +486,14 @@ function buildSchedules(addDevice, addEntity) {
         ...(errorMessage ? { error_message: errorMessage } : {})
       })
     );
+    // ha-dockhand 2.0's Run now and Enabled (not offered for env reports
+    // and stack deploys, or Enabled for container updates and git syncs).
+    if (type !== 'env_report' && type !== 'stack_deploy') {
+      addEntity(entity(`button.${devId}_run`, devId, 'schedule_run', 'unknown'));
+    }
+    if (type !== 'container_update' && type !== 'git_stack_sync') {
+      addEntity(entity(`switch.${devId}_enabled`, devId, 'schedule_enabled', enabled ? 'on' : 'off'));
+    }
   }
 
   schedule({

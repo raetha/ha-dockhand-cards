@@ -4,6 +4,7 @@ import type { EnvironmentDeviceOption } from '../common/device-utils';
 
 function row(overrides: Partial<Parameters<typeof sortStackRows>[0][number]> = {}) {
   return {
+    deviceId: 'stack_device',
     name: 'stack',
     type: 'compose',
     status: 'running',

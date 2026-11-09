@@ -159,7 +159,8 @@ export class DockhandSchedulesCardEditor extends LitElement implements LovelaceC
             type: 'grid',
             schema: [
               { name: 'show_settings_link', default: true, selector: { boolean: {} } },
-              { name: 'show_stats', default: true, selector: { boolean: {} } }
+              { name: 'show_stats', default: true, selector: { boolean: {} } },
+              { name: 'show_controls', default: false, selector: { boolean: {} } }
             ]
           },
           // Checkboxes under one shared heading (computeLabel's own
@@ -286,6 +287,8 @@ export class DockhandSchedulesCardEditor extends LitElement implements LovelaceC
         return t(this._hass, 'show_settings_link');
       case 'show_stats':
         return t(this._hass, 'show_stats');
+      case 'show_controls':
+        return t(this._hass, 'show_schedule_controls');
       case 'visible_badges':
         return t(this._hass, 'visible_badges_label');
       case 'group_by':

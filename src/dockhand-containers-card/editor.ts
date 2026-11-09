@@ -85,6 +85,7 @@ export class DockhandContainersCardEditor extends LitElement implements Lovelace
         schema: [
           ...(this.hideTitle ? [] : [cardNameFieldSchema(representativeEntityId, [{ type: 'device' }])]),
           { name: 'show_settings_link', default: true, selector: { boolean: {} } },
+          { name: 'show_controls', default: false, selector: { boolean: {} } },
           {
             name: 'visible_badges',
             type: 'multi_select',
@@ -171,6 +172,8 @@ export class DockhandContainersCardEditor extends LitElement implements Lovelace
         return t(this._hass, 'title_override');
       case 'show_settings_link':
         return t(this._hass, 'show_settings_link');
+      case 'show_controls':
+        return t(this._hass, 'show_row_controls');
       case 'visible_badges':
         return t(this._hass, 'visible_badges_label');
       case 'group_by':

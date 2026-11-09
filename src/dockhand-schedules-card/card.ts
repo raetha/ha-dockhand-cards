@@ -20,6 +20,7 @@ import { resolveIncludedOrdered, groupRowsByEnvironment, resolveEffectiveGroupBy
 import { t } from '../common/i18n-card';
 import type { DockhandSchedulesCardConfig, ScheduleSortBy, ScheduleGroupBy } from './types';
 import { resolveVisibleBadges } from './types';
+import { renderScheduleControls, resolveScheduleControls } from '../common/device-controls';
 import { cardStyles } from './styles';
 
 // Status values per Dockhand's own ScheduleStatus type (db.ts) — the richer
@@ -59,6 +60,7 @@ function humanizeType(type: string): string {
 
 export interface ScheduleRow {
   entityId: string;
+  deviceId: string;
   name: string;
   type: string;
   environment?: string;
@@ -337,6 +339,7 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
       const instanceLabel = environmentDeviceId === undefined ? globalInstanceLabels.get(device.id) : undefined;
       rows.push({
         entityId: found.lastStatus.entityId,
+        deviceId: device.id,
         name: attrs.name || device.name_by_user || device.name || device.id,
         type: attrs.schedule_type || 'schedule',
         environment: attrs.environment,
@@ -483,9 +486,12 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
         ? t(this._hass, 'schedule_status_running')
         : formatRelativeTime(row.nextRunIso, this._hass);
 
+    const controls = this._config?.show_controls && this._hass ? resolveScheduleControls(this._hass, row.deviceId) : null;
+    const showNextRun = visibleBadges.includes('next_run') && nextRunText;
+
     return html`
-      <div class="row clickable" tabindex="0" role="button" @click=${() => this._moreInfo(row.entityId)} @keydown=${onKeydownActivate(() => this._moreInfo(row.entityId))}>
-        <div class="row-left">
+      <div class="row clickable" @click=${() => this._moreInfo(row.entityId)}>
+        <div class="row-left row-target" tabindex="0" role="button" @keydown=${onKeydownActivate(() => this._moreInfo(row.entityId))}>
           <ha-icon
             class="row-icon ${statusIcon.cls}"
             icon=${statusIcon.icon}
@@ -495,7 +501,12 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
           ${showEnvironment && row.environment ? html`<span class="label-pill">${row.environment}</span>` : nothing}
           ${showInstanceLabel && row.instanceLabel ? html`<span class="label-pill">${row.instanceLabel}</span>` : nothing}
         </div>
-        ${visibleBadges.includes('next_run') && nextRunText ? html`<span class="row-right">${nextRunText}</span>` : nothing}
+        ${showNextRun || controls
+          ? html`<div class="row-right">
+              ${showNextRun ? html`<span>${nextRunText}</span>` : nothing}
+              ${controls ? renderScheduleControls(this, this._hass, controls, row.name) : nothing}
+            </div>`
+          : nothing}
       </div>
     `;
   }

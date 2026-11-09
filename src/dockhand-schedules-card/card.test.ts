@@ -4,6 +4,7 @@ import { sortScheduleRows, groupScheduleRows, resolveGlobalInstanceLabels, type 
 function row(overrides: Partial<ScheduleRow> & { name: string }): ScheduleRow {
   return {
     entityId: `sensor.${overrides.name}`,
+    deviceId: `device_${overrides.name}`,
     type: 'container_update',
     enabled: true,
     status: 'success',

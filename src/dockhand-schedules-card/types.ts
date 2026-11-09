@@ -30,6 +30,8 @@ export interface DockhandSchedulesCardConfig extends LovelaceCardConfig {
    * system like the Environment card's custom_sections: this card only
    * ever has the one optional section. */
   show_stats?: boolean;
+  /** Run now and enable / disable on each row; off unless set. */
+  show_controls?: boolean;
   /** Which optional per-row details show — same shape as Stacks/
    * Containers' own visible_badges (checkboxes under one shared "Row
    * details" heading, not standalone toggles — see docs/editor-design.md
