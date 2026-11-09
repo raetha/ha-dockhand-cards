@@ -4,6 +4,7 @@ import type { EnvironmentDeviceOption } from '../common/device-utils';
 
 function row(overrides: Partial<Parameters<typeof sortContainerRows>[0][number]> = {}) {
   return {
+    deviceId: 'container_device',
     name: 'container',
     status: 'running',
     environment: 'Nebula',

@@ -10,10 +10,17 @@ and [Unreleased] is the notes of the current test build.
 
 ## [Unreleased]
 
+### Added
+
+- **Controls on list rows** — a **Show controls** option, off by default, on the Stacks and
+  Containers cards (start or stop, and restart while running, asking before stopping or
+  restarting) and the Schedules card (**Run now**, which asks first, and enable/disable). Schedule
+  controls need ha-dockhand 2.0.0 or later.
+
 ### Changed
 
 - Versions show without a leading "v": HACS shows release tags, which from this release are plain
-  version numbers (`1.5.2`, test builds such as `1.5.3-dev.42`), like most other HACS
+  version numbers (`1.6.0`, test builds such as `1.6.1-dev.42`), like most other HACS
   repositories. Earlier releases keep their `v` tags.
 
 ### Fixed

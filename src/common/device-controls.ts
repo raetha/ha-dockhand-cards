@@ -7,6 +7,7 @@ import type { HomeAssistant } from './ha-types';
 import { findPrimaryEntityByDomain, resolveEntities } from './entity-resolver';
 import { renderIcon } from './icon';
 import { t } from './i18n-card';
+import { SCHEDULE_TRANSLATION_KEYS } from './const';
 
 declare global {
   interface HASSDomEvents {
@@ -23,6 +24,11 @@ declare global {
     };
   }
 }
+
+const SCHEDULE_CONTROL_KEYS = {
+  run: SCHEDULE_TRANSLATION_KEYS.run,
+  enabled: SCHEDULE_TRANSLATION_KEYS.enabled
+} as const;
 
 const DEVICE_CONTROL_KEYS = {
   restart: 'restart',
@@ -76,7 +82,7 @@ function deployLabel(hass: HomeAssistant, deviceId: string, state: HassEntity): 
 /** Routed through HA's own action handler rather than hass.callService so
  * stop/restart get HA's native confirmation dialog, and a failure surfaces
  * as HA's standard error toast (with ha-dockhand's translated message). */
-function performAction(host: HTMLElement, action: string, entityId: string, confirmText?: string): void {
+export function performAction(host: HTMLElement, action: string, entityId: string, confirmText?: string): void {
   fireEvent(host, 'hass-action', {
     config: {
       tap_action: {
@@ -124,4 +130,61 @@ function renderDeploy(host: HTMLElement, hass: HomeAssistant | undefined, deploy
     title: action,
     onClick: () => performAction(host, 'button.press', deploy.entityId, t(hass, 'control_deploy_confirm', { name, action }))
   });
+}
+
+/** The same controls as renderDeviceControls, as icons only, for a list
+ * card's row: start or stop, and restart while running. A stack's deploy
+ * stays on the Stack card, where its label says which kind it is. */
+export function renderRowControls(host: HTMLElement, hass: HomeAssistant | undefined, controls: DeviceControls, name: string): TemplateResult {
+  const { entityId, isOn } = controls.running;
+  const restartEntityId = controls.restartEntityId;
+  const button = (icon: string, label: string, onClick: () => void) => renderIcon({ baseClass: 'row-icon row-control', icon, title: label, onClick });
+  return html`
+    ${isOn
+      ? button('mdi:stop', t(hass, 'control_stop'), () => performAction(host, 'switch.turn_off', entityId, t(hass, 'control_stop_confirm', { name })))
+      : button('mdi:play', t(hass, 'control_start'), () => performAction(host, 'switch.turn_on', entityId))}
+    ${restartEntityId
+      ? button('mdi:restart', t(hass, 'control_restart'), () => performAction(host, 'button.press', restartEntityId, t(hass, 'control_restart_confirm', { name })))
+      : nothing}
+  `;
+}
+
+export interface ScheduleControls {
+  runEntityId: string | null;
+  enabled: { entityId: string; isOn: boolean } | null;
+}
+
+/** A schedule's Run now button and Enabled switch, each only when
+ * ha-dockhand offers it for the schedule's type and it's available. */
+export function resolveScheduleControls(hass: HomeAssistant, deviceId: string): ScheduleControls | null {
+  const { found } = resolveEntities(hass, deviceId, SCHEDULE_CONTROL_KEYS, ['run', 'enabled']);
+  const usable = (e: { state: HassEntity } | undefined) => e && e.state.state !== 'unavailable';
+  const runEntityId = usable(found.run) ? found.run!.entityId : null;
+  const enabled = usable(found.enabled) ? { entityId: found.enabled!.entityId, isOn: found.enabled!.state.state === 'on' } : null;
+  return runEntityId || enabled ? { runEntityId, enabled } : null;
+}
+
+/** Run now asks first: a schedule can prune, back up or update. Turning
+ * one on or off doesn't. Run now goes last, so it lines up down the card:
+ * not every schedule has the toggle. */
+export function renderScheduleControls(host: HTMLElement, hass: HomeAssistant | undefined, controls: ScheduleControls, name: string): TemplateResult {
+  const { runEntityId, enabled } = controls;
+  return html`
+    ${enabled
+      ? renderIcon({
+          baseClass: 'row-icon row-control',
+          icon: enabled.isOn ? 'mdi:toggle-switch' : 'mdi:toggle-switch-off-outline',
+          title: t(hass, enabled.isOn ? 'control_disable_schedule' : 'control_enable_schedule'),
+          onClick: () => performAction(host, enabled.isOn ? 'switch.turn_off' : 'switch.turn_on', enabled.entityId)
+        })
+      : nothing}
+    ${runEntityId
+      ? renderIcon({
+          baseClass: 'row-icon row-control',
+          icon: 'mdi:play',
+          title: t(hass, 'control_run_now'),
+          onClick: () => performAction(host, 'button.press', runEntityId, t(hass, 'control_run_now_confirm', { name }))
+        })
+      : nothing}
+  `;
 }

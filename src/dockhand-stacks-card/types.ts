@@ -39,6 +39,8 @@ export interface DockhandStacksCardConfig extends LovelaceCardConfig {
    * see common/card-name.ts. */
   name?: string | EntityNameItem | EntityNameItem[];
   show_settings_link?: boolean;
+  /** Start / stop / restart on each row; off unless set. */
+  show_controls?: boolean;
   visible_badges?: StacksCardBadge[];
   group_by?: StacksGroupBy;
   sort_by?: StacksSortBy;

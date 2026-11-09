@@ -17,6 +17,7 @@ import { HEALTH_ICON, HEALTH_STATUS_CLASS } from '../common/const';
 import { renderVersionTagPill, type NewerVersionTag } from '../common/version-tag';
 import { updateKindIcon, updateStatus, type UpdateStatus } from '../common/update-kind';
 import { DEFAULT_CONTAINERS_BADGES, type DockhandContainersCardConfig, type ContainersGroupBy, type ContainersSortBy } from './types';
+import { renderRowControls, resolveDeviceControls } from '../common/device-controls';
 import { cardStyles } from './styles';
 
 // Matches Dockhand's own statusTypes color list (src/routes/containers/+page.svelte).
@@ -45,6 +46,7 @@ function statusRank(status: string): number {
 }
 
 interface ContainerRow {
+  deviceId: string;
   name: string;
   status: string;
   environment: string;
@@ -192,6 +194,7 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
           const update = findPrimaryEntityByDomain(this._hass!, d.id, 'update');
           const status = updateStatus(update?.state);
           return {
+            deviceId: d.id,
             name: found.state.state.attributes.name || d.name_by_user || d.name || d.id,
             status: found.state.state.state,
             environment: env.name,
@@ -260,6 +263,14 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
     `;
   }
 
+  /** Off unless show_controls is set, so a stray tap on a list doesn't
+   * stop anything. */
+  private _renderControls(row: ContainerRow): TemplateResult | typeof nothing {
+    if (!this._config?.show_controls || !this._hass) return nothing;
+    const controls = resolveDeviceControls(this._hass, row.deviceId, true);
+    return controls ? renderRowControls(this, this._hass, controls, row.name) : nothing;
+  }
+
   private _renderRow(row: ContainerRow): TemplateResult {
     const found = row.found;
     const st = found.state!.state.state;
@@ -308,6 +319,7 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
                 onClick: () => this._moreInfo(memId)
               })
             : nothing}
+          ${this._renderControls(row)}
         </div>
       </div>
     `;

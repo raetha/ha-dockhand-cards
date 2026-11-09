@@ -38,6 +38,8 @@ export interface DockhandContainersCardConfig extends LovelaceCardConfig {
    * see common/card-name.ts. */
   name?: string | EntityNameItem | EntityNameItem[];
   show_settings_link?: boolean;
+  /** Start / stop / restart on each row; off unless set. */
+  show_controls?: boolean;
   visible_badges?: ContainersCardBadge[];
   group_by?: ContainersGroupBy;
   sort_by?: ContainersSortBy;

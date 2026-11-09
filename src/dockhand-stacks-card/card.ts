@@ -14,6 +14,7 @@ import { stateLabel } from '../common/state-label';
 import { renderSettingsLink, renderIcon, onKeydownActivate } from '../common/icon';
 import type { StackTranslationKey } from '../common/const';
 import { DEFAULT_STACKS_BADGES, type DockhandStacksCardConfig, type StacksGroupBy, type StacksSortBy } from './types';
+import { renderRowControls, resolveDeviceControls } from '../common/device-controls';
 import { cardStyles } from './styles';
 
 // Matches Dockhand's own stackStatusTypes color list (src/routes/stacks/+page.svelte).
@@ -40,6 +41,7 @@ function statusRank(status: string): number {
 }
 
 interface StackRow {
+  deviceId: string;
   name: string;
   type: string;
   status: string;
@@ -184,6 +186,7 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
           if (!found.status) return null;
           const attrs = found.status.state.attributes;
           return {
+            deviceId: d.id,
             name: attrs.name || d.name_by_user || d.name || d.id,
             type: attrs.type || d.model || 'Stack',
             status: found.status.state.state,
@@ -250,6 +253,14 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
     `;
   }
 
+  /** Off unless show_controls is set, so a stray tap on a list doesn't
+   * stop anything. */
+  private _renderControls(row: StackRow): TemplateResult | typeof nothing {
+    if (!this._config?.show_controls || !this._hass) return nothing;
+    const controls = resolveDeviceControls(this._hass, row.deviceId, true);
+    return controls ? renderRowControls(this, this._hass, controls, row.name) : nothing;
+  }
+
   private _renderRow(row: StackRow): TemplateResult {
     const found = row.found;
     const status = found.status!.state.state;
@@ -290,6 +301,7 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
                 onClick: () => this._moreInfo(containerCountId)
               })
             : nothing}
+          ${this._renderControls(row)}
         </div>
       </div>
     `;

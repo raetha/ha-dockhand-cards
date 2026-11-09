@@ -211,6 +211,7 @@ environments_order: [] # environment display order; all environments are include
 exclude_device_ids: [] # environments to leave out
 name: null # optional — Composed or Custom, same as every other card's Name field
 show_settings_link: true # link to view stacks in Dockhand
+show_controls: false # start/stop and restart buttons on each row
 visible_badges: [container_count, updates, type] # per-row details; add `environment` for an environment pill
 group_by: environment # none | environment | status | type
 sort_by: name # name | status
@@ -220,6 +221,10 @@ Every stack in one environment, several, or all of them, one compact row each: s
 container count and pending updates. Each of those details can be turned off under **Row details**
 in the editor. Choosing environments works the same way on every multi-environment card — see
 [Choosing environments](#choosing-environments) below.
+
+**Show controls** adds start or stop, and restart while running, to each row, asking before
+stopping or restarting. It's off by default so a stray tap on a list can't stop anything. System
+stacks get none, as on the Stack card; redeploying stays on the Stack card.
 
 Older configs using a single `device_id` keep working as before.
 
@@ -236,6 +241,7 @@ environments_order: [] # environment display order; all environments are include
 exclude_device_ids: [] # environments to leave out
 name: null # optional — Composed or Custom, same as every other card's Name field
 show_settings_link: true # link to view containers in Dockhand
+show_controls: false # start/stop and restart buttons on each row
 visible_badges: [health, updates, cpu, memory] # per-row details; add `environment` for an environment pill
 group_by: environment # none | environment | status
 sort_by: name # name | status
@@ -243,7 +249,7 @@ sort_by: name # name | status
 
 Every container in one environment, several, or all of them, one compact row each: state, health,
 pending updates and CPU/memory (when container stats are enabled). Works like the Stacks card
-above, including **Row details** and older `device_id` configs.
+above, including **Row details**, **Show controls** and older `device_id` configs.
 
 With ha-dockhand 1.11.0 or later, a newer version tag Dockhand has found shows as a tag pill, like
 Dockhand's own containers list: next to the update icon when there's also an update to install, or
@@ -304,6 +310,7 @@ include_global: true # also show global schedules (ones not tied to an environme
 name: null # optional — Composed or Custom, same as every other card's Name field
 show_settings_link: true # link to view schedules in Dockhand
 show_stats: true # row of counts: success, failed, warning, running, queued, skipped, disabled, total
+show_controls: false # Run now and enable/disable buttons on each row
 visible_badges: [next_run, environment] # per-row details (the environment pill is hidden when grouped by environment)
 ```
 
@@ -311,6 +318,11 @@ Every Dockhand schedule — container auto-updates, git stack syncs, update chec
 backups and system jobs — for the environments you choose, with each one's status and next run.
 Grouping schedules by environment needs ha-dockhand 1.9.0 or later; on older releases every
 schedule shows regardless of the environments chosen.
+
+**Show controls** (off by default) adds **Run now**, which asks first, and an enable/disable
+toggle to each row, for the schedules Dockhand offers them on. Container update and Git stack sync
+schedules are turned on and off with the container's and stack's own switches instead, so they
+only get Run now. Needs ha-dockhand 2.0.0 or later.
 
 <p>
   <img src="docs/images/schedules.png" alt="Schedules card, dark theme" width="420">
