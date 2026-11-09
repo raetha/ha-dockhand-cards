@@ -126,6 +126,10 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
 
       const { found } = resolveEnvironmentEntities(this._hass, env.deviceId, ['envBulkUpdate', 'checkUpdates']);
       if (found.checkUpdates) checkUpdatesEntityIds.push(found.checkUpdates.entityId);
+      // ha-dockhand 2.0+ keeps Update all while update entities are on and
+      // makes it unavailable while nothing in the environment can be
+      // updated, so only an available one counts; earlier versions remove it.
+      const bulkButton = found.envBulkUpdate?.state.state === 'unavailable' ? undefined : found.envBulkUpdate;
 
       const containerDevices = getContainerDevicesForEnvironment(this._hass, envDevice);
       const updates: PendingUpdate[] = [];
@@ -146,11 +150,11 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
       }
       const sortedUpdates = sortPendingUpdates(updates);
 
-      if (shouldShowEnvironmentGroup(sortedUpdates, Boolean(found.envBulkUpdate))) {
+      if (shouldShowEnvironmentGroup(sortedUpdates, Boolean(bulkButton))) {
         groups.push({
           envDeviceId: env.deviceId,
           envName: env.name,
-          bulkButtonEntityId: found.envBulkUpdate?.entityId,
+          bulkButtonEntityId: bulkButton?.entityId,
           checkUpdatesEntityId: found.checkUpdates?.entityId,
           updates: sortedUpdates
         });

@@ -215,3 +215,15 @@ describe('Updates card version-tag pill', () => {
     card.remove();
   });
 });
+
+describe('Updates card with an unavailable Update all button', () => {
+  it('leaves Update all out of the header, and the environment out when nothing is pending', async () => {
+    const { hass } = setup();
+    hass.states['button.nebula_update_all'] = makeState({ entity_id: 'button.nebula_update_all', state: 'unavailable' });
+    const card = await mount(hass);
+    expect(() => headerButton(card, /^Update all$/)).toThrow();
+    expect(headerButton(card, /^Check for updates$/)).toBeTruthy();
+    expect(card.shadowRoot!.querySelector('.card-message')?.textContent).toContain('up to date');
+    card.remove();
+  });
+});
