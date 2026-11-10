@@ -46,7 +46,10 @@ and [Unreleased] is the notes of the current test build.
   missing "s"), or open and save it in the editor before updating.
 
 ### Fixed
-
+- **Schedules card: the environment pill showed on every row by default**, though rows are
+  grouped by environment and the editor showed the pill as off.
+- **Schedules card: every Dockhand schedule type has a name in every language**, including
+  container start and stop, backups, repository prune, check and verify, and stack deploy.
 - Updates card: ready for ha-dockhand 2.0, which keeps each environment's Update all button and
   makes it unavailable while nothing can be updated. An unavailable one is now ignored, so the card
   doesn't offer Update all, or list an environment with nothing pending, because of it.

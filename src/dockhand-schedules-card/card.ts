@@ -456,7 +456,8 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
         ? (STATUS_ICON[row.status] ?? { icon: 'mdi:help-circle', cls: 'neutral' as const })
         : { icon: 'mdi:minus-circle-outline', cls: 'neutral' as const };
 
-    const visibleBadges = resolveVisibleBadges(this._config?.visible_badges, this._config?.group_by);
+    // group_by's own default, as the grouping and the editor use.
+    const visibleBadges = resolveVisibleBadges(this._config?.visible_badges, this._config?.group_by ?? 'environment');
     const showEnvironment = visibleBadges.includes('environment');
     // The 'environment' badge is hidden by default once group_by:
     // 'environment' groups rows into per-environment sections already —
