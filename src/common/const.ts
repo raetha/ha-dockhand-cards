@@ -246,6 +246,7 @@ export const HEALTH_STATUS_CLASS: Record<string, string> = {
 export const STACK_STATUS_CLASS: Record<string, string> = {
   running: 'ok',
   partial: 'warn',
+  restarting: 'warn',
   stopped: 'error',
   created: 'neutral'
 };

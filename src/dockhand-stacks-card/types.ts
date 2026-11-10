@@ -1,5 +1,6 @@
 import type { LovelaceCardConfig } from 'custom-card-helpers';
 import type { EntityNameItem } from '../common/ha-types';
+import type { FiltersConfig } from '../common/filters';
 
 /** Each is an independently-toggleable piece of the per-row display —
  * status icon/name always show (they're the row's identity, not
@@ -44,4 +45,8 @@ export interface DockhandStacksCardConfig extends LovelaceCardConfig {
   visible_badges?: StacksCardBadge[];
   group_by?: StacksGroupBy;
   sort_by?: StacksSortBy;
+  /** Which rows show; see common/filters.ts. */
+  filters?: FiltersConfig;
+  /** The "Hidden by filters" line; on unless false. */
+  show_filtered_count?: boolean;
 }

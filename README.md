@@ -225,6 +225,8 @@ show_controls: false # start/stop and restart buttons on each row
 visible_badges: [container_count, updates, type, tags] # per-row details; add `environment` for an environment pill
 group_by: environment # none | environment | status | type
 sort_by: name # name | status
+filters: {} # which rows show — see [Filtering lists](#filtering-lists)
+show_filtered_count: true # a "Hidden by filters" line under a filtered list
 ```
 
 Every stack in one environment, several, or all of them, one compact row each: status, type,
@@ -255,6 +257,8 @@ show_controls: false # start/stop and restart buttons on each row
 visible_badges: [health, updates, cpu, memory, tags] # per-row details; add `environment` for an environment pill
 group_by: environment # none | environment | status
 sort_by: name # name | status
+filters: {} # which rows show — see [Filtering lists](#filtering-lists)
+show_filtered_count: true # a "Hidden by filters" line under a filtered list
 ```
 
 Every container in one environment, several, or all of them, one compact row each: state, health,
@@ -282,6 +286,8 @@ environments_order: [] # environment display order; all environments are include
 exclude_device_ids: [] # environments to leave out
 name: null # optional — Composed or Custom, same as every other card's Name field
 hide_when_no_updates: false # hide the whole card when nothing is pending (still shown while editing)
+filters: {} # which rows show — see [Filtering lists](#filtering-lists)
+show_filtered_count: true # a "Hidden by filters" line under a filtered list
 ```
 
 Every pending container update across the environments you choose, with **Check for updates**
@@ -303,6 +309,10 @@ updates** is on. Needs ha-dockhand 1.11.0 or later.
 Updates are grouped by environment by default; `group_by: none` shows one combined list. Older
 configs using `scope`/`device_id` keep working as before.
 
+With filters set, the header counts the updates listed, and **Update all** isn't offered while
+filters hide some updates, since it updates whole environments. **Hide when no updates** still
+goes by everything pending, so a filtered card with nothing to list stays, saying so.
+
 <p>
   <img src="docs/images/updates.png" alt="Updates card, dark theme" width="420">
   <img src="docs/images/updates-light.png" alt="Updates card, light theme" width="420">
@@ -316,12 +326,13 @@ group_by: environment # none | environment | type | status
 sort_by: status # name | next_run | status
 environments_order: [] # environment display order; all environments are included by default
 exclude_device_ids: [] # environments to leave out
-include_global: true # also show global schedules (ones not tied to an environment)
 name: null # optional — Composed or Custom, same as every other card's Name field
 show_settings_link: true # link to view schedules in Dockhand
 show_stats: true # row of counts: success, failed, warning, running, queued, skipped, disabled, total
 show_controls: false # Run now and enable/disable buttons on each row
 visible_badges: [next_run, environment] # per-row details (the environment pill is hidden when grouped by environment)
+filters: {} # which rows show — see [Filtering lists](#filtering-lists)
+show_filtered_count: true # a "Hidden by filters" line under a filtered list
 ```
 
 Every Dockhand schedule — container auto-updates, git stack syncs, update checks, image prunes,
@@ -333,6 +344,10 @@ schedule shows regardless of the environments chosen.
 toggle to each row, for the schedules Dockhand offers them on. Container update and Git stack sync
 schedules are turned on and off with the container's and stack's own switches instead, so they
 only get Run now. Needs ha-dockhand 2.0.0 or later.
+
+Global schedules (ones not tied to an environment) show by default; the **Where** filter shows
+only those, or leaves them out. Older configs with `include_global: false` keep leaving them out,
+and the editor rewrites them as that filter.
 
 <p>
   <img src="docs/images/schedules.png" alt="Schedules card, dark theme" width="420">
@@ -348,6 +363,43 @@ Every multi-environment card (Stacks, Containers, Updates, Schedules and Overvie
 - **Eye icon** to include or leave out one environment
 - **Target icon** to show only that environment
 - **Show all / Clear** to include every environment, or start from none
+
+### Filtering lists
+
+The Stacks, Containers, Updates and Schedules cards have a **Filters** section in their editors.
+Each filter takes one or more values (a row matching any of them shows) and can be flipped to
+**is not**; set several filters and a row has to pass them all. For example, failed containers
+that aren't in a stack:
+
+```yaml
+filters:
+  state: [exited_error, dead]
+  stack: ["(none)"] # not in a stack
+  tags: { not: [infra] } # "is not"
+```
+
+| Card | Filter | Values |
+| --- | --- | --- |
+| Containers | `state` | `running`, `paused`, `restarting`, `created`, `exited_ok`, `exited_error`, `dead` (the exited ones need ha-dockhand 2.0.0's `exit_code`) |
+| | `health` | `healthy`, `unhealthy`, `starting`, `(none)` for no health check |
+| | `stack` | a stack name, or `(none)` for containers not in a stack |
+| | `update` | `up_to_date`, `installable`, `tag` (newer tag), `pinned` (pinned digest), `held` |
+| | `tags` | a Dockhand tag, or `(none)` |
+| Stacks | `status` | `running`, `partial`, `restarting`, `stopped`, `created` |
+| | `type` | `internal`, `git`, `untracked` |
+| | `updates` | `available`, `none` |
+| | `git_sync` | `synced`, `syncing`, `pending`, `error` |
+| | `tags` | a Dockhand tag, or `(none)` |
+| Updates | `update`, `stack`, `tags` | as on the Containers card |
+| Schedules | `type` | a Dockhand schedule type, such as `container_update` or `image_prune` |
+| | `last_result` | `success`, `failed`, `warning`, `error`, `running`, `queued`, `skipped`, `cancelled`, `stale`, or `(none)` for never run |
+| | `enabled` | `enabled`, `disabled` |
+| | `origin` | `system` (Dockhand's own), `user` |
+| | `scope` | `environment`, `global` |
+
+A filtered card says when nothing matches, and shows how many rows filters hide unless
+`show_filtered_count: false`. In the Overview card, filters are set per section like its other
+settings.
 
 ### Dockhand Overview Card
 

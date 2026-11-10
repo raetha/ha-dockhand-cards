@@ -13,31 +13,28 @@ import type { DockhandStacksCardConfig } from '../dockhand-stacks-card/types';
 import type { DockhandContainersCardConfig } from '../dockhand-containers-card/types';
 import type { DockhandUpdatesCardConfig } from '../dockhand-updates-card/types';
 import type { DockhandSchedulesCardConfig } from '../dockhand-schedules-card/types';
-import { DEFAULT_SECTION_ORDER, enabledSections, type DockhandOverviewCardConfig, type OverviewSection } from './types';
+import { DEFAULT_SECTION_ORDER, enabledSections, type DockhandOverviewCardConfig, type EnvironmentOverride, type OverviewSection } from './types';
 import { cardStyles } from './styles';
 import { t } from '../common/i18n-card';
 
-/** Resolves one generated child card's field: a per-environment override
- * wins if set, otherwise the section-wide global default if set,
- * otherwise the key is omitted entirely so the child card's own default
- * applies (see the comment above _renderColumn's config objects for why
- * omitting rather than passing `undefined` matters here). Extracted as
- * a shared helper specifically because the previous hand-copied version
- * of this exact ternary chain was written once for `visible_badges`/
- * `title` and never extended when `show_settings_link` became a second
- * override+global-default-capable field — silently leaving every
- * generated Stacks/Containers card's link-visibility permanently at its
- * own default regardless of what Overview's global setting or
- * per-environment override said, and leaving Environment/Vulnerability's
- * own show_settings_link with an override path but no global-default
- * one. A single call site per field, reused for every field that has
- * this exact override→global→omit shape, is what makes adding a 5th one
- * later just another call instead of another hand-copied ternary to
- * remember. */
-export function mergeOverridableField<K extends string, T>(key: K, overrideValue: T | undefined, globalValue: T | undefined): { [P in K]?: T } {
-  const value = overrideValue ?? globalValue;
-  return value !== undefined ? ({ [key]: value } as { [P in K]?: T }) : {};
-}
+/** Section → the prefix of its defaults' keys (§4) and its key in an
+ * environment's override. */
+const SECTION_PREFIX: Record<OverviewSection, string> = {
+  environments: 'environment',
+  vulnerabilities: 'vulnerabilities',
+  stacks: 'stacks',
+  containers: 'containers',
+  updates: 'updates',
+  schedules: 'schedules'
+};
+const OVERRIDE_KEY: Record<OverviewSection, keyof EnvironmentOverride> = {
+  environments: 'environment',
+  vulnerabilities: 'vulnerabilities',
+  stacks: 'stacks',
+  containers: 'containers',
+  updates: 'updates',
+  schedules: 'schedules'
+};
 
 export class DockhandOverviewCard extends LitElement implements LovelaceCard {
   static styles = cardStyles;
@@ -306,100 +303,55 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
     return [...saved, ...rest];
   }
 
+  /** A section's settings for one environment's card: the section's
+   * defaults (`stacks_group_by` → `group_by`), then the environment's
+   * override. The singular `environment_` prefix can't match the plural
+   * `environments_overrides`/`environments_order` (§4). */
+  private _sectionSettings(section: OverviewSection, override: EnvironmentOverride | undefined): Record<string, unknown> {
+    const prefix = `${SECTION_PREFIX[section]}_`;
+    const out: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(this._config ?? {})) {
+      if (key.startsWith(prefix) && value !== undefined) out[key.slice(prefix.length)] = value;
+    }
+    for (const [key, value] of Object.entries(override?.[OVERRIDE_KEY[section]] ?? {})) {
+      if (value !== undefined) out[key] = value;
+    }
+    return out;
+  }
+
   private _renderColumn(deviceId: string, name: string, alignColumns: boolean): TemplateResult {
     const override = this._config?.environments_overrides?.[deviceId];
 
-    // Deliberately NOT `title: override?.environment?.title` etc. for
-    // every field — Environment/Vulnerability cards' own setConfig()
-    // merges `{ show_settings_link: true, ...config }`, so an explicit
-    // `show_settings_link: undefined` key here (present but unset,
-    // whenever there's no override) would overwrite that default with
-    // undefined via the spread, silently hiding the settings link for
-    // every environment. Only including a key when the override actually
-    // sets it — same as any other real "absence means use the default"
-    // config coming from YAML — sidesteps that entirely.
-    const envCfg: DockhandEnvironmentCardConfig = {
-      type: 'custom:dockhand-environment-card',
-      device_id: deviceId,
-      mode: override?.environment?.mode ?? this._config?.environment_mode ?? 'standard',
-      ...(override?.environment?.custom_sections !== undefined ? { custom_sections: override.environment.custom_sections } : this._config?.environment_custom_sections !== undefined ? { custom_sections: this._config.environment_custom_sections } : {}),
-      ...(override?.environment?.name !== undefined ? { name: override.environment.name } : {}),
-      ...mergeOverridableField('show_settings_link', override?.environment?.show_settings_link, this._config?.environment_show_settings_link)
-    };
-    const vulnCfg: DockhandVulnerabilityCardConfig = {
-      type: 'custom:dockhand-vulnerability-card',
-      device_id: deviceId,
-      ...(override?.vulnerabilities?.name !== undefined ? { name: override.vulnerabilities.name } : {}),
-      ...mergeOverridableField('show_settings_link', override?.vulnerabilities?.show_settings_link, this._config?.vulnerabilities_show_settings_link)
-    };
-    // Stacks is now multi-environment-capable (device_id became a legacy
-    // field, kept only so an already-saved single-environment config
-    // keeps working — see that card's own types.ts). Solo'd via
-    // exclude_device_ids here rather than device_id: new code should use
-    // the mechanism every other generated card already does, not the
-    // path that exists solely to keep old configs working.
+    // Each generated card gets its section's defaults (prefixed keys, §4)
+    // with this environment's override on top, whatever fields the card
+    // has: nothing here changes when a card gains one. Keys only appear
+    // when set, so a card's own `{ default, ...config }` defaults hold.
+    const settings = (section: OverviewSection): Record<string, unknown> => this._sectionSettings(section, override);
     const allEnvDeviceIds = getEnvironmentDevices(this._hass!).map((d) => d.deviceId);
-    const stacksCfg: DockhandStacksCardConfig = {
-      type: 'custom:dockhand-stacks-card',
-      exclude_device_ids: allEnvDeviceIds.filter((id) => id !== deviceId),
-      ...(override?.stacks?.name !== undefined ? { name: override.stacks.name } : {}),
-      ...mergeOverridableField('visible_badges', override?.stacks?.visible_badges, this._config?.stacks_visible_badges),
-      ...mergeOverridableField('show_settings_link', override?.stacks?.show_settings_link, this._config?.stacks_show_settings_link),
-      ...mergeOverridableField('group_by', override?.stacks?.group_by, this._config?.stacks_group_by),
-      ...mergeOverridableField('sort_by', override?.stacks?.sort_by, this._config?.stacks_sort_by)
-    };
-    // Containers is now multi-environment-capable too — same reasoning
-    // as stacksCfg above.
-    const containersCfg: DockhandContainersCardConfig = {
-      type: 'custom:dockhand-containers-card',
-      exclude_device_ids: allEnvDeviceIds.filter((id) => id !== deviceId),
-      ...(override?.containers?.name !== undefined ? { name: override.containers.name } : {}),
-      ...mergeOverridableField('visible_badges', override?.containers?.visible_badges, this._config?.containers_visible_badges),
-      ...mergeOverridableField('show_settings_link', override?.containers?.show_settings_link, this._config?.containers_show_settings_link),
-      ...mergeOverridableField('group_by', override?.containers?.group_by, this._config?.containers_group_by),
-      ...mergeOverridableField('sort_by', override?.containers?.sort_by, this._config?.containers_sort_by)
-    };
-    // Updates is now multi-environment-capable too — same reasoning as
-    // stacksCfg/containersCfg above.
-    const updatesCfg: DockhandUpdatesCardConfig = {
-      type: 'custom:dockhand-updates-card',
-      exclude_device_ids: allEnvDeviceIds.filter((id) => id !== deviceId),
-      ...(override?.updates?.name !== undefined ? { name: override.updates.name } : {})
-    };
-    const updatesHideOverride = override?.updates?.hide_when_no_updates;
-    // Computed here so the Updates section renderer below can use it
-    // without recomputing.
-    const hideWhenNoUpdates = updatesHideOverride ?? this._config?.updates_hide_when_no_updates ?? false;
-    // No device_id field to set (Schedules never had one) — solo'd to
-    // this column's environment the same way the standalone editor's own
-    // "solo" action works: every other environment excluded. include_global
-    // forced off regardless of any override/global-default value — a
-    // global (no-environment) schedule would otherwise repeat identically
-    // in every column, since it isn't scoped to any one of them.
-    // allEnvDeviceIds already computed above for stacksCfg — reused here.
-    // Defaults to next_run only (no environment badge) when neither an
-    // override nor a global default is set. Not left to
-    // resolveVisibleBadges' own default (['next_run', 'environment']
-    // unless grouped by environment) — that default is right for the
-    // standalone card, where nothing else already identifies which
-    // environment a row belongs to, but wrong here, where the column
-    // itself already does. The embedded editor's own multi_select never
-    // offers 'environment' as a choice at all when cardIsEmbedded is
-    // set (see Schedules' own editor.ts), so an explicit override or
-    // global default could never actually contain it — this default is
-    // the only place 'environment' needs to be kept out.
-    const effectiveVisibleBadges = override?.schedules?.visible_badges ?? this._config?.schedules_visible_badges ?? ['next_run'];
-    const scheduleCfg: DockhandSchedulesCardConfig = {
+    const others = allEnvDeviceIds.filter((id) => id !== deviceId);
+    const envCfg = { mode: 'standard', ...settings('environments'), type: 'custom:dockhand-environment-card', device_id: deviceId } as DockhandEnvironmentCardConfig;
+    const vulnCfg = { ...settings('vulnerabilities'), type: 'custom:dockhand-vulnerability-card', device_id: deviceId } as DockhandVulnerabilityCardConfig;
+    // The list cards are solo'd to this column's environment the way their
+    // own editors' "solo" action does it: every other environment excluded.
+    const stacksCfg = { ...settings('stacks'), type: 'custom:dockhand-stacks-card', exclude_device_ids: others } as DockhandStacksCardConfig;
+    const containersCfg = { ...settings('containers'), type: 'custom:dockhand-containers-card', exclude_device_ids: others } as DockhandContainersCardConfig;
+    // The Overview hides the Updates card itself (HA's visibility rule can't
+    // reach a nested card, §9), so the card gets neither key.
+    const updatesSettings = settings('updates');
+    const hideWhenNoUpdates = updatesSettings.hide_when_no_updates === true;
+    delete updatesSettings.hide_when_no_updates;
+    delete updatesSettings.visibility;
+    const updatesCfg = { ...updatesSettings, type: 'custom:dockhand-updates-card', exclude_device_ids: others } as DockhandUpdatesCardConfig;
+    // Global schedules belong to no environment, so a column leaves them
+    // out (include_global: false). Rows show next run only by default: the
+    // column already says which environment they're in.
+    const scheduleCfg = {
+      visible_badges: ['next_run'],
+      ...settings('schedules'),
       type: 'custom:dockhand-schedules-card',
-      exclude_device_ids: allEnvDeviceIds.filter((id) => id !== deviceId),
-      include_global: false,
-      visible_badges: effectiveVisibleBadges,
-      ...(override?.schedules?.name !== undefined ? { name: override.schedules.name } : {}),
-      ...mergeOverridableField('show_settings_link', override?.schedules?.show_settings_link, this._config?.schedules_show_settings_link),
-      ...mergeOverridableField('show_stats', override?.schedules?.show_stats, this._config?.schedules_show_stats),
-      ...mergeOverridableField('group_by', override?.schedules?.group_by, this._config?.schedules_group_by),
-      ...mergeOverridableField('sort_by', override?.schedules?.sort_by, this._config?.schedules_sort_by)
-    };
+      exclude_device_ids: others,
+      include_global: false
+    } as DockhandSchedulesCardConfig;
 
     const sections = this._config ? enabledSections(this._orderedSections(), this._config) : [];
     const sectionRenderers: Record<OverviewSection, () => TemplateResult | typeof nothing> = {

@@ -1,5 +1,6 @@
 import type { LovelaceCardConfig } from 'custom-card-helpers';
 import type { EntityNameItem } from '../common/ha-types';
+import type { FiltersConfig } from '../common/filters';
 
 export type ScheduleSortBy = 'name' | 'next_run' | 'status';
 
@@ -62,6 +63,10 @@ export interface DockhandSchedulesCardConfig extends LovelaceCardConfig {
    * environments_order/exclude_device_ids' own default). */
   include_global?: boolean;
   sort_by?: ScheduleSortBy;
+  /** Which rows show; see common/filters.ts. */
+  filters?: FiltersConfig;
+  /** The "Hidden by filters" line; on unless false. */
+  show_filtered_count?: boolean;
 }
 
 /** Context-sensitive default for visible_badges — matches what

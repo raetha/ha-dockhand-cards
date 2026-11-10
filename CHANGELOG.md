@@ -11,6 +11,13 @@ and [Unreleased] is the notes of the current test build.
 ## [Unreleased]
 
 ### Added
+- **Filters on the list cards** — a **Filters** section in the Stacks, Containers, Updates and
+  Schedules editors. Pick one or more values per filter, or flip it to **is not**; set several
+  and a row has to pass them all. Containers: state (exited cleanly or with an error), health,
+  stack (or not in one), update kind and tags. Stacks: status, type, updates, Git sync and tags.
+  Updates: update kind, stack and tags. Schedules: type, last result, enabled, Dockhand's own or
+  yours, and where (an environment or global). A filtered card says when nothing matches and how
+  many rows its filters hide. Works in the Overview card's sections too.
 
 - **Dockhand tags** as coloured pills, as in Dockhand's own lists: on Stacks and Containers card
   rows (a new **Tags** detail, on by default) and under the Stack and Container cards' headers.
@@ -22,6 +29,9 @@ and [Unreleased] is the notes of the current test build.
   Schedule controls need ha-dockhand 2.0.0 or later.
 
 ### Changed
+- **Schedules card: Include global schedules is now the Where filter**, which can also show only
+  global schedules. Configs with `include_global: false` keep leaving them out, and the editor
+  rewrites them as that filter.
 
 - **Smaller downloads: each language is its own file.** The cards and their editors now carry
   only English and load the dashboard's language from a small file beside them, so the card file
@@ -47,6 +57,10 @@ and [Unreleased] is the notes of the current test build.
   missing "s"), or open and save it in the editor before updating.
 
 ### Fixed
+- **The Containers, Stacks and Environment cards' "nothing found yet" messages are translated**;
+  they showed in English whatever the dashboard's language.
+- **Stacks: a restarting stack** shows as restarting, with its own icon, instead of an unknown
+  status.
 - **Schedules card: the environment pill showed on every row by default**, though rows are
   grouped by environment and the editor showed the pill as off.
 - **Schedules card: every Dockhand schedule type has a name in every language**, including
@@ -56,6 +70,8 @@ and [Unreleased] is the notes of the current test build.
   doesn't offer Update all, or list an environment with nothing pending, because of it.
 
 ### Internal
+- The Overview card passes every section setting on to the cards it builds, the way its editor
+  already saved them, so new card options (like Show controls) work there without changes.
 - The Environment card's section picker appears through Home Assistant's own form conditions.
 
 - Dependencies: d3-shape 3.2.1; build and test tools rollup 4.67.5, @rollup/plugin-terser 1.0.2,

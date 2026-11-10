@@ -19,6 +19,8 @@ export interface HaFormSelector {
   select?: {
     options: readonly HaFormSelectOption[] | readonly string[];
     multiple?: boolean;
+    /** Allows typing a value that isn't an option. */
+    custom_value?: boolean;
     mode?: 'list' | 'dropdown' | 'box';
   };
   text?: Record<string, never>;

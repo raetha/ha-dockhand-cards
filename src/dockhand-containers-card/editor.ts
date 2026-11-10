@@ -12,6 +12,7 @@ import { editorFormStyles, sortableRowStyles } from '../common/editor-styles';
 import { resolveIncludedOrderedWithLegacy } from '../common/environment-scope';
 import { renderEnvironmentOrderSection, effectiveExcludeDeviceIds } from '../common/environment-scope-editor';
 import { DEFAULT_CONTAINERS_BADGES, type DockhandContainersCardConfig } from './types';
+import { CONTAINERS_FILTER_FIELDS, renderFiltersForm } from '../common/filters-editor';
 
 export class DockhandContainersCardEditor extends LitElement implements LovelaceCardEditor {
   @state() private _config?: DockhandContainersCardConfig;
@@ -156,6 +157,8 @@ export class DockhandContainersCardEditor extends LitElement implements Lovelace
         onSelectAll: () => this._updateConfig({ exclude_device_ids: [], device_id: undefined }),
         onClearAll: () => this._updateConfig({ exclude_device_ids: devices.map((d) => d.deviceId), device_id: undefined })
       })}
+
+      ${renderFiltersForm(this._hass, CONTAINERS_FILTER_FIELDS, this._config, (patch) => this._updateConfig(patch))}
 
       <ha-form
         .hass=${this._hass}

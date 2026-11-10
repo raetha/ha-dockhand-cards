@@ -191,3 +191,32 @@ describe('Overview editor detail views', () => {
     expect(el.shadowRoot!.querySelector('.detail-header')).toBeNull();
   });
 });
+
+describe('Overview card generated cards', () => {
+  // The config each generated card was given (cards keep it privately).
+  type Child = HTMLElement & { _config: Record<string, unknown> };
+  /** The env_1 column's card: the one not excluding env_1. */
+  const child = (el: Lit, tag: string): Record<string, unknown> =>
+    [...el.shadowRoot!.querySelectorAll(tag)]
+      .map((c) => (c as unknown as Child)._config)
+      .find((cfg) => cfg.device_id === 'env_1' || (Array.isArray(cfg.exclude_device_ids) && !cfg.exclude_device_ids.includes('env_1')))!;
+
+  it('pass every section default and override on, whatever the field', async () => {
+    const el = await mount('dockhand-overview-card', {
+      ...ALL_SECTIONS,
+      stacks_show_controls: true,
+      containers_filters: { state: ['exited_error'] },
+      schedules_group_by: 'type',
+      environment_mode: 'compact',
+      updates_hide_when_no_updates: false,
+      environments_overrides: { env_1: { containers: { show_controls: true, filters: { tags: { not: ['infra'] } } } } }
+    });
+    expect(child(el, 'dockhand-stacks-card')).toMatchObject({ show_controls: true, type: 'custom:dockhand-stacks-card' });
+    expect(child(el, 'dockhand-containers-card')).toMatchObject({ filters: { tags: { not: ['infra'] } }, show_controls: true });
+    expect(child(el, 'dockhand-schedules-card')).toMatchObject({ group_by: 'type', include_global: false, visible_badges: ['next_run'] });
+    expect(child(el, 'dockhand-environment-card')).toMatchObject({ mode: 'compact', device_id: 'env_1' });
+    expect(child(el, 'dockhand-updates-card')).not.toHaveProperty('hide_when_no_updates');
+    // Unset fields stay absent, so each card's own defaults hold.
+    expect(child(el, 'dockhand-stacks-card')).not.toHaveProperty('visible_badges');
+  });
+});

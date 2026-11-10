@@ -21,6 +21,8 @@ import { t } from '../common/i18n-card';
 import type { DockhandSchedulesCardConfig, ScheduleSortBy, ScheduleGroupBy } from './types';
 import { resolveVisibleBadges } from './types';
 import { renderActionsColumn, renderScheduleControls, resolveScheduleControls } from '../common/device-controls';
+import { NONE, applyFilters, type FilterExtractor } from '../common/filters';
+import { renderFilteredNote } from '../common/list-filters';
 import { cardStyles } from './styles';
 
 // Status values per Dockhand's own ScheduleStatus type (db.ts) — the richer
@@ -72,9 +74,19 @@ export interface ScheduleRow {
    * so this stays undefined rather than labeling rows that don't need it. */
   instanceLabel?: string;
   enabled: boolean;
+  /** Dockhand's own schedule (is_system), when ha-dockhand says. */
+  system?: boolean;
   status: string | null;
   nextRunIso: string | null;
 }
+
+const FILTERS: Record<string, FilterExtractor<ScheduleRow>> = {
+  type: (row) => [row.type],
+  last_result: (row) => [row.status ?? NONE],
+  enabled: (row) => [row.enabled ? 'enabled' : 'disabled'],
+  origin: (row) => (row.system === undefined ? [] : [row.system ? 'system' : 'user']),
+  scope: (row) => [row.environmentDeviceId ? 'environment' : 'global']
+};
 
 /** Final tiebreak once the primary sort_by criterion (and, for next_run/
  * status, the existing name-based secondary one) can't distinguish two
@@ -342,6 +354,7 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
         environmentDeviceId,
         instanceLabel,
         enabled: attrs.enabled !== false,
+        system: typeof attrs.is_system === 'boolean' ? attrs.is_system : undefined,
         status: found.lastStatus.state.state === 'unknown' ? null : found.lastStatus.state.state,
         nextRunIso: found.nextRun && found.nextRun.state.state !== 'unknown' ? found.nextRun.state.state : null
       });
@@ -365,7 +378,8 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
     // envDevices (already ordered — see _buildRows) is the only order:
     // groupScheduleRows groups by iterating it, so no second order array
     // can drift from it.
-    const groups = groupScheduleRows(rows, resolveEffectiveGroupBy(this._config.group_by, envDevices, 'environment'), this._config.sort_by ?? 'status', envDevices, {
+    const { rows: shown, hidden } = applyFilters(rows, this._hass, FILTERS, this._config.filters);
+    const groups = groupScheduleRows(shown, resolveEffectiveGroupBy(this._config.group_by, envDevices, 'environment'), this._config.sort_by ?? 'status', envDevices, {
       type: (type) => stateLabel(this._hass, 'schedule_type', type),
       status: (status) => stateLabel(this._hass, 'schedule_status', status),
       disabled: t(this._hass, 'schedule_disabled'),
@@ -399,6 +413,7 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
               </div>`
             : html`
                 ${this._config.show_stats ? html`<div class="divider"></div>` : nothing}
+                ${shown.length === 0 ? html`<div class="card-message">${t(this._hass, 'msg_no_filter_matches')}</div>` : nothing}
                 ${groups.map(
                   (g, i) => html`
                     ${i > 0 ? html`<div class="divider"></div>` : nothing}
@@ -406,6 +421,7 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
                     <div class="list">${g.rows.map((r) => this._renderRow(r))}</div>
                   `
                 )}
+                ${renderFilteredNote(this._hass, hidden, this._config.show_filtered_count)}
               `}
         </div>
       </ha-card>

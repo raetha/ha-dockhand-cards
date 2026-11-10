@@ -3,8 +3,8 @@ import type { CardMode, CustomSection, DockhandEnvironmentCardConfig } from '../
 import type { StacksCardBadge, StacksGroupBy, StacksSortBy, DockhandStacksCardConfig } from '../dockhand-stacks-card/types';
 import type { ContainersCardBadge, ContainersGroupBy, ContainersSortBy, DockhandContainersCardConfig } from '../dockhand-containers-card/types';
 import type { DockhandVulnerabilityCardConfig } from '../dockhand-vulnerability-card/types';
-import type { ScheduleGroupBy, ScheduleSortBy, ScheduleBadge } from '../dockhand-schedules-card/types';
-import type { EntityNameItem } from '../common/ha-types';
+import type { ScheduleGroupBy, ScheduleSortBy, ScheduleBadge, DockhandSchedulesCardConfig } from '../dockhand-schedules-card/types';
+import type { DockhandUpdatesCardConfig } from '../dockhand-updates-card/types';
 
 export type OverviewSection = 'environments' | 'vulnerabilities' | 'stacks' | 'containers' | 'updates' | 'schedules';
 
@@ -56,34 +56,12 @@ export type EnvironmentOverrideVulnerabilities = Omit<DockhandVulnerabilityCardC
  * EnvironmentOverrideSchedules' own comment. */
 export type EnvironmentOverrideStacks = Omit<DockhandStacksCardConfig, 'type' | 'device_id' | 'environments_order' | 'exclude_device_ids'>;
 export type EnvironmentOverrideContainers = Omit<DockhandContainersCardConfig, 'type' | 'device_id' | 'environments_order' | 'exclude_device_ids'>;
-export interface EnvironmentOverrideUpdates {
-  name?: string | EntityNameItem | EntityNameItem[];
-  hide_when_no_updates?: boolean;
-}
-/** Hand-declared for the same reason EnvironmentOverrideUpdates is: Omit<>
- * alone doesn't produce the right shape. Schedules has no `device_id` to
- * omit in the first place (it never had one — see that card's own
- * README for why), and its environment-scoping fields
- * (`environments_order`/`exclude_device_ids`/`include_global`) aren't
- * override-appropriate here at all — Overview already owns which
- * environment each column represents, and forces every generated
- * Schedules card to that one environment plus include_global: false
- * (see card.ts) so the same global schedules don't repeat in every
- * column. `visible_badges` is included (unlike the two fields above) —
- * an override *can* meaningfully ask for the environment badge back on
- * one specific column even though Overview's own default excludes it
- * (see card.ts's own comment on why) — but the embedded editor never
- * offers 'environment' as a choice in the first place when embedded, so
- * in practice an override here can only ever end up narrowing
- * ['next_run'] further, never actually adding 'environment' back. */
-export interface EnvironmentOverrideSchedules {
-  name?: string | EntityNameItem | EntityNameItem[];
-  show_settings_link?: boolean;
-  show_stats?: boolean;
-  visible_badges?: ScheduleBadge[];
-  group_by?: ScheduleGroupBy;
-  sort_by?: ScheduleSortBy;
-}
+/** Updates and Schedules also leave out the keys a column decides for
+ * them: the environment scope (an Overview column is one environment, with
+ * no global schedules), and Updates' `visibility`, since the Overview hides
+ * that card itself. */
+export type EnvironmentOverrideUpdates = Omit<DockhandUpdatesCardConfig, 'type' | 'device_id' | 'scope' | 'environments_order' | 'exclude_device_ids' | 'visibility'>;
+export type EnvironmentOverrideSchedules = Omit<DockhandSchedulesCardConfig, 'type' | 'environments_order' | 'exclude_device_ids' | 'include_global'>;
 
 /** One environment's full set of per-card-type overrides — edited via the
  * editor's per-environment detail view (see editor.ts), not hand-written
@@ -164,6 +142,9 @@ export interface DockhandOverviewCardConfig extends LovelaceCardConfig {
   schedules_visible_badges?: ScheduleBadge[];
   schedules_group_by?: ScheduleGroupBy;
   schedules_sort_by?: ScheduleSortBy;
+  /** Every other field of a list card works the same way as a section
+   * default (`stacks_show_controls`, `containers_filters`, …): the Overview
+   * passes any key with a section's prefix on to that section's cards. */
   /** Per-environment overrides of any field any of the 5 generated card
    * types expose, keyed by device id. Edited via the editor's per-
    * environment detail view — see EnvironmentOverride above. Plural,
