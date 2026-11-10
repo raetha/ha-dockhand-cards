@@ -217,10 +217,8 @@ window.customCards.push({
     if (!device || !isScheduleDevice(device)) return undefined;
     const envId = getEnvIdForScheduleDevice(hass, device);
     const envDeviceId = envId !== null ? getEnvDeviceIdForEnvId(hass, envId, device) : null;
-    // No scope/device_id fields anymore — "just this environment" is
-    // expressed the same way the editor's own per-row "solo" action
-    // writes it: exclude every other known environment, same as picking
-    // scope: 'environment' + this device_id used to mean.
+    // "Just this environment" is written the way the editor's per-row
+    // solo action writes it: every other environment excluded.
     const excludeOthers = envDeviceId ? Object.values(hass.devices ?? {}).filter((d) => isEnvironmentDevice(d) && d.id !== envDeviceId).map((d) => d.id) : [];
     return {
       config: { type: 'custom:dockhand-schedules-card', ...(envDeviceId ? { exclude_device_ids: excludeOthers } : {}) },

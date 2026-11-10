@@ -4,8 +4,8 @@ import type { EntityNameItem, HomeAssistant } from './ha-types';
 /**
  * This repo's shared card-name field — every card's own Content section
  * uses this instead of a plain `{ name: 'title', selector: { text: {} } }`
- * field, and it always stores into a `name` config key, replacing what
- * used to be called `title`.
+ * field, and it always stores into a `name` config key (`title` is the
+ * legacy name, migrated by migrateTitleToName).
  *
  * Named around what this actually *is* for this repo — a card's name/
  * title — not around "entity," even though the field it's built from is
@@ -64,10 +64,7 @@ import type { EntityNameItem, HomeAssistant } from './ha-types';
  * hand-editing YAML could produce it) keeps whichever `name` was
  * already there rather than silently overwriting it with the stale
  * `title`, but still drops the now-meaningless `title` key rather than
- * leaving it to linger in every future save. An earlier version of this
- * function only stripped `title` in the branch that actually used its
- * value, silently carrying a dead key forward indefinitely in the
- * both-set case.
+ * leaving it to linger in every future save.
  *
  * Takes/returns `Record<string, unknown>` rather than each card's own
  * config type — a config arriving via setConfig() is only ever
@@ -97,12 +94,9 @@ export function cardNameFieldSchema(entityId: string | undefined, defaultName: s
  * the type name otherwise (zero, or two or more, environments —
  * "Stacks"). Computed once here and passed as resolveCardName's own
  * `fallback` argument, rather than each card appending "— Type" to
- * whatever resolveCardName returns in its own template: that unconditional
- * append is what doubled up the type name when the fallback was already
- * just the type name (a real bug — "Stacks — Stacks" with 0 or 2+
- * environments included), and it would incorrectly apply to a person's
- * own custom name too, not just the fallback case that's actually meant
- * for. */
+ * whatever resolveCardName returns in its own template, which would read
+ * "Stacks — Stacks" when the fallback is already the type name and would
+ * also change a person's own custom name. */
 export function multiEnvCardNameFallback(envDevices: { name: string }[], cardType: string): string {
   return envDevices.length === 1 ? `${envDevices[0].name} — ${cardType}` : cardType;
 }

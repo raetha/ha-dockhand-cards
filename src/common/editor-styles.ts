@@ -112,12 +112,7 @@ export const sortableRowStyles = css`
    * flex-direction:column; gap: var(--ha-space-2) (8px), with each row
    * itself (.badge) carrying no padding or margin of its own at all —
    * every bit of inter-row spacing lives on the container as a single
-   * gap, not spread across N rows' own margins. That's the one thing an
-   * earlier version of this file got structurally wrong before
-   * comparing against this specific reference: it used margin-top per
-   * row (closer to a *different* HA reference, hui-entities-card-row-
-   * editor.ts), which works but isn't what this repo's own closest
-   * precedent actually does.
+   * gap, not spread across N rows' own margins.
    *
    * var(--ha-space-N, fallback) throughout, not a bare pixel value —
    * these are real HA design tokens (confirmed against

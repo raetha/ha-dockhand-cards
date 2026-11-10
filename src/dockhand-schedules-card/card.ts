@@ -81,11 +81,9 @@ export interface ScheduleRow {
  * rows — most concretely, two schedules with the exact same name in
  * different environments (e.g. each environment has a git stack literally
  * called "myapp"). Falls back to environment name explicitly rather than
- * leaving it to whatever incidental order rows happened to arrive in from
- * resolveIncludedOrdered (Array.sort is stable, so ties used to silently
- * preserve environment resolution order — either alphabetical, or the
- * custom drag order — even though group_by wasn't 'environment' at all
- * and the person had no reason to expect environment order to matter).
+ * leaving ties in the order resolveIncludedOrdered produced (Array.sort is
+ * stable), which would follow the environment drag order even when rows
+ * aren't grouped by environment.
  * Global schedules (environment: undefined) sort to '', ahead of any
  * named environment — consistent with groupKeyAndLabel's own "Global
  * sorts first" rule below, rather than an arbitrary, unrelated tiebreak
@@ -316,10 +314,8 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
     });
 
     // Global schedules (system cleanup, destination maintenance) don't
-    // belong to any single environment — always available now, gated only
-    // on include_global itself (defaulting to true, same opt-out
-    // philosophy as environments_order/exclude_device_ids), not on a
-    // scope value the way it used to be.
+    // belong to any single environment: shown unless include_global is
+    // false (opt-out, like exclude_device_ids).
     const globalDevices = this._config.include_global !== false ? getGlobalScheduleDevices(this._hass) : [];
     for (const device of globalDevices) {
       scheduleDevices.push({ device, environmentDeviceId: undefined });
@@ -366,17 +362,9 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
     // field now uses the same way.
     const representativeEntityId = envDevices[0] ? getRepresentativeEntityId(this._hass, envDevices[0].deviceId) : undefined;
     const title = resolveCardName(this._hass, representativeEntityId, this._config.name, multiEnvCardNameFallback(envDevices, t(this._hass, 'name_schedules')));
-    // envDevices (already correctly ordered — see _buildRows) passes
-    // straight through to groupScheduleRows now, which groups by
-    // iterating it directly rather than deriving a key per row and
-    // re-sorting buckets against a separate order array afterward. Two
-    // earlier versions of this call site got progressively closer but
-    // still wrong — one converted environments_order into a name-keyed
-    // array (right when written, wrong once grouping switched to device
-    // ids), the next passed the device-id array directly but through a
-    // separate re-sort step that could still drift out of sync. This is
-    // the structural fix: there's no second order-bearing value left to
-    // drift from envDevices' own order at all.
+    // envDevices (already ordered — see _buildRows) is the only order:
+    // groupScheduleRows groups by iterating it, so no second order array
+    // can drift from it.
     const groups = groupScheduleRows(rows, resolveEffectiveGroupBy(this._config.group_by, envDevices, 'environment'), this._config.sort_by ?? 'status', envDevices, {
       type: (type) => stateLabel(this._hass, 'schedule_type', type),
       status: (status) => stateLabel(this._hass, 'schedule_status', status),
@@ -442,8 +430,8 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
     const queued = rows.filter((r) => r.enabled && r.status === 'queued').length;
     // Git sync tasks land here often — "checked, nothing changed" isn't a
     // failure, but folding it into `success` would overstate how much
-    // actually happened, and leaving it uncounted (as an earlier version
-    // of this row did) understated the total that ran at all.
+    // actually happened, and leaving it uncounted would understate the
+    // total that ran at all.
     const skipped = rows.filter((r) => r.enabled && r.status === 'skipped').length;
     const disabled = rows.filter((r) => !r.enabled).length;
 

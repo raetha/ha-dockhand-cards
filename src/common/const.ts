@@ -1,16 +1,10 @@
 import type { EditorTranslationKey } from './i18n-editor';
 
 export const DOCKHAND_DOMAIN = 'dockhand';
-/** Injected at build time from package.json's own version (see
- * rollup.config.mjs's replace plugin) — never hand-edit this string
- * directly. This used to be a plain hardcoded literal that nobody ever
- * updated alongside an actual release (it read '0.1.0' through the
- * entire 1.0.0 release and most of 1.1.0's development), which is
- * exactly the kind of "two places to remember" drift this repo has
- * caught and fixed elsewhere — the console banner every user sees on
- * load was simply wrong the whole time. `npm test`/`vitest` don't run
- * through Rollup, so this literal string is what test code actually
- * sees; that's fine, since no test asserts on the real version number. */
+/** Injected at build time from package.json's version (rollup.config.mjs's
+ * replace plugin), so the console banner can't drift from the release.
+ * Tests don't run through Rollup and see the placeholder; none asserts on
+ * it. */
 export const CARD_VERSION = '__CARD_VERSION__';
 
 /**

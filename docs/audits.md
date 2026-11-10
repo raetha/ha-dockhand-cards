@@ -34,6 +34,26 @@ first.
    `docs/development.md`, the README).
 8. **Record it:** a dated section below, and changelog lines for anything users notice.
 
+## 2026-11-09: full review before testing 2.0.0
+
+- Dependabot's four pull requests (#55–#58: d3-shape, rollup, @rollup/plugin-terser, jsdom 31)
+  applied together in #63 and closed. jsdom 31 needs Node 22.22+/24.15+; CI uses Node 24.
+- Tests now drive every card and editor control (#64); the coverage floor rose from about 72% to
+  about 98% of lines.
+- `npm audit --omit=dev`: nothing. The deepmerge alert is in the build only
+  (`@rollup/plugin-node-resolve`), still with no fixed release. CodeQL (JavaScript/TypeScript,
+  Actions): no findings. Every action pin matches its tag and is the latest release. The build's
+  `"this" has been rewritten` warnings come from `@formatjs/intl-utils` (via
+  custom-card-helpers) and are harmless.
+- `a11y.py`: no violations in either theme. The harness's copied language files are now
+  gitignored like the card files.
+- Home Assistant 2026.11 frontend changes (removed `ha-md-list`, `ha-radio`, `mwc-progress-bar`;
+  `ha-button` sizes): none used here.
+- `docs/quality.md` claimed `setConfig` throws and that no render tests exist; both corrected.
+  History comments rewritten to say why across the cards; a comment still described `ha-button`
+  on the Updates card, which uses header icons. `docs/architecture.md` still reads partly as a
+  development diary; a dedicated trim is proposed.
+
 ## 2026-11-02: moved to the dev/main workflow
 
 - `ci.yml` and `release.yml` replaced by one `build.yml` (changelog check, `npm run verify`, HACS

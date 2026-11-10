@@ -40,10 +40,9 @@ quality as possible" means for this repo. Check it before every release.
 - [x] `npm run verify` (typecheck + lint + test + build) passes locally before every commit, and
       CI runs the identical script on every push/PR
 - [x] Unit tests for all pure logic — entity resolution, device matching, formatting
-      (`src/common/*.ts`), and card-specific pure logic where it exists (e.g. Overview's config
-      migration functions in `dockhand-overview-card/types.test.ts`). Not attempting full
-      component render tests yet (LitElement + jsdom is workable but lower value than the
-      resolver/logic tests — see below)
+      (`src/common/*.ts`) and card-specific logic; every card and editor rendered and every
+      control driven in jsdom against the screenshot harness's mock data (`src/*.dom.test.ts`),
+      with a coverage floor in `vitest.config.ts`
 - [x] No hardcoded API calls or credentials — reads only `hass.states`/`hass.entities`/
       `hass.devices`, same trust boundary as any other Lovelace card
 - [x] No `localStorage`/`sessionStorage` usage
@@ -51,13 +50,12 @@ quality as possible" means for this repo. Check it before every release.
       Schedules, Updates, Overview — also interleave a shared hand-built sortable
       environment-order/exclude section `<ha-form>` has no model for; see
       `docs/architecture.md` §2), verified against present-day
-      HA source rather than assumed from older examples — see `docs/architecture.md` §2 and §7 for
-      what that verification actually found, including a case where it caught an earlier pass
-      wrongly concluding a component was deprecated when its API had just changed
+      HA source rather than assumed from older examples (`docs/architecture.md` §2 and §7)
 
 ## Card behavior
 
-- [x] `setConfig` throws a clear error for missing required config
+- [x] A card with nothing chosen yet shows a message asking for it (with a warning icon) rather
+      than throwing, so the card picker's preview and a half-configured card still render
 - [x] `getStubConfig` pre-fills a working default so "Add Card" isn't a blank slate
 - [x] `getCardSize` and `getGridOptions` implemented (masonry layout, and the newer "sections"
       dashboard view's resizable grid respectively)

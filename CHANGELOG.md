@@ -55,6 +55,7 @@ and [Unreleased] is the notes of the current test build.
 - Tests render every card and editor against the screenshot harness's mock data and drive every
   control, and `npm test` checks a coverage floor (about 98% of lines, up from about 45%) that can
   only rise.
+- Code comments and docs trimmed of development history; `docs/quality.md` brought up to date.
 
 
 ## [1.5.1] - 2026-11-03

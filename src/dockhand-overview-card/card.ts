@@ -253,20 +253,9 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
   protected render(): TemplateResult {
     if (!this._config || !this._hass) return html``;
 
-    // Overview doesn't expose "scope" as a user-facing concept — it
-    // always behaves like the shared resolver's "selected" mode (opt-out
-    // subset, custom order), just without ever calling it that or
-    // routing through the scope-aware wrapper other cards' legacy
-    // shapes need — Overview never had a legacy scope field to begin
-    // with, so there's nothing here for that wrapper to cover. This is
-    // also a genuine bug fix, not just a dedup: the removed inline
-    // version's own comment claimed unlisted environments would sort
-    // alphabetically among themselves because "getEnvironmentDevices
-    // already sorts alphabetically" — it doesn't (confirmed against that
-    // function's own source), so unlisted environments were actually
-    // left in whatever order the device registry happened to iterate
-    // them in, not alphabetical as claimed. resolveIncludedOrdered does
-    // sort them alphabetically, for real.
+    // Always "selected" in the shared resolver's terms (an opt-out subset
+    // in a custom order); Overview never had a legacy scope field, so it
+    // needs none of the other cards' legacy handling.
     const devices = resolveIncludedOrdered(getEnvironmentDevices(this._hass), this._config?.environments_order, this._config.exclude_device_ids);
 
     const alignColumns = this._config?.align_columns !== false;
@@ -388,11 +377,8 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
     // global (no-environment) schedule would otherwise repeat identically
     // in every column, since it isn't scoped to any one of them.
     // allEnvDeviceIds already computed above for stacksCfg — reused here.
-    // Defaults to next_run only (excluding the environment badge) when
-    // neither an override nor a global default has been set — matching
-    // what the old show_environment_pill: false used to force
-    // unconditionally, now expressed as visible_badges' own default
-    // rather than a separate forced field. Not left to
+    // Defaults to next_run only (no environment badge) when neither an
+    // override nor a global default is set. Not left to
     // resolveVisibleBadges' own default (['next_run', 'environment']
     // unless grouped by environment) — that default is right for the
     // standalone card, where nothing else already identifies which

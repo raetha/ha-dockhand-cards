@@ -147,11 +147,9 @@ export class DockhandSchedulesCardEditor extends LitElement implements LovelaceC
         // 1): the name is the very first thing on the card, then the
         // settings link and stats row both sit in the header area, then
         // visible_badges governs what's shown *within* each row — the
-        // last, most granular thing this section covers. group_by/
-        // sort_by used to sit here too — moved to root (_rootSchema
-        // above), since they're something a person is likely to want to
-        // set right away, not a reasonable-default-most-won't-touch
-        // field the rest of this section is for.
+        // last, most granular thing this section covers. group_by and
+        // sort_by sit at the root (_rootSchema) instead: people set them
+        // right away, unlike the defaults most leave alone here.
         schema: [
           ...(this.hideTitle ? [] : [cardNameFieldSchema(representativeEntityId, t(this._hass, 'label_schedules'))]),
           {
@@ -206,21 +204,13 @@ export class DockhandSchedulesCardEditor extends LitElement implements LovelaceC
         : html``}
 
       <!--
-        No scope field, no device_id field — an earlier version of this
-        editor had both (all/selected/environment/global), conditionally
-        showing/hiding a device picker depending on which was chosen. This
-        section is now always shown (except when embedded — see
-        renderEnvironmentOrderSection's own hidden param), always fully
-        interactive (reorder + exclude + solo), and covers every one of
-        those cases on its own: "all" is nothing excluded, "one
-        environment" is solo-ing it (one click, via the target icon per
-        row — actually faster than the old two-step scope-then-device
-        picker), "some" is excluding a few, "none" is excluding all of
-        them. Renders after include_global/group_by/sort_by above, not
-        before — matching Stacks/Containers' own layout for the same
-        three-component design (Environments + group_by + sort_by), for
-        consistency across every card that has all three. Also means the
-        Environments section's own drag-enabled/disabled state (see
+        No scope or device_id field: this section (hidden when embedded,
+        see renderEnvironmentOrderSection's hidden param) covers every
+        case on its own: "all" is nothing excluded, "one environment" is
+        soloing it (the target icon per row), "some" is excluding a few,
+        "none" is excluding all of them. Renders after
+        include_global/group_by/sort_by, as on Stacks and Containers, so
+        the section's drag-enabled/disabled state (see
         allowReorder below) already reflects whatever group_by choice was
         just made above it, rather than a person seeing greyed-out drag
         handles before they've had a chance to set group_by to

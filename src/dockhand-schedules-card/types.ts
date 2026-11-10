@@ -43,12 +43,11 @@ export interface DockhandSchedulesCardConfig extends LovelaceCardConfig {
    * boolean. */
   visible_badges?: ScheduleBadge[];
   group_by?: ScheduleGroupBy;
-  /** Device ids, in display order — the SAME list serves three jobs now:
+  /** Device ids, in display order — the same list serves three jobs:
    * which environments are included at all (paired with
    * exclude_device_ids), what order groups display in when group_by:
    * 'environment', and — via the editor's per-row "solo" action — the
-   * fast path for "just this one environment," which used to be a
-   * separate scope: 'environment' + device_id pair. Environments not
+   * fast path for "just this one environment". Environments not
    * listed sort after, alphabetically — same convention as Overview's
    * own environments_order. Everything included by default (nothing
    * excluded) until something actually is — see
