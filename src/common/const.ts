@@ -39,7 +39,6 @@ export const ENV_TRANSLATION_KEYS = {
   vulnerabilities: 'vulnerabilities',
   connectionType: 'connection_type',
   diskUsage: 'disk_usage',
-  envBulkUpdate: 'env_bulk_update',
   checkUpdates: 'check_updates'
 } as const;
 

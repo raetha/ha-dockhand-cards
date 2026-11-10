@@ -196,7 +196,11 @@ const card: Record<CardTranslationKey, string> = {
   stack_status_restarting: 'Neustart',
   msg_no_containers_yet: 'Noch keine Container in den ausgewählten Umgebungen gefunden.',
   msg_no_stacks_yet: 'Noch keine Stacks in den ausgewählten Umgebungen gefunden.',
-  msg_no_environment_entities: 'Noch keine Dockhand-Entitäten für diese Umgebung gefunden. Wenn die Integration gerade hinzugefügt wurde, die erste Aktualisierung abwarten; andernfalls prüfen, ob dieses Gerät noch zu ha-dockhand gehört.'
+  msg_no_environment_entities: 'Noch keine Dockhand-Entitäten für diese Umgebung gefunden. Wenn die Integration gerade hinzugefügt wurde, die erste Aktualisierung abwarten; andernfalls prüfen, ob dieses Gerät noch zu ha-dockhand gehört.',
+  update_listed: 'Gelistete aktualisieren',
+  update_all_tooltip: 'Alle gelisteten Updates installieren ({count})',
+  update_listed_tooltip: 'Nur die gelisteten Updates installieren ({count}); Filter blenden den Rest aus',
+  update_all_nothing_installable: 'Nichts Gelistetes lässt sich hier installieren: Neuere Tags und fixierte Digests werden in Dockhand geändert, zurückgehaltene Updates warten auf ihr Mindestalter, und Systemcontainer aktualisieren sich selbst'
 };
 
 const editor: Record<EditorTranslationKey, string> = {

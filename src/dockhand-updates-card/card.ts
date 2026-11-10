@@ -50,7 +50,6 @@ const FILTERS: Record<string, FilterExtractor<PendingUpdate>> = {
 interface EnvGroup {
   envDeviceId: string;
   envName: string;
-  bulkButtonEntityId?: string;
   checkUpdatesEntityId?: string;
   updates: PendingUpdate[];
 }
@@ -62,15 +61,16 @@ export function sortPendingUpdates(updates: PendingUpdate[]): PendingUpdate[] {
   return [...updates].sort((a, b) => a.name.localeCompare(b.name));
 }
 
-/** Whether an environment gets its own group at all — not just "has
- * pending updates." An environment with a working bulk-update button but
- * nothing currently pending still shows, so the button stays visible/
- * discoverable rather than the whole environment disappearing the
- * moment nothing needs updating; one with neither a button nor any
- * pending updates is correctly left out, not shown as an empty group. */
-export function shouldShowEnvironmentGroup(updates: PendingUpdate[], hasBulkButton: boolean): boolean {
-  return updates.length > 0 || hasBulkButton;
+/** Whether Home Assistant can install this update: the entity offers
+ * Install (UpdateEntityFeature.INSTALL). ha-dockhand withholds it from
+ * system containers, from containers Dockhand won't update, and from
+ * newer-tag-only, pinned and held updates, as Dockhand's own Update all
+ * skips them. */
+export function canInstall(hass: HomeAssistant, entityId: string): boolean {
+  return ((hass.states[entityId]?.attributes.supported_features ?? 0) & UPDATE_FEATURE_INSTALL) !== 0;
 }
+
+const UPDATE_FEATURE_INSTALL = 1;
 
 export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
   static styles = cardStyles;
@@ -131,18 +131,13 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
 
     const groups: EnvGroup[] = [];
     const checkUpdatesEntityIds: string[] = [];
-    const filtered = activeFilterCount(Object.keys(FILTERS), this._config.filters) > 0;
     let hidden = 0;
     for (const env of envDevices) {
       const envDevice = this._hass.devices[env.deviceId];
       if (!envDevice) continue;
 
-      const { found } = resolveEnvironmentEntities(this._hass, env.deviceId, ['envBulkUpdate', 'checkUpdates']);
+      const { found } = resolveEnvironmentEntities(this._hass, env.deviceId, ['checkUpdates']);
       if (found.checkUpdates) checkUpdatesEntityIds.push(found.checkUpdates.entityId);
-      // ha-dockhand 2.0+ keeps Update all while update entities are on and
-      // makes it unavailable while nothing in the environment can be
-      // updated, so only an available one counts; earlier versions remove it.
-      const bulkButton = found.envBulkUpdate?.state.state === 'unavailable' ? undefined : found.envBulkUpdate;
 
       const containerDevices = getContainerDevicesForEnvironment(this._hass, envDevice);
       const updates: PendingUpdate[] = [];
@@ -166,13 +161,10 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
       hidden += kept.hidden;
       const sortedUpdates = sortPendingUpdates(kept.rows);
 
-      // A filtered card lists only what matches: an environment whose
-      // updates are all filtered out isn't a group of its own.
-      if (filtered ? sortedUpdates.length > 0 : shouldShowEnvironmentGroup(sortedUpdates, Boolean(bulkButton))) {
+      if (sortedUpdates.length > 0) {
         groups.push({
           envDeviceId: env.deviceId,
           envName: env.name,
-          bulkButtonEntityId: bulkButton?.entityId,
           checkUpdatesEntityId: found.checkUpdates?.entityId,
           updates: sortedUpdates
         });
@@ -202,9 +194,14 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
     const filtered = activeFilterCount(Object.keys(FILTERS), this._config.filters) > 0;
     const totalUpdates = filtered ? groups.reduce((sum, g) => sum + g.updates.length, 0) : getTotalPendingUpdates(this._hass, envDeviceIds);
 
-    // Update all updates whole environments, so it isn't offered while
-    // filters hide some of their updates.
-    const bulkButtonIds = hidden > 0 ? [] : groups.map((g) => g.bulkButtonEntityId).filter((id): id is string => Boolean(id));
+    // Update all installs what the card lists, in one call: ha-dockhand
+    // gathers Installs that start together into one Dockhand job per
+    // environment (installs.py). Filtered, that's only the listed updates,
+    // so the button says so; with nothing it can install, it stays,
+    // disabled, saying why, rather than coming and going.
+    const listed = groups.flatMap((g) => g.updates);
+    const installable = listed.filter((u) => u.kind === 'installable' && canInstall(this._hass!, u.entityId)).map((u) => u.entityId);
+    const updateAllLabel = t(this._hass, hidden > 0 ? 'update_listed' : 'update_all');
     const representativeEntityId = getRepresentativeEntityId(this._hass, envDeviceIds[0]);
     const name = resolveCardName(this._hass, representativeEntityId, this._config.name, multiEnvCardNameFallback(envDevices, t(this._hass, 'name_updates')));
     // Based on how many environments are actually included, not the
@@ -244,14 +241,18 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
                   ...(this._checking ? { disabled: true } : { onClick: () => this._triggerCheckUpdates(checkUpdatesEntityIds) })
                 })
               : nothing}
-            ${bulkButtonIds.length > 0
+            ${listed.length > 0
               ? renderIcon({
                   baseClass: 'header-icon filled',
                   busy: this._triggering,
                   icon: 'mdi:arrow-up-circle',
-                  text: t(this._hass, 'update_all'),
-                  title: this._triggering ? t(this._hass, 'updating') : t(this._hass, 'update_all'),
-                  ...(this._triggering ? { disabled: true } : { onClick: () => this._triggerBulkUpdate(bulkButtonIds) })
+                  text: updateAllLabel,
+                  title: this._triggering
+                    ? t(this._hass, 'updating')
+                    : installable.length === 0
+                      ? t(this._hass, 'update_all_nothing_installable')
+                      : t(this._hass, hidden > 0 ? 'update_listed_tooltip' : 'update_all_tooltip', { count: installable.length }),
+                  ...(this._triggering || installable.length === 0 ? { disabled: true } : { onClick: () => this._installAll(installable) })
                 })
               : nothing}
             </div>
@@ -308,11 +309,13 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
     `;
   }
 
-  private async _triggerBulkUpdate(entityIds: string[]): Promise<void> {
+  /** Resolves once Dockhand has finished the job, so the spinner stays
+   * until then; each row also shows its own progress meanwhile. */
+  private async _installAll(entityIds: string[]): Promise<void> {
     if (!this._hass || this._triggering) return;
     this._triggering = true;
     try {
-      await this._hass.callService('button', 'press', {}, { entity_id: entityIds });
+      await this._hass.callService('update', 'install', {}, { entity_id: entityIds });
     } catch {
       // hass.callService has already shown HA's error toast for this.
     } finally {

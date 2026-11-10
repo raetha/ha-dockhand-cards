@@ -196,7 +196,11 @@ const card: Record<CardTranslationKey, string> = {
   stack_status_restarting: '重启中',
   msg_no_containers_yet: '所选环境中尚未找到容器。',
   msg_no_stacks_yet: '所选环境中尚未找到堆栈。',
-  msg_no_environment_entities: '尚未找到此环境的 Dockhand 实体。如果刚添加集成，请等待首次刷新；否则请检查此设备是否仍属于 ha-dockhand。'
+  msg_no_environment_entities: '尚未找到此环境的 Dockhand 实体。如果刚添加集成，请等待首次刷新；否则请检查此设备是否仍属于 ha-dockhand。',
+  update_listed: '更新所列项',
+  update_all_tooltip: '安装所列的全部更新（{count}）',
+  update_listed_tooltip: '仅安装所列更新（{count}）；其余被筛选隐藏',
+  update_all_nothing_installable: '所列项无法在此安装：较新标签和固定摘要需在 Dockhand 中更改，暂缓的更新需等待最短镜像时长，系统容器会自行更新'
 };
 
 const editor: Record<EditorTranslationKey, string> = {

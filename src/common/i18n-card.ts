@@ -208,7 +208,11 @@ const en = {
   stack_status_restarting: 'Restarting',
   msg_no_containers_yet: 'No containers found for the selected environments yet.',
   msg_no_stacks_yet: 'No stacks found for the selected environments yet.',
-  msg_no_environment_entities: 'No Dockhand entities found for this environment yet. If you just added the integration, wait for the first refresh; otherwise check that this device still belongs to ha-dockhand.'
+  msg_no_environment_entities: 'No Dockhand entities found for this environment yet. If you just added the integration, wait for the first refresh; otherwise check that this device still belongs to ha-dockhand.',
+  update_listed: 'Update listed',
+  update_all_tooltip: 'Install every update listed ({count})',
+  update_listed_tooltip: 'Install the listed updates only ({count}); filters hide the rest',
+  update_all_nothing_installable: 'Nothing listed can be installed from here: newer tags and pinned digests are changed in Dockhand, held updates wait for their minimum image age, and system containers update themselves'
 } as const;
 
 

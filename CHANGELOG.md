@@ -29,6 +29,11 @@ and [Unreleased] is the notes of the current test build.
   Schedule controls need ha-dockhand 2.0.0 or later.
 
 ### Changed
+- **Updates card: Update all installs exactly the updates the card lists**, in one go (ha-dockhand
+  runs them as one Dockhand job per environment). With filters set it becomes **Update listed**
+  and leaves hidden updates alone. When nothing listed can be installed from Home Assistant (newer
+  tags, pinned digests, held updates, system containers), the button stays but is disabled, and
+  its tooltip says why. An environment with nothing pending no longer shows as an empty group.
 - **Schedules card: Include global schedules is now the Where filter**, which can also show only
   global schedules. Configs with `include_global: false` keep leaving them out, and the editor
   rewrites them as that filter.
@@ -65,9 +70,6 @@ and [Unreleased] is the notes of the current test build.
   grouped by environment and the editor showed the pill as off.
 - **Schedules card: every Dockhand schedule type has a name in every language**, including
   container start and stop, backups, repository prune, check and verify, and stack deploy.
-- Updates card: ready for ha-dockhand 2.0, which keeps each environment's Update all button and
-  makes it unavailable while nothing can be updated. An unavailable one is now ignored, so the card
-  doesn't offer Update all, or list an environment with nothing pending, because of it.
 
 ### Internal
 - The Overview card passes every section setting on to the cards it builds, the way its editor
