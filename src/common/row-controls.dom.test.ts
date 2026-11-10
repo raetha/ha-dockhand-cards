@@ -21,12 +21,12 @@ if (!customElements.get(TAGS.containers)) customElements.define(TAGS.containers,
 if (!customElements.get(TAGS.stacks)) customElements.define(TAGS.stacks, DockhandStacksCard);
 if (!customElements.get(TAGS.schedules)) customElements.define(TAGS.schedules, DockhandSchedulesCard);
 
-const env = makeDevice({ id: 'env-device', identifiers: [['dockhand', 'entry_env_1']], config_entries: ['entry'], name: 'Nebula' });
+const env = makeDevice({ id: 'env-device', identifiers: [['dockhand', 'entry_env_1']], config_entry_id: 'entry', name: 'Nebula' });
 
 /** A container or stack device with its status sensor and, unless it's a
  * system one, its running switch and restart button. */
 function hassWithDevice(kind: 'container' | 'stack', running: boolean, opts: { system?: boolean } = {}): HomeAssistant {
-  const device = makeDevice({ id: 'dev-web', identifiers: [['dockhand', `entry_${kind}_1_web`]], config_entries: ['entry'], name: 'web' });
+  const device = makeDevice({ id: 'dev-web', identifiers: [['dockhand', `entry_${kind}_1_web`]], config_entry_id: 'entry', name: 'web' });
   const statusKey = kind === 'container' ? 'state' : 'status';
   const entities = [makeEntity({ entity_id: `sensor.web_${statusKey}`, device_id: 'dev-web', translation_key: statusKey })];
   const states = [makeState({ entity_id: `sensor.web_${statusKey}`, state: running ? 'running' : 'exited', attributes: { name: 'web' } })];
@@ -99,8 +99,8 @@ describe.each([
 });
 
 function hassWithSchedule(opts: { run?: string; enabled?: string }): HomeAssistant {
-  const group = makeDevice({ id: 'sched-group', identifiers: [['dockhand', 'entry_env_1_Schedules']], config_entries: ['entry'], name: 'Nebula – Schedules' });
-  const schedule = makeDevice({ id: 'sched', identifiers: [['dockhand', 'entry_schedule_7_image_prune']], config_entries: ['entry'], name: 'Prune', via_device_id: 'sched-group' });
+  const group = makeDevice({ id: 'sched-group', identifiers: [['dockhand', 'entry_env_1_Schedules']], config_entry_id: 'entry', name: 'Nebula – Schedules' });
+  const schedule = makeDevice({ id: 'sched', identifiers: [['dockhand', 'entry_schedule_7_image_prune']], config_entry_id: 'entry', name: 'Prune', via_device_id: 'sched-group' });
   const entities = [makeEntity({ entity_id: 'sensor.prune_last_status', device_id: 'sched', translation_key: 'last_status' })];
   const states = [makeState({ entity_id: 'sensor.prune_last_status', state: 'success', attributes: { name: 'Prune', enabled: opts.enabled !== 'off' } })];
   if (opts.run) {

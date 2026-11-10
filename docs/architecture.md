@@ -418,12 +418,10 @@ Container, stack and schedule devices are found by the env_id inside ha-dockhand
 (`{entry_id}_container_{env_id}_{name}`, ha-dockhand's `helpers.py`). Every Dockhand instance
 numbers its first environment `1`, so two instances both have an env 1, and a lookup by number
 alone mixes their devices (ha-dockhand-cards#1). **Every lookup also requires
-`sameConfigEntry()`**: the candidate shares the reference device's config entry (HA 2026.8+'s
-`config_entry_id`, else an overlap of the older `config_entries`, which HA plans to drop from the
-device registry API in 2027.8). HA sets these on every device, whatever its identifier format.
-That's why `get*DevicesForEnvironment`, `getEnvDeviceForEnvId` and
-`getScheduleGroupDeviceForEnvironment` take the environment's device, not a number: don't simplify
-them to `envId: number`.
+`sameConfigEntry()`**: the candidate has the reference device's `config_entry_id`. HA sets it on
+every device, whatever its identifier format. That's why `get*DevicesForEnvironment`,
+`getEnvDeviceForEnvId` and `getScheduleGroupDeviceForEnvironment` take the environment's device,
+not a number: don't simplify them to `envId: number`.
 
 Schedules resolve through `via_device_id`, an HA-assigned unique id, which is better wherever a
 parent link exists; `sameConfigEntry` covers containers and stacks, which have none end to end.

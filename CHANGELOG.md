@@ -35,6 +35,9 @@ and [Unreleased] is the notes of the current test build.
   repositories. Earlier releases keep their `v` tags.
 
 ### Removed
+- **Breaking: Home Assistant 2026.8 or later is required** (was 2026.6),
+  matching the Dockhand integration 2.0. HACS and the Marketplace won't install
+  this release on older versions; 1.5.1 keeps working there.
 
 - **Breaking: the Overview card's old `environment_overrides` and `environment_order` keys** are
   no longer read. They were renamed `environments_overrides` and `environments_order` in 1.1.0,
@@ -55,6 +58,7 @@ and [Unreleased] is the notes of the current test build.
 - Tests render every card and editor against the screenshot harness's mock data and drive every
   control, and `npm test` checks a coverage floor (about 98% of lines, up from about 45%) that can
   only rise.
+- Devices are matched to their Dockhand instance by `config_entry_id` alone (HA 2026.8+).
 - Code comments and docs trimmed of development history (`docs/architecture.md` rewritten);
   `docs/quality.md` brought up to date.
 

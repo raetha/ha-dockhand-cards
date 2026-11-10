@@ -14,8 +14,8 @@ const TAG = 'dockhand-containers-card-under-test';
 if (!customElements.get(TAG)) customElements.define(TAG, DockhandContainersCard);
 
 function hassWithContainer(update: { state: string; latest?: string; newer?: string; extra?: Record<string, unknown> } | null) {
-  const env = makeDevice({ id: 'env-device', identifiers: [['dockhand', 'entry_env_1']], config_entries: ['entry'], name: 'Nebula' });
-  const container = makeDevice({ id: 'dev-postgres', identifiers: [['dockhand', 'entry_container_1_postgres']], config_entries: ['entry'], name: 'postgres' });
+  const env = makeDevice({ id: 'env-device', identifiers: [['dockhand', 'entry_env_1']], config_entry_id: 'entry', name: 'Nebula' });
+  const container = makeDevice({ id: 'dev-postgres', identifiers: [['dockhand', 'entry_container_1_postgres']], config_entry_id: 'entry', name: 'postgres' });
   const entities = [makeEntity({ entity_id: 'sensor.postgres_state', device_id: 'dev-postgres', translation_key: 'state' })];
   const states = [makeState({ entity_id: 'sensor.postgres_state', state: 'running', attributes: { name: 'postgres' } })];
   if (update) {

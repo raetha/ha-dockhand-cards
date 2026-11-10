@@ -24,7 +24,7 @@ const STATS: [string, string, Record<string, unknown>][] = [
 ];
 
 function hassWithStack(withStats: boolean) {
-  const stack = makeDevice({ id: 'stack-dev', identifiers: [['dockhand', 'entry_stack_1_core']], config_entries: ['entry'], name: 'core', model: 'Internal Stack' });
+  const stack = makeDevice({ id: 'stack-dev', identifiers: [['dockhand', 'entry_stack_1_core']], config_entry_id: 'entry', name: 'core', model: 'Internal Stack' });
   const entities = [makeEntity({ entity_id: 'sensor.core_status', device_id: 'stack-dev', translation_key: 'status' })];
   const states = [makeState({ entity_id: 'sensor.core_status', state: 'running', attributes: { type: 'internal' } })];
   if (withStats) {
@@ -95,8 +95,8 @@ describe('Stack card resource stats', () => {
 
 describe('Stack card container pills', () => {
   function hassWithContainers() {
-    const env = makeDevice({ id: 'env-dev', identifiers: [['dockhand', 'entry_env_1']], config_entries: ['entry'], name: 'Nebula' });
-    const stack = makeDevice({ id: 'stack-dev', identifiers: [['dockhand', 'entry_stack_1_core']], config_entries: ['entry'], name: 'core' });
+    const env = makeDevice({ id: 'env-dev', identifiers: [['dockhand', 'entry_env_1']], config_entry_id: 'entry', name: 'Nebula' });
+    const stack = makeDevice({ id: 'stack-dev', identifiers: [['dockhand', 'entry_stack_1_core']], config_entry_id: 'entry', name: 'core' });
     const devices = [env, stack];
     const entities = [makeEntity({ entity_id: 'sensor.core_status', device_id: 'stack-dev', translation_key: 'status' })];
     const states = [
@@ -110,7 +110,7 @@ describe('Stack card container pills', () => {
       idle: { off: true, installed_version: 'i', latest_version: 'i' }
     };
     for (const [name, attrs] of Object.entries(updates)) {
-      devices.push(makeDevice({ id: `dev-${name}`, identifiers: [['dockhand', `entry_container_1_${name}`]], config_entries: ['entry'], name }));
+      devices.push(makeDevice({ id: `dev-${name}`, identifiers: [['dockhand', `entry_container_1_${name}`]], config_entry_id: 'entry', name }));
       entities.push(makeEntity({ entity_id: `sensor.${name}_state`, device_id: `dev-${name}`, translation_key: 'state' }));
       entities.push(makeEntity({ entity_id: `update.${name}`, device_id: `dev-${name}` }));
       states.push(makeState({ entity_id: `sensor.${name}_state`, state: 'running', attributes: { name } }));

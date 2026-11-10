@@ -86,13 +86,9 @@ gotchas (not "this got fixed", but "here's a pattern worth remembering") belong 
   a page reload, and works around a missing HA feature rather than using a real one. Revisit only
   if HA ever adds native support.
 
-- **`ha-form`'s `visible:` conditional-field-visibility isn't used yet.** First released in HA
-  2026.8 (frontend 20260729.0 — confirmed in `ha-form.ts`/`types.ts` at that tag), above this repo's
-  2026.6 floor. The one field that needs conditional visibility (Environment card's
-  `custom_sections`) achieves it by conditionally including/excluding the schema entry in plain JS
-  instead — see `docs/architecture.md` §2 — which works fine. Not worth raising the floor for on its
-  own (dropping 2026.6/2026.7 support is a major change under `docs/development.md` → "Versioning"); switch over
-  whenever the floor reaches 2026.8 for some other reason.
+- **`ha-form`'s `visible:` conditions.** Available from HA 2026.8, the floor since 2.0.0. The one
+  conditional field (the Environment card's `custom_sections`) is included in the schema only in
+  custom mode, in plain code, which does the same thing; switching buys nothing.
 
 - **A single-environment Overview card given extra dashboard width (e.g. spanning 3 grid columns)
   currently just stretches, rather than spreading its sections out to use the width.** Confirmed

@@ -81,15 +81,9 @@ export class DockhandEnvironmentCardEditor extends LitElement implements Lovelac
       // mode needs this picker to appear immediately as the obvious next
       // step; buried inside a collapsed Content section, someone who
       // doesn't already know to expand it has no visible way to actually
-      // choose which sections show. Conditionally included rather than
-      // expressed via the schema's own `visible:` condition — that's
-      // real, but only landed in HA's dev branch on 2026-07-17 and isn't
-      // in any released version yet (verified directly against HA
-      // core's actual frontend pin — even 2026.7.4, the latest release
-      // as of this writing, predates it). Omitting the field entirely
-      // achieves the identical visible behavior without depending on
-      // unreleased HA functionality — revisit once `visible:` actually
-      // ships.
+      // choose which sections show. Included in the schema only in custom
+      // mode: plain code, rather than ha-form's `visible:` condition, which
+      // does the same with more to verify against HA's source.
       ...(selectedMode === 'custom' ? [{ name: 'custom_sections', type: 'multi_select' as const, options: sectionOptions }] : []),
       // Content covers everything else shaping how this environment
       // displays. `mode`/`custom_sections` both stay at root, not in

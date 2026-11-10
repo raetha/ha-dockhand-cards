@@ -62,10 +62,10 @@ describe('getEnvId', () => {
 
 describe('getContainerDevicesForEnvironment', () => {
   it('matches container_<envId>_ prefixed identifiers for that env only', () => {
-    const env = makeDevice({ id: 'env1', identifiers: [['dockhand', 'entryA_env_5']], config_entries: ['entryA'] });
-    const c1 = makeDevice({ id: 'c1', identifiers: [['dockhand', 'entryA_container_5_web']], config_entries: ['entryA'] });
-    const c2 = makeDevice({ id: 'c2', identifiers: [['dockhand', 'entryA_container_5_db']], config_entries: ['entryA'] });
-    const otherEnv = makeDevice({ id: 'c3', identifiers: [['dockhand', 'entryA_container_9_web']], config_entries: ['entryA'] });
+    const env = makeDevice({ id: 'env1', identifiers: [['dockhand', 'entryA_env_5']], config_entry_id: 'entryA' });
+    const c1 = makeDevice({ id: 'c1', identifiers: [['dockhand', 'entryA_container_5_web']], config_entry_id: 'entryA' });
+    const c2 = makeDevice({ id: 'c2', identifiers: [['dockhand', 'entryA_container_5_db']], config_entry_id: 'entryA' });
+    const otherEnv = makeDevice({ id: 'c3', identifiers: [['dockhand', 'entryA_container_9_web']], config_entry_id: 'entryA' });
     const hass = makeHass({ devices: [env, c1, c2, otherEnv] });
 
     const result = getContainerDevicesForEnvironment(hass, env);
@@ -78,10 +78,10 @@ describe('getContainerDevicesForEnvironment', () => {
     // hubs (different config entries) each with an "env_1", each with
     // their own containers, must never bleed into each other just because
     // the trailing number matches.
-    const env1 = makeDevice({ id: 'env1', identifiers: [['dockhand', 'entryA_env_1']], config_entries: ['entryA'] });
-    const env2 = makeDevice({ id: 'env2', identifiers: [['dockhand', 'entryB_env_1']], config_entries: ['entryB'] });
-    const c1 = makeDevice({ id: 'c1', identifiers: [['dockhand', 'entryA_container_1_web']], config_entries: ['entryA'] });
-    const c2 = makeDevice({ id: 'c2', identifiers: [['dockhand', 'entryB_container_1_web']], config_entries: ['entryB'] });
+    const env1 = makeDevice({ id: 'env1', identifiers: [['dockhand', 'entryA_env_1']], config_entry_id: 'entryA' });
+    const env2 = makeDevice({ id: 'env2', identifiers: [['dockhand', 'entryB_env_1']], config_entry_id: 'entryB' });
+    const c1 = makeDevice({ id: 'c1', identifiers: [['dockhand', 'entryA_container_1_web']], config_entry_id: 'entryA' });
+    const c2 = makeDevice({ id: 'c2', identifiers: [['dockhand', 'entryB_container_1_web']], config_entry_id: 'entryB' });
     const hass = makeHass({ devices: [env1, env2, c1, c2] });
 
     expect(getContainerDevicesForEnvironment(hass, env1).map((d) => d.id)).toEqual(['c1']);
@@ -89,26 +89,26 @@ describe('getContainerDevicesForEnvironment', () => {
   });
 
   it('still matches pre-1.9.0 bare identifiers when both env and container predate entry_id-prefixing', () => {
-    const env = makeDevice({ id: 'env1', identifiers: [['dockhand', 'env_5']], config_entries: ['entryA'] });
-    const c1 = makeDevice({ id: 'c1', identifiers: [['dockhand', 'container_5_web']], config_entries: ['entryA'] });
+    const env = makeDevice({ id: 'env1', identifiers: [['dockhand', 'env_5']], config_entry_id: 'entryA' });
+    const c1 = makeDevice({ id: 'c1', identifiers: [['dockhand', 'container_5_web']], config_entry_id: 'entryA' });
     const hass = makeHass({ devices: [env, c1] });
 
     expect(getContainerDevicesForEnvironment(hass, env).map((d) => d.id)).toEqual(['c1']);
   });
 
-  it('scopes by config_entry_id (HA 2026.8+), with or without the deprecated config_entries list', () => {
-    const env1 = makeDevice({ id: 'env1', identifiers: [['dockhand', 'entryA_env_1']], config_entries: undefined, config_entry_id: 'entryA' });
-    const c1 = makeDevice({ id: 'c1', identifiers: [['dockhand', 'entryA_container_1_web']], config_entries: undefined, config_entry_id: 'entryA' });
-    const c2 = makeDevice({ id: 'c2', identifiers: [['dockhand', 'entryB_container_1_web']], config_entries: ['entryB'], config_entry_id: 'entryB' });
+  it('scopes by config_entry_id', () => {
+    const env1 = makeDevice({ id: 'env1', identifiers: [['dockhand', 'entryA_env_1']], config_entry_id: 'entryA' });
+    const c1 = makeDevice({ id: 'c1', identifiers: [['dockhand', 'entryA_container_1_web']], config_entry_id: 'entryA' });
+    const c2 = makeDevice({ id: 'c2', identifiers: [['dockhand', 'entryB_container_1_web']], config_entry_id: 'entryB' });
     const hass = makeHass({ devices: [env1, c1, c2] });
 
     expect(getContainerDevicesForEnvironment(hass, env1).map((d) => d.id)).toEqual(['c1']);
   });
 
   it('ignores a device that carries no config entry fields at all', () => {
-    const env = makeDevice({ id: 'env1', identifiers: [['dockhand', 'entryA_env_1']], config_entries: ['entryA'] });
-    const child = makeDevice({ id: 'child', identifiers: [['other', 'x']], config_entries: undefined });
-    const c1 = makeDevice({ id: 'c1', identifiers: [['dockhand', 'entryA_container_1_web']], config_entries: ['entryA'] });
+    const env = makeDevice({ id: 'env1', identifiers: [['dockhand', 'entryA_env_1']], config_entry_id: 'entryA' });
+    const child = makeDevice({ id: 'child', identifiers: [['other', 'x']], config_entry_id: null });
+    const c1 = makeDevice({ id: 'c1', identifiers: [['dockhand', 'entryA_container_1_web']], config_entry_id: 'entryA' });
     const hass = makeHass({ devices: [env, child, c1] });
 
     expect(getContainerDevicesForEnvironment(hass, env).map((d) => d.id)).toEqual(['c1']);
@@ -117,10 +117,10 @@ describe('getContainerDevicesForEnvironment', () => {
 
 describe('getStackDevicesForEnvironment', () => {
   it('does not merge two config entries whose environments share the same numeric env_id', () => {
-    const env1 = makeDevice({ id: 'env1', identifiers: [['dockhand', 'entryA_env_1']], config_entries: ['entryA'] });
-    const env2 = makeDevice({ id: 'env2', identifiers: [['dockhand', 'entryB_env_1']], config_entries: ['entryB'] });
-    const s1 = makeDevice({ id: 's1', identifiers: [['dockhand', 'entryA_stack_1_myapp']], config_entries: ['entryA'] });
-    const s2 = makeDevice({ id: 's2', identifiers: [['dockhand', 'entryB_stack_1_myapp']], config_entries: ['entryB'] });
+    const env1 = makeDevice({ id: 'env1', identifiers: [['dockhand', 'entryA_env_1']], config_entry_id: 'entryA' });
+    const env2 = makeDevice({ id: 'env2', identifiers: [['dockhand', 'entryB_env_1']], config_entry_id: 'entryB' });
+    const s1 = makeDevice({ id: 's1', identifiers: [['dockhand', 'entryA_stack_1_myapp']], config_entry_id: 'entryA' });
+    const s2 = makeDevice({ id: 's2', identifiers: [['dockhand', 'entryB_stack_1_myapp']], config_entry_id: 'entryB' });
     const hass = makeHass({ devices: [env1, env2, s1, s2] });
 
     expect(getStackDevicesForEnvironment(hass, env1).map((d) => d.id)).toEqual(['s1']);
@@ -130,10 +130,10 @@ describe('getStackDevicesForEnvironment', () => {
 
 describe('getEnvDeviceForEnvId / getEnvDeviceIdForEnvId', () => {
   it('resolves the env device that shares a config entry with the reference device, not just any same-numbered one', () => {
-    const env1 = makeDevice({ id: 'env1', identifiers: [['dockhand', 'entryA_env_1']], config_entries: ['entryA'] });
-    const env2 = makeDevice({ id: 'env2', identifiers: [['dockhand', 'entryB_env_1']], config_entries: ['entryB'] });
-    const c1 = makeDevice({ id: 'c1', identifiers: [['dockhand', 'entryA_container_1_web']], config_entries: ['entryA'] });
-    const c2 = makeDevice({ id: 'c2', identifiers: [['dockhand', 'entryB_container_1_web']], config_entries: ['entryB'] });
+    const env1 = makeDevice({ id: 'env1', identifiers: [['dockhand', 'entryA_env_1']], config_entry_id: 'entryA' });
+    const env2 = makeDevice({ id: 'env2', identifiers: [['dockhand', 'entryB_env_1']], config_entry_id: 'entryB' });
+    const c1 = makeDevice({ id: 'c1', identifiers: [['dockhand', 'entryA_container_1_web']], config_entry_id: 'entryA' });
+    const c2 = makeDevice({ id: 'c2', identifiers: [['dockhand', 'entryB_container_1_web']], config_entry_id: 'entryB' });
     const hass = makeHass({ devices: [env1, env2, c1, c2] });
 
     const envIdFromC1 = getEnvIdForContainerDevice(c1);
@@ -148,10 +148,10 @@ describe('getEnvDeviceForEnvId / getEnvDeviceIdForEnvId', () => {
   });
 
   it('mirrors for stack devices', () => {
-    const env1 = makeDevice({ id: 'env1', identifiers: [['dockhand', 'entryA_env_1']], config_entries: ['entryA'] });
-    const env2 = makeDevice({ id: 'env2', identifiers: [['dockhand', 'entryB_env_1']], config_entries: ['entryB'] });
-    const s1 = makeDevice({ id: 's1', identifiers: [['dockhand', 'entryA_stack_1_myapp']], config_entries: ['entryA'] });
-    const s2 = makeDevice({ id: 's2', identifiers: [['dockhand', 'entryB_stack_1_myapp']], config_entries: ['entryB'] });
+    const env1 = makeDevice({ id: 'env1', identifiers: [['dockhand', 'entryA_env_1']], config_entry_id: 'entryA' });
+    const env2 = makeDevice({ id: 'env2', identifiers: [['dockhand', 'entryB_env_1']], config_entry_id: 'entryB' });
+    const s1 = makeDevice({ id: 's1', identifiers: [['dockhand', 'entryA_stack_1_myapp']], config_entry_id: 'entryA' });
+    const s2 = makeDevice({ id: 's2', identifiers: [['dockhand', 'entryB_stack_1_myapp']], config_entry_id: 'entryB' });
     const hass = makeHass({ devices: [env1, env2, s1, s2] });
 
     const envIdFromS1 = getEnvIdForStackDevice(s1);
@@ -172,27 +172,27 @@ describe('schedule device resolution', () => {
   });
 
   it('getScheduleHubDevices finds every hub, one per config entry', () => {
-    const hubA = makeDevice({ id: 'hubA', identifiers: [['dockhand', 'entryA_schedules_hub']], config_entries: ['entryA'] });
-    const hubB = makeDevice({ id: 'hubB', identifiers: [['dockhand', 'entryB_schedules_hub']], config_entries: ['entryB'] });
+    const hubA = makeDevice({ id: 'hubA', identifiers: [['dockhand', 'entryA_schedules_hub']], config_entry_id: 'entryA' });
+    const hubB = makeDevice({ id: 'hubB', identifiers: [['dockhand', 'entryB_schedules_hub']], config_entry_id: 'entryB' });
     const hass = makeHass({ devices: [hubA, hubB] });
     expect(getScheduleHubDevices(hass).map((d) => d.id).sort()).toEqual(['hubA', 'hubB']);
     expect(getScheduleHubDevices(makeHass({ devices: [] }))).toEqual([]);
   });
 
   it('getScheduleGroupDeviceForEnvironment finds env_<id>_Schedules for the matching config entry', () => {
-    const env5 = makeDevice({ id: 'env5', identifiers: [['dockhand', 'entryA_env_5']], config_entries: ['entryA'] });
-    const env9 = makeDevice({ id: 'env9', identifiers: [['dockhand', 'entryA_env_9']], config_entries: ['entryA'] });
-    const group = makeDevice({ id: 'g1', identifiers: [['dockhand', 'entryA_env_5_Schedules']], config_entries: ['entryA'] });
+    const env5 = makeDevice({ id: 'env5', identifiers: [['dockhand', 'entryA_env_5']], config_entry_id: 'entryA' });
+    const env9 = makeDevice({ id: 'env9', identifiers: [['dockhand', 'entryA_env_9']], config_entry_id: 'entryA' });
+    const group = makeDevice({ id: 'g1', identifiers: [['dockhand', 'entryA_env_5_Schedules']], config_entry_id: 'entryA' });
     const hass = makeHass({ devices: [env5, env9, group] });
     expect(getScheduleGroupDeviceForEnvironment(hass, env5)?.id).toBe('g1');
     expect(getScheduleGroupDeviceForEnvironment(hass, env9)).toBeNull();
   });
 
   it('getScheduleGroupDeviceForEnvironment does not cross into another config entry\'s same-numbered group', () => {
-    const envA = makeDevice({ id: 'envA', identifiers: [['dockhand', 'entryA_env_1']], config_entries: ['entryA'] });
-    const envB = makeDevice({ id: 'envB', identifiers: [['dockhand', 'entryB_env_1']], config_entries: ['entryB'] });
-    const groupA = makeDevice({ id: 'groupA', identifiers: [['dockhand', 'entryA_env_1_Schedules']], config_entries: ['entryA'] });
-    const groupB = makeDevice({ id: 'groupB', identifiers: [['dockhand', 'entryB_env_1_Schedules']], config_entries: ['entryB'] });
+    const envA = makeDevice({ id: 'envA', identifiers: [['dockhand', 'entryA_env_1']], config_entry_id: 'entryA' });
+    const envB = makeDevice({ id: 'envB', identifiers: [['dockhand', 'entryB_env_1']], config_entry_id: 'entryB' });
+    const groupA = makeDevice({ id: 'groupA', identifiers: [['dockhand', 'entryA_env_1_Schedules']], config_entry_id: 'entryA' });
+    const groupB = makeDevice({ id: 'groupB', identifiers: [['dockhand', 'entryB_env_1_Schedules']], config_entry_id: 'entryB' });
     const hass = makeHass({ devices: [envA, envB, groupA, groupB] });
 
     expect(getScheduleGroupDeviceForEnvironment(hass, envA)?.id).toBe('groupA');
@@ -200,9 +200,9 @@ describe('schedule device resolution', () => {
   });
 
   it('getScheduleDevicesForEnvironment resolves via via_device_id, not the schedule identifier', () => {
-    const env5 = makeDevice({ id: 'env5', identifiers: [['dockhand', 'entryA_env_5']], config_entries: ['entryA'] });
-    const env9 = makeDevice({ id: 'env9', identifiers: [['dockhand', 'entryA_env_9']], config_entries: ['entryA'] });
-    const group5 = makeDevice({ id: 'group5', identifiers: [['dockhand', 'entryA_env_5_Schedules']], config_entries: ['entryA'] });
+    const env5 = makeDevice({ id: 'env5', identifiers: [['dockhand', 'entryA_env_5']], config_entry_id: 'entryA' });
+    const env9 = makeDevice({ id: 'env9', identifiers: [['dockhand', 'entryA_env_9']], config_entry_id: 'entryA' });
+    const group5 = makeDevice({ id: 'group5', identifiers: [['dockhand', 'entryA_env_5_Schedules']], config_entry_id: 'entryA' });
     const hub = makeDevice({ id: 'hub', identifiers: [['dockhand', 'schedules_hub']] });
     const s1 = makeDevice({ id: 's1', identifiers: [['dockhand', 'schedule_1_container_update']], via_device_id: 'group5' });
     const s2 = makeDevice({ id: 's2', identifiers: [['dockhand', 'schedule_2_system_cleanup']], via_device_id: 'hub' });
@@ -228,8 +228,8 @@ describe('schedule device resolution', () => {
     // global schedule — both must show up, not just whichever hub happened
     // to be enumerated first (docs/backlog.md's now-fixed "Schedules card"
     // entry).
-    const hubA = makeDevice({ id: 'hubA', identifiers: [['dockhand', 'entryA_schedules_hub']], config_entries: ['entryA'] });
-    const hubB = makeDevice({ id: 'hubB', identifiers: [['dockhand', 'entryB_schedules_hub']], config_entries: ['entryB'] });
+    const hubA = makeDevice({ id: 'hubA', identifiers: [['dockhand', 'entryA_schedules_hub']], config_entry_id: 'entryA' });
+    const hubB = makeDevice({ id: 'hubB', identifiers: [['dockhand', 'entryB_schedules_hub']], config_entry_id: 'entryB' });
     const s1 = makeDevice({ id: 's1', identifiers: [['dockhand', 'entryA_schedule_1_system_cleanup']], via_device_id: 'hubA' });
     const s2 = makeDevice({ id: 's2', identifiers: [['dockhand', 'entryB_schedule_1_system_cleanup']], via_device_id: 'hubB' });
     const hass = makeHass({ devices: [hubA, hubB, s1, s2] });

@@ -21,7 +21,7 @@ credentials of their own and never contact Dockhand directly.
 
 ## Requirements
 
-- Home Assistant 2026.6 or later
+- Home Assistant 2026.8 or later
 - The [Dockhand integration](https://github.com/raetha/ha-dockhand) 1.8.0 or later. A few features
   need a newer release; on an older one they're simply left out:
 

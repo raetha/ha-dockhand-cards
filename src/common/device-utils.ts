@@ -57,21 +57,12 @@ export function getEnvId(device: DeviceRegistryEntry): number | null {
  * instance numbers its own first environment `1`, so the numeric env_id
  * alone is never enough to scope a lookup to "this environment": two
  * separate instances' `env_1` need to stay distinct even though they
- * share a number. `config_entries` is HA's own record of which config
- * entry created a device — set by HA itself regardless of identifier
- * format, so it works for pre-1.9.0 (bare, entry_id-less) identifiers
- * too — and is the actual source of truth for "same instance", not
- * something this repo has to reconstruct by parsing entry_id back out
- * of an identifier string. */
+ * share a number. `config_entry_id` is HA's own record of which config
+ * entry created a device, set whatever the identifier format (so it also
+ * covers pre-1.9.0 identifiers without an entry_id), and the source of
+ * truth for "same instance" rather than parsing identifiers. */
 function sameConfigEntry(device: DeviceRegistryEntry, envDevice: DeviceRegistryEntry): boolean {
-  // HA 2026.8 gave each device a single `config_entry_id` and schedules the
-  // `config_entries` list for removal from the device registry API in 2027.8.
-  // The frontend still fills `config_entries` in today, so either may be the
-  // one present depending on HA version.
-  if (device.config_entry_id && envDevice.config_entry_id) return device.config_entry_id === envDevice.config_entry_id;
-  const entries = (d: DeviceRegistryEntry) => d.config_entries ?? (d.config_entry_id ? [d.config_entry_id] : []);
-  const envEntries = entries(envDevice);
-  return entries(device).some((id) => envEntries.includes(id));
+  return device.config_entry_id != null && device.config_entry_id === envDevice.config_entry_id;
 }
 
 // ha-dockhand container device identifier format:
