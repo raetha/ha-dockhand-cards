@@ -8,9 +8,16 @@ export default defineConfig({
     environment: 'node',
     setupFiles: ['./src/test-setup.ts'],
     include: ['src/**/*.test.ts', 'scripts/*.test.mjs'],
+    // `npm test` checks these floors (verify, and so CI, runs it). They sit
+    // just under today's coverage so it can only go up: raise them when
+    // tests are added, never lower them to let a change through.
     coverage: {
-      reporter: ['text', 'html'],
-      include: ['src/common/**/*.ts']
+      enabled: true,
+      provider: 'v8',
+      reporter: ['text-summary', 'html'],
+      include: ['src/**/*.ts'],
+      exclude: ['src/**/*.test.ts', 'src/test-setup.ts'],
+      thresholds: { lines: 71, statements: 69, branches: 64, functions: 64 }
     }
   }
 });

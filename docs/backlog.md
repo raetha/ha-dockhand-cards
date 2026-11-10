@@ -35,13 +35,11 @@ gotchas (not "this got fixed", but "here's a pattern worth remembering") belong 
 - **Pill padding `3px 8px`** was tried and reverted: leave pills as they are for now. Revisit only
   as part of a wider look at pill sizing across all cards.
 
-- **Test coverage of the card renderers.** ha-dockhand's tests cover every line; here the shared
-  modules in `src/common` are at about 85% but the cards' own `card.ts` render code mostly isn't
-  exercised (about 36% overall), and the editors not at all. DOM tests like
-  `dockhand-updates-card/card.dom.test.ts` per card, then a coverage gate in `npm run verify`
-  (it needs `@vitest/coverage-v8` added as a dev dependency), would catch render regressions the
-  screenshot harness only shows when someone looks. A sizeable piece of work; not started.
-
+- **Raising test coverage further.** Every card and editor now renders in tests against the
+  screenshot harness's mock data (`src/render.dom.test.ts`), and `npm test` fails below floors set
+  just under today's coverage (about 72% of lines, `vitest.config.ts`). What's left is mostly
+  interaction: editor value changes and the Overview editor's per-environment views, the cards'
+  click handlers, and `index.ts`'s entity suggestions. Raise the floors as tests are added.
 - **Real-browser / screen-reader verification** of the keyboard interaction pattern (`tabindex`
   + `role="button"` + `@keydown` on non-`<button>` elements) — implemented per WAI-ARIA guidance
   and checked automatically by `scripts/screenshot-harness/a11y.py`, but not yet manually verified

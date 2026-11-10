@@ -55,7 +55,7 @@ published npm package, so the lockfile is what makes a clone reproducible.
 
 ```bash
 npm run watch    # rebuilds dist/ on every save
-npm run verify   # typecheck + lint + test + build + audit of shipped dependencies: what CI runs
+npm run verify   # typecheck + lint + test (with its coverage floor) + build + audit of shipped dependencies: what CI runs
 ```
 
 The individual steps (`npm run typecheck`, `npm run lint`, `npm test`, `npm run build`) also run

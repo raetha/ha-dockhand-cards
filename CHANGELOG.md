@@ -48,6 +48,12 @@ and [Unreleased] is the notes of the current test build.
   makes it unavailable while nothing can be updated. An unavailable one is now ignored, so the card
   doesn't offer Update all, or list an environment with nothing pending, because of it.
 
+### Internal
+
+- Every card and editor is rendered in tests against the screenshot harness's mock data, and
+  `npm test` checks a coverage floor (about 72% of lines, up from about 45%) that can only rise.
+
+
 ## [1.5.1] - 2026-11-03
 
 ### Added
