@@ -148,6 +148,7 @@ useful ones:
   (`.row-left` the row's own icon+name, `.row-right` its own value or secondary label), used
   throughout every list-shaped card
 - `.row-actions` — the controls column a list card adds to every row when **Show controls** is on
+- `.filtered-note` — the "Hidden by filters" line under a filtered list
 - `.item-name` — a row's own primary name text, truncating with an ellipsis the same way a header's
   own name does
 - `.label-pill` — a small rounded label (a stack/container type, a custom environment label) —

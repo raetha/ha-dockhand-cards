@@ -611,11 +611,7 @@ export class DockhandEnvironmentCard extends LitElement implements LovelaceCard 
           ${isUnavailableCore
             ? html`<div class="card-message error">
                 <ha-icon icon="mdi:alert-circle-outline"></ha-icon>
-                <span>
-                  No Dockhand entities found for this environment yet. If you just added the
-                  integration, wait for the first refresh; otherwise check that this device still
-                  belongs to ha-dockhand.
-                </span>
+                <span>${t(this._hass, 'msg_no_environment_entities')}</span>
               </div>`
             : !online
               ? this._renderOffline()

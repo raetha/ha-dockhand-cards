@@ -7,10 +7,22 @@ import type { HomeAssistant } from '../common/ha-types';
 import { getEnvironmentDevices, getRepresentativeEntityId } from '../common/device-utils';
 import { cardNameFieldSchema } from '../common/card-name';
 import { t } from '../common/i18n-editor';
+import { stripUndefinedKeys } from '../common/config-utils';
 import { sortableRowStyles, editorFormStyles } from '../common/editor-styles';
 import { resolveIncludedOrdered } from '../common/environment-scope';
 import { renderEnvironmentOrderSection } from '../common/environment-scope-editor';
 import { type DockhandSchedulesCardConfig, type ScheduleGroupBy, resolveVisibleBadges } from './types';
+import { schedulesFilterFields, renderFiltersForm } from '../common/filters-editor';
+
+/** `include_global: false` (before 2.0.0) is the Where filter set to "not
+ * Global"; the editor writes it that way from the first change on. An
+ * embedded editor leaves it alone: the Overview sets it for its columns. */
+export function migrateIncludeGlobal(config: DockhandSchedulesCardConfig, embedded: boolean): DockhandSchedulesCardConfig {
+  if (embedded || config.include_global !== false) return config;
+  const rest = { ...config };
+  delete rest.include_global;
+  return config.filters?.scope ? rest : { ...rest, filters: { ...rest.filters, scope: { not: ['global'] } } };
+}
 
 export class DockhandSchedulesCardEditor extends LitElement implements LovelaceCardEditor {
   static styles = [sortableRowStyles, editorFormStyles];
@@ -20,10 +32,10 @@ export class DockhandSchedulesCardEditor extends LitElement implements LovelaceC
   /** Set by an embedding editor (the Overview card's global-defaults and
    * per-environment override views) that already owns environment
    * scoping for every card it generates — this card's own Environments
-   * section, and the include_global toggle that travels with it (both
-   * meaningless once Overview forces every generated instance to one
-   * solo'd environment with include_global: false — see Overview's own
-   * card.ts), would be redundant/confusing there. Named to match
+   * section, and the Where filter (both meaningless once Overview forces
+   * every generated instance to one solo'd environment with
+   * include_global: false — see Overview's own card.ts), would be
+   * redundant/confusing there. Named to match
    * cardIsEmbedded on every other embeddable editor in this repo even
    * though this card never had a device_id-based picker to begin with —
    * same property name, same embedding mechanism
@@ -45,7 +57,7 @@ export class DockhandSchedulesCardEditor extends LitElement implements LovelaceC
       show_settings_link: true,
       show_stats: true,
       sort_by: 'status',
-      ...config
+      ...migrateIncludeGlobal(config, this.cardIsEmbedded)
     };
   }
 
@@ -69,10 +81,6 @@ export class DockhandSchedulesCardEditor extends LitElement implements LovelaceC
 
   private _rootSchema(): HaFormSchema[] {
     return [
-      // Renders before the Environments section (see render() below) —
-      // matching Stacks/Containers' own layout for the same three-
-      // component design, not the reverse order this briefly had.
-      ...(this.cardIsEmbedded ? [] : [{ name: 'include_global', default: true, selector: { boolean: {} } }]),
       // Moved out of Content — unlike show_stats/show_settings_link/
       // visible_badges (reasonable defaults few people will want to
       // touch), group_by/sort_by are something a person is likely to
@@ -251,6 +259,8 @@ export class DockhandSchedulesCardEditor extends LitElement implements LovelaceC
         onClearAll: () => this._updateConfig({ exclude_device_ids: getEnvironmentDevices(this._hass!).map((d) => d.deviceId) })
       })}
 
+      ${renderFiltersForm(this._hass, schedulesFilterFields(this.cardIsEmbedded), this._config, (patch) => this._updateConfig(patch))}
+
       <ha-form
         .hass=${this._hass}
         .data=${{ ...this._config, group_by: groupBy, visible_badges: resolveVisibleBadges(this._config.visible_badges, groupBy) }}
@@ -263,14 +273,12 @@ export class DockhandSchedulesCardEditor extends LitElement implements LovelaceC
 
   private _updateConfig(patch: Partial<DockhandSchedulesCardConfig>): void {
     if (!this._config) return;
-    this._config = { ...this._config, ...patch };
+    this._config = stripUndefinedKeys({ ...this._config, ...patch }) as DockhandSchedulesCardConfig;
     fireEvent(this, 'config-changed', { config: this._config });
   }
 
   private _computeLabel = (schema: HaFormSchema): string => {
     switch (schema.name) {
-      case 'include_global':
-        return t(this._hass, 'include_global_schedules');
       case 'name':
         return t(this._hass, 'title_override');
       case 'show_settings_link':

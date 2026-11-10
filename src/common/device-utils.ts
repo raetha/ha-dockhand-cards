@@ -140,6 +140,25 @@ export function getEnvIdForContainerDevice(device: DeviceRegistryEntry): number 
   return null;
 }
 
+/** A stack device's stack name, from ha-dockhand's identifier
+ * (`{entry_id}_stack_{env_id}_{name}`, or `stack_{env_id}_{name}` before
+ * 1.9.0; an entry id has no underscores). */
+export function getStackName(device: DeviceRegistryEntry): string | null {
+  for (const [domain, id] of device.identifiers ?? []) {
+    if (domain !== DOCKHAND_DOMAIN) continue;
+    const match = /^(?:[^_]+_)?stack_\d+_(.+)$/.exec(id);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+/** The stack a container device belongs to (its parent device in
+ * ha-dockhand), or null when it runs on its own. */
+export function getStackNameForContainerDevice(hass: HomeAssistant, device: DeviceRegistryEntry): string | null {
+  const parent = device.via_device_id ? hass.devices?.[device.via_device_id] : undefined;
+  return parent && isStackDevice(parent) ? getStackName(parent) : null;
+}
+
 /** Reverse of getStackDevicesForEnvironment — which env does this stack device belong to. */
 export function getEnvIdForStackDevice(device: DeviceRegistryEntry): number | null {
   for (const [domain, id] of device.identifiers ?? []) {

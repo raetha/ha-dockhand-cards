@@ -4,6 +4,7 @@ import { sortPendingUpdates, shouldShowEnvironmentGroup, type PendingUpdate } fr
 function update(overrides: Partial<PendingUpdate> & { name: string }): PendingUpdate {
   return {
     entityId: `update.${overrides.name}`,
+    deviceId: `device-${overrides.name}`,
     kind: 'installable',
     ...overrides
   };

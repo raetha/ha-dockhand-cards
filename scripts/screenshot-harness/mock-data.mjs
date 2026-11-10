@@ -221,7 +221,7 @@ function buildEnvironment(addDevice, addEntity, opts) {
       update: 'pinned',
       image: 'ghcr.io/nebula/worker:latest@sha256:5c1d9e0f7a2b'
     },
-    { name: 'backup', state: 'exited', health: null, cpu: 0, mem: 0, memLimit: 256, update: 'none', image: 'restic/restic:0.17', netRx: 0, netTx: 0, blkRead: 0, blkWrite: 0 }
+    { name: 'backup', state: 'exited', health: null, cpu: 0, mem: 0, memLimit: 256, update: 'none', exitCode: 1, image: 'restic/restic:0.17', netRx: 0, netTx: 0, blkRead: 0, blkWrite: 0 }
   ];
 
   // Computed from the container list above, not hand-maintained separately
@@ -253,11 +253,25 @@ function buildEnvironment(addDevice, addEntity, opts) {
     })
   );
 
+  // ── Stacks ─────────────────────────────────────────────────────────
+  const stacks = [
+    { name: 'core', status: 'running', containerCount: 3, type: 'Git', containerNames: ['traefik', 'web', 'worker'], updateCount: 2, git: true, syncStatus: 'pending', syncError: true, lastSyncHoursAgo: 3, lastCommit: 'a3f29e17c8b4' },
+    { name: 'monitoring', status: 'partial', containerCount: 2, type: 'Internal', containerNames: ['postgres', 'redis'], updateCount: 1 }
+  ];
+  // A container's device sits under its stack's, as in ha-dockhand; backup
+  // runs on its own.
+  const stackOf = Object.fromEntries(stacks.flatMap((st) => st.containerNames.map((n) => [n, st.name])));
   for (const c of containers) {
     const devId = `container_${envId}_${c.name}`;
-    addDevice(device(devId, [`container_${envId}_${c.name}`], c.name, { model: 'Container', configuration_url: `http://${slug}.example.internal:2376/containers` }));
+    addDevice(
+      device(devId, [`container_${envId}_${c.name}`], c.name, {
+        model: 'Container',
+        configuration_url: `http://${slug}.example.internal:2376/containers`,
+        via_device_id: stackOf[c.name] ? `stack_${envId}_${stackOf[c.name]}` : null
+      })
+    );
     addEntity(
-      entity(`sensor.${slug}_${c.name}_state`, devId, 'state', c.state, { name: c.name, type: 'Compose', image: c.image, ...mockTags(c.name) }, { friendly_name: c.name })
+      entity(`sensor.${slug}_${c.name}_state`, devId, 'state', c.state, { name: c.name, type: 'Compose', image: c.image, exit_code: c.state === 'exited' ? (c.exitCode ?? 0) : null, system_container: null, ...mockTags(c.name) }, { friendly_name: c.name })
     );
     if (c.health) {
       addEntity(entity(`sensor.${slug}_${c.name}_health`, devId, 'health', c.health));
@@ -343,11 +357,6 @@ function buildEnvironment(addDevice, addEntity, opts) {
     }
   }
 
-  // ── Stacks ─────────────────────────────────────────────────────────
-  const stacks = [
-    { name: 'core', status: 'running', containerCount: 3, type: 'Git', containerNames: ['traefik', 'web', 'worker'], updateCount: 2, git: true, syncStatus: 'pending', syncError: true, lastSyncHoursAgo: 3, lastCommit: 'a3f29e17c8b4' },
-    { name: 'monitoring', status: 'partial', containerCount: 2, type: 'Internal', containerNames: ['postgres', 'redis'], updateCount: 1 }
-  ];
   for (const s of stacks) {
     const devId = `stack_${envId}_${s.name}`;
     addDevice(device(devId, [`stack_${envId}_${s.name}`], s.name, { model: `${s.type} Stack`, configuration_url: `http://${slug}.example.internal:2376/stacks` }));

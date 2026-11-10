@@ -201,7 +201,14 @@ const en = {
   git_sync_status_pending: 'Pending',
   git_sync_status_syncing: 'Syncing',
   git_sync_status_synced: 'Synced',
-  git_sync_status_error: 'Error'
+  git_sync_status_error: 'Error',
+  msg_no_filter_matches: 'Nothing matches this card’s filters.',
+  msg_no_updates_match: 'No updates match this card’s filters.',
+  filtered_hidden: 'Hidden by filters: {count}',
+  stack_status_restarting: 'Restarting',
+  msg_no_containers_yet: 'No containers found for the selected environments yet.',
+  msg_no_stacks_yet: 'No stacks found for the selected environments yet.',
+  msg_no_environment_entities: 'No Dockhand entities found for this environment yet. If you just added the integration, wait for the first refresh; otherwise check that this device still belongs to ha-dockhand.'
 } as const;
 
 

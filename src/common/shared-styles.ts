@@ -739,6 +739,12 @@ export const sharedStyles = css`
   .row:has(> .row-actions) > .row-left {
     margin-right: auto;
   }
+  /* How many rows a list card's filters hide: quiet, under the list. */
+  .filtered-note {
+    color: var(--secondary-text-color);
+    font-size: var(--ha-font-size-s, 12px);
+    text-align: center;
+  }
   /* See renderFitParts (fit-parts.ts): pieces that don't fit wrap onto a
    * second line that the one-line height hides. Unlike a plain .row-right it
    * may shrink, which is what makes the wrapping happen. */

@@ -15,6 +15,8 @@ import { renderSettingsLink, renderIcon, onKeydownActivate } from '../common/ico
 import type { StackTranslationKey } from '../common/const';
 import { DEFAULT_STACKS_BADGES, type DockhandStacksCardConfig, type StacksGroupBy, type StacksSortBy } from './types';
 import { renderRowControls, renderActionsColumn, resolveDeviceControls } from '../common/device-controls';
+import { applyFilters, type FilterExtractor } from '../common/filters';
+import { renderFilteredNote, tagValues } from '../common/list-filters';
 import { renderTagPills } from '../common/tag-pills';
 import { cardStyles } from './styles';
 
@@ -22,6 +24,7 @@ import { cardStyles } from './styles';
 const STATUS_ICON: Record<string, { icon: string; cls: 'ok' | 'warn' | 'error' | 'neutral' }> = {
   running: { icon: 'mdi:play-circle', cls: 'ok' },
   partial: { icon: 'mdi:alert-circle', cls: 'warn' },
+  restarting: { icon: 'mdi:restart', cls: 'warn' },
   stopped: { icon: 'mdi:stop-circle', cls: 'error' },
   created: { icon: 'mdi:circle-outline', cls: 'neutral' }
 };
@@ -33,6 +36,7 @@ const STATUS_ICON: Record<string, { icon: string; cls: 'ok' | 'warn' | 'error' |
 const STATUS_RANK: Record<string, number> = {
   stopped: 0,
   partial: 1,
+  restarting: 1,
   running: 2,
   created: 3
 };
@@ -50,6 +54,21 @@ interface StackRow {
   environmentDeviceId: string;
   found: ResolutionResult<StackTranslationKey>['found'];
 }
+
+const known = (state: string | undefined): string[] => (state && state !== 'unknown' && state !== 'unavailable' ? [state] : []);
+
+const FILTERS: Record<string, FilterExtractor<StackRow>> = {
+  status: (row) => known(row.status),
+  // `type` is ha-dockhand's label (Internal, Git, Untracked); the device model
+  // adds " Stack".
+  type: (row) => [row.type.toLowerCase().replace(/ stack$/, '')],
+  updates: (row) => {
+    const state = row.found.updatesAvailable?.state.state;
+    return state === 'on' ? ['available'] : state === 'off' ? ['none'] : [];
+  },
+  git_sync: (row, hass) => known(resolveStackEntities(hass, row.deviceId, ['gitSyncStatus']).found.gitSyncStatus?.state.state),
+  tags: (row) => tagValues(row.found.status?.state)
+};
 
 function byNameThenEnvironment(a: StackRow, b: StackRow): number {
   const byName = a.name.localeCompare(b.name);
@@ -151,7 +170,7 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
 
   getCardSize(): number {
     if (!this._hass || !this._config) return 3;
-    const { rows } = this._buildRows();
+    const { rows } = applyFilters(this._buildRows().rows, this._hass, FILTERS, this._config.filters);
     return Math.max(2, Math.ceil(rows.length / 2) + 1);
   }
 
@@ -218,7 +237,8 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
     const representativeEntityId = getRepresentativeEntityId(this._hass, envDevices[0].deviceId);
     const name = resolveCardName(this._hass, representativeEntityId, this._config.name, multiEnvCardNameFallback(envDevices, t(this._hass, 'name_stacks')));
     const base = this._resolveBaseUrl(envDevices);
-    const groups = groupStackRows(rows, resolveEffectiveGroupBy(this._config.group_by, envDevices, 'environment'), this._config.sort_by ?? 'name', envDevices, (by, value) =>
+    const { rows: shown, hidden } = applyFilters(rows, this._hass, FILTERS, this._config.filters);
+    const groups = groupStackRows(shown, resolveEffectiveGroupBy(this._config.group_by, envDevices, 'environment'), this._config.sort_by ?? 'name', envDevices, (by, value) =>
       stateLabel(this._hass, by === 'status' ? 'stack_status' : 'stack_type', value)
     );
 
@@ -241,14 +261,17 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
           </div>
           <div class="divider"></div>
           ${rows.length === 0
-            ? html`<div class="card-message">No stacks found for the selected environment(s) yet.</div>`
-            : groups.map(
-                (group, i) => html`
-                  ${i > 0 ? html`<div class="divider"></div>` : nothing}
-                  ${group.label !== null ? html`<div class="group-header">${group.label}</div>` : nothing}
-                  <div class="list">${group.rows.map((r) => this._renderRow(r))}</div>
-                `
-              )}
+            ? html`<div class="card-message">${t(this._hass, 'msg_no_stacks_yet')}</div>`
+            : shown.length === 0
+              ? html`<div class="card-message">${t(this._hass, 'msg_no_filter_matches')}</div>`
+              : groups.map(
+                  (group, i) => html`
+                    ${i > 0 ? html`<div class="divider"></div>` : nothing}
+                    ${group.label !== null ? html`<div class="group-header">${group.label}</div>` : nothing}
+                    <div class="list">${group.rows.map((r) => this._renderRow(r))}</div>
+                  `
+                )}
+          ${renderFilteredNote(this._hass, hidden, this._config.show_filtered_count)}
         </div>
       </ha-card>
     `;

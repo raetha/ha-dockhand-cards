@@ -1,5 +1,6 @@
 import type { LovelaceCardConfig } from 'custom-card-helpers';
 import type { EntityNameItem } from '../common/ha-types';
+import type { FiltersConfig } from '../common/filters';
 import type { EnvironmentScope } from '../common/environment-scope';
 
 export type UpdatesGroupBy = 'none' | 'environment';
@@ -50,4 +51,8 @@ export interface DockhandUpdatesCardConfig extends LovelaceCardConfig {
    * is on; left alone (or absent) otherwise, same as it would be for
    * any other card a user configures this way by hand. */
   visibility?: Record<string, unknown>[];
+  /** Which rows show; see common/filters.ts. */
+  filters?: FiltersConfig;
+  /** The "Hidden by filters" line; on unless false. */
+  show_filtered_count?: boolean;
 }

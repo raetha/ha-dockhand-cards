@@ -18,6 +18,8 @@ import { renderVersionTagPill, type NewerVersionTag } from '../common/version-ta
 import { updateKindIcon, updateStatus, type UpdateStatus } from '../common/update-kind';
 import { DEFAULT_CONTAINERS_BADGES, type DockhandContainersCardConfig, type ContainersGroupBy, type ContainersSortBy } from './types';
 import { renderRowControls, renderActionsColumn, resolveDeviceControls } from '../common/device-controls';
+import { applyFilters } from '../common/filters';
+import { containerFilters, renderFilteredNote } from '../common/list-filters';
 import { renderTagPills } from '../common/tag-pills';
 import { cardStyles } from './styles';
 
@@ -59,6 +61,8 @@ interface ContainerRow {
   /** See updateStatus() in common/update-kind.ts. */
   updateStatus?: UpdateStatus;
 }
+
+const FILTERS = containerFilters<ContainerRow>((row) => row.deviceId);
 
 function byNameThenEnvironment(a: ContainerRow, b: ContainerRow): number {
   const byName = a.name.localeCompare(b.name);
@@ -144,7 +148,7 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
 
   getCardSize(): number {
     if (!this._hass || !this._config) return 3;
-    const { rows } = this._buildRows();
+    const { rows } = applyFilters(this._buildRows().rows, this._hass, FILTERS, this._config.filters);
     return Math.max(2, Math.ceil(rows.length / 2) + 1);
   }
 
@@ -228,7 +232,8 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
     const representativeEntityId = getRepresentativeEntityId(this._hass, envDevices[0].deviceId);
     const name = resolveCardName(this._hass, representativeEntityId, this._config.name, multiEnvCardNameFallback(envDevices, t(this._hass, 'name_containers')));
     const base = this._resolveBaseUrl(envDevices);
-    const groups = groupContainerRows(rows, resolveEffectiveGroupBy(this._config.group_by, envDevices, 'environment'), this._config.sort_by ?? 'name', envDevices, (status) =>
+    const { rows: shown, hidden } = applyFilters(rows, this._hass, FILTERS, this._config.filters);
+    const groups = groupContainerRows(shown, resolveEffectiveGroupBy(this._config.group_by, envDevices, 'environment'), this._config.sort_by ?? 'name', envDevices, (status) =>
       stateLabel(this._hass, 'container_state', status)
     );
 
@@ -251,14 +256,17 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
           </div>
           <div class="divider"></div>
           ${rows.length === 0
-            ? html`<div class="card-message">No containers found for the selected environment(s) yet.</div>`
-            : groups.map(
-                (group, i) => html`
-                  ${i > 0 ? html`<div class="divider"></div>` : nothing}
-                  ${group.label !== null ? html`<div class="group-header">${group.label}</div>` : nothing}
-                  <div class="list">${group.rows.map((r) => this._renderRow(r))}</div>
-                `
-              )}
+            ? html`<div class="card-message">${t(this._hass, 'msg_no_containers_yet')}</div>`
+            : shown.length === 0
+              ? html`<div class="card-message">${t(this._hass, 'msg_no_filter_matches')}</div>`
+              : groups.map(
+                  (group, i) => html`
+                    ${i > 0 ? html`<div class="divider"></div>` : nothing}
+                    ${group.label !== null ? html`<div class="group-header">${group.label}</div>` : nothing}
+                    <div class="list">${group.rows.map((r) => this._renderRow(r))}</div>
+                  `
+                )}
+          ${renderFilteredNote(this._hass, hidden, this._config.show_filtered_count)}
         </div>
       </ha-card>
     `;

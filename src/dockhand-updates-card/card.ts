@@ -9,6 +9,8 @@ import { resolveIncludedOrderedWithLegacy, resolveEffectiveGroupBy } from '../co
 import { resolveCardName, migrateTitleToName, multiEnvCardNameFallback } from '../common/card-name';
 import { resolveEnvironmentEntities, findPrimaryEntityByDomain } from '../common/entity-resolver';
 import { getTotalPendingUpdates } from '../common/updates-visibility';
+import { activeFilterCount, applyFilters, type FilterExtractor } from '../common/filters';
+import { containerFilters, renderFilteredNote } from '../common/list-filters';
 import { renderIcon, onKeydownActivate } from '../common/icon';
 import { t } from '../common/i18n-card';
 import { UPDATE_PENDING_VERSION } from '../common/const';
@@ -26,6 +28,8 @@ const UPDATE_ROW_ICONS: Record<UpdateKind, string> = {
 
 export interface PendingUpdate {
   entityId: string;
+  /** The container's device. */
+  deviceId: string;
   name: string;
   installedVersion?: string;
   latestVersion?: string;
@@ -35,6 +39,13 @@ export interface PendingUpdate {
   kind: UpdateKind;
   heldHours?: number;
 }
+
+const CONTAINER = containerFilters<PendingUpdate>((row) => row.deviceId);
+const FILTERS: Record<string, FilterExtractor<PendingUpdate>> = {
+  update: (row) => [row.kind],
+  stack: CONTAINER.stack,
+  tags: CONTAINER.tags
+};
 
 interface EnvGroup {
   envDeviceId: string;
@@ -107,8 +118,8 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
     fireEvent(this, 'hass-more-info', { entityId });
   }
 
-  private _buildGroups(): { groups: EnvGroup[]; checkUpdatesEntityIds: string[]; envDevices: EnvironmentDeviceOption[] } {
-    if (!this._hass || !this._config) return { groups: [], checkUpdatesEntityIds: [], envDevices: [] };
+  private _buildGroups(): { groups: EnvGroup[]; checkUpdatesEntityIds: string[]; envDevices: EnvironmentDeviceOption[]; hidden: number } {
+    if (!this._hass || !this._config) return { groups: [], checkUpdatesEntityIds: [], envDevices: [], hidden: 0 };
 
     const envDevices: EnvironmentDeviceOption[] = resolveIncludedOrderedWithLegacy(
       getEnvironmentDevices(this._hass),
@@ -120,6 +131,8 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
 
     const groups: EnvGroup[] = [];
     const checkUpdatesEntityIds: string[] = [];
+    const filtered = activeFilterCount(Object.keys(FILTERS), this._config.filters) > 0;
+    let hidden = 0;
     for (const env of envDevices) {
       const envDevice = this._hass.devices[env.deviceId];
       if (!envDevice) continue;
@@ -140,6 +153,7 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
         if (!entry || !status) continue;
         updates.push({
           entityId: entry.entityId,
+          deviceId: c.id,
           name: entry.state.attributes.name || c.name_by_user || c.name || c.id,
           installedVersion: entry.state.attributes.installed_version,
           latestVersion: entry.state.attributes.latest_version,
@@ -148,9 +162,13 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
           heldHours: status.heldHours
         });
       }
-      const sortedUpdates = sortPendingUpdates(updates);
+      const kept = applyFilters(updates, this._hass, FILTERS, this._config.filters);
+      hidden += kept.hidden;
+      const sortedUpdates = sortPendingUpdates(kept.rows);
 
-      if (shouldShowEnvironmentGroup(sortedUpdates, Boolean(bulkButton))) {
+      // A filtered card lists only what matches: an environment whose
+      // updates are all filtered out isn't a group of its own.
+      if (filtered ? sortedUpdates.length > 0 : shouldShowEnvironmentGroup(sortedUpdates, Boolean(bulkButton))) {
         groups.push({
           envDeviceId: env.deviceId,
           envName: env.name,
@@ -160,13 +178,13 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
         });
       }
     }
-    return { groups, checkUpdatesEntityIds, envDevices };
+    return { groups, checkUpdatesEntityIds, envDevices, hidden };
   }
 
   protected render(): TemplateResult {
     if (!this._config || !this._hass) return html``;
 
-    const { groups, checkUpdatesEntityIds, envDevices } = this._buildGroups();
+    const { groups, checkUpdatesEntityIds, envDevices, hidden } = this._buildGroups();
     if (envDevices.length === 0) {
       return html`<ha-card>
         <div class="card-message error">
@@ -175,20 +193,18 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
         </div>
       </ha-card>`;
     }
-    // Deliberately not groups.reduce((sum, g) => sum + g.updates.length, 0)
-    // (a second, independent tally of the same per-container row list) —
-    // reads the same pending_updates_total attribute, for the same
-    // environments, that this card's own hide-when-empty visibility
-    // condition is built from (see common/updates-visibility.ts). If
-    // this number and the actual row count these groups produce below
-    // ever disagree, that's a real, worth-reporting mismatch between
-    // ha-dockhand's own aggregate and its own per-container update
-    // entities — not something to paper over here by re-deriving the
-    // count locally instead.
+    // Unfiltered, the count is ha-dockhand's own pending_updates_total, the
+    // same aggregate the hide-when-empty condition reads
+    // (common/updates-visibility.ts), so a disagreement with the rows shows
+    // up as a mismatch to report rather than being papered over. Filtered,
+    // it counts what's listed.
     const envDeviceIds = envDevices.map((e) => e.deviceId);
-    const totalUpdates = getTotalPendingUpdates(this._hass, envDeviceIds);
+    const filtered = activeFilterCount(Object.keys(FILTERS), this._config.filters) > 0;
+    const totalUpdates = filtered ? groups.reduce((sum, g) => sum + g.updates.length, 0) : getTotalPendingUpdates(this._hass, envDeviceIds);
 
-    const bulkButtonIds = groups.map((g) => g.bulkButtonEntityId).filter((id): id is string => Boolean(id));
+    // Update all updates whole environments, so it isn't offered while
+    // filters hide some of their updates.
+    const bulkButtonIds = hidden > 0 ? [] : groups.map((g) => g.bulkButtonEntityId).filter((id): id is string => Boolean(id));
     const representativeEntityId = getRepresentativeEntityId(this._hass, envDeviceIds[0]);
     const name = resolveCardName(this._hass, representativeEntityId, this._config.name, multiEnvCardNameFallback(envDevices, t(this._hass, 'name_updates')));
     // Based on how many environments are actually included, not the
@@ -242,10 +258,12 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
           </div>
           <div class="divider"></div>
           ${groups.every((g) => g.updates.length === 0)
-            ? html`<div class="card-message">
-                <ha-icon icon="mdi:check-circle-outline"></ha-icon>
-                <span>${t(this._hass, 'msg_everything_up_to_date')}</span>
-              </div>`
+            ? hidden > 0
+              ? html`<div class="card-message">${t(this._hass, 'msg_no_updates_match')}</div>`
+              : html`<div class="card-message">
+                  <ha-icon icon="mdi:check-circle-outline"></ha-icon>
+                  <span>${t(this._hass, 'msg_everything_up_to_date')}</span>
+                </div>`
             : flatUpdates
               ? html`<div class="list">${flatUpdates.map((u) => this._renderUpdateRow(u))}</div>`
               : groups.map(
@@ -255,6 +273,7 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
                     <div class="list">${g.updates.map((u) => this._renderUpdateRow(u))}</div>
                   `
                 )}
+          ${renderFilteredNote(this._hass, hidden, this._config.show_filtered_count)}
         </div>
       </ha-card>
     `;

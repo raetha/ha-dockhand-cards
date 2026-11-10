@@ -108,8 +108,11 @@ a whole is plural (`show_environments`, `environments_overrides`, `environments_
 **Section defaults** use the real editors too (§3, with both flags set). Field names map
 mechanically: `${prefix}_${field}`, where the prefix is the section name except `environments` →
 `environment` (`GLOBAL_SECTION_PREFIX` in the Overview editor). Reading scans the Overview config
-for that prefix; writing prefixes every field the editor emits except `type`/`device_id`. Nothing
-here changes when a card gains a field. The scan is safe only because the plural
+for that prefix; writing prefixes every field the editor emits except `type`/`device_id`. The
+Overview card builds each generated card the same way (`_sectionSettings()`): the section's
+prefixed defaults, then the environment's override, then the keys a column decides itself
+(`type`, the environment scope, Schedules' `include_global: false`). Nothing here changes when a
+card gains a field. The scan is safe only because the plural
 `environments_overrides`/`environments_order` can't match the singular `environment_` prefix: **no
 new top-level key may start with a section prefix.** The embedded Updates editor never writes a
 `visibility:` condition (it can't reach a card inside the Overview's shadow DOM, §9); the Overview
@@ -382,6 +385,7 @@ Every class in use. `docs/styling.md`'s card_mod section is the public subset.
 | `.row-icon` | Small icon with optional text: a row's state icon or a trailing badge. Color modifiers. |
 | `.label-row`, `.label-pill` | A wrapping row of pills (8px gap) and the pill (12px text, `line-height: 1`). |
 | `.tag-pills` | A row's or header's Dockhand tags, shrinking before the name. |
+| `.filtered-note` | Under a filtered list: how many rows filters hide. |
 | `.status-banner` | One prominent colored message per card. |
 | `.card-message` | A message replacing a card's content (missing entity, nothing to show, all clear); `.warn`/`.error`. |
 | `.grid-2` (+ `.stacked`) | Two self-contained items side by side; `.stacked` from `PairGridController`. |
@@ -438,3 +442,31 @@ several instances have them), use `getInstanceLabel()` (`common/format.ts`): the
 device's `configuration_url`, which every ha-dockhand device carries. Environment names and numbers
 can repeat across instances and an instance has no single environment to name it by; two entries
 share a host only if they point at the same server.
+
+## 21. List card filters
+
+The Stacks, Containers, Updates and Schedules cards take `filters:`, a map from filter to values:
+a list means "is one of", `{ not: [...] }` "is none of". Values within a filter are alternatives;
+every filter set applies (`applyFilters()`, `common/filters.ts`). Filtering happens after the
+environment scope and before grouping and sorting; a group left empty disappears.
+
+- **Card side** (`common/list-filters.ts` and each card's `FILTERS`): a function per filter giving
+  a row's values, read from what ha-dockhand provides (entities, attributes, the device tree:
+  a container's stack is its parent device). An empty list means the value isn't known, which
+  fails "is" and passes "is not". Where having no value is worth choosing (no stack, no tags, no
+  health check, never run), the row's value is `NONE` (`(none)`), which neither a Compose project
+  name nor a Dockhand tag can be. Unknown filter keys are ignored, so a newer config still loads.
+- **Editor side** (`common/filters-editor.ts`): one `<ha-form>` per editor, between Environments
+  and Content, with a `grid` row per filter (a multi-select and an "is / is not" select shown via
+  `visible:` once values are picked). The form uses flat `filter_<key>` fields mapped to and from
+  `filters:`, keeping keys this editor doesn't show. Option labels reuse `stateLabel()`, so they
+  match the cards and Home Assistant's own translated states.
+- **On the card:** "Nothing matches" (Updates: "No updates match") rather than the card's empty
+  state, and a `.filtered-note` line counting hidden rows unless `show_filtered_count: false`.
+  The Updates card counts listed rows in its header when filtered, and drops **Update all** while
+  filters hide updates, since it acts on whole environments. *Hide when no updates* still reads
+  the unfiltered aggregate (§9).
+- **Schedules' Where filter** (`scope`) replaces `include_global`. The card still honours
+  `include_global: false`, which the Overview sets for its columns; the standalone editor rewrites
+  it as `scope: { not: [global] }` (`migrateIncludeGlobal()`), and doesn't offer Where when
+  embedded.
