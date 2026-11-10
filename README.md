@@ -31,6 +31,7 @@ credentials of their own and never contact Dockhand directly.
   | "Hide when no updates" counting a system container's own update | 1.8.2 |
   | Update counts including new version tags | 1.10.2 |
   | Newer version tags, moved pinned digests and held updates | 1.11.0 |
+  | Dockhand tags, schedule and row controls | 2.0.0 |
 
 ---
 
@@ -55,13 +56,16 @@ it, refresh). HACS's resource path is `/hacsfiles/ha-dockhand-cards/ha-dockhand-
 
 ### Manual
 
-1. Download `ha-dockhand-cards.js` and `ha-dockhand-cards-editor.js` from the
-   [latest release](https://github.com/raetha/ha-dockhand-cards/releases)
-2. Copy both into the same folder, e.g. `<HA config>/www/`. The editor file is loaded automatically
-   from beside the card file, so it doesn't need a resource of its own
+1. Download every `.js` file from the
+   [latest release](https://github.com/raetha/ha-dockhand-cards/releases): the cards
+   (`ha-dockhand-cards.js`), their editors (`ha-dockhand-cards-editor.js`) and one
+   `ha-dockhand-cards-i18n-<language>.js` per language
+2. Copy them all into the same folder, e.g. `<HA config>/www/`. The editor and language files are
+   loaded automatically from beside the card file, so they don't need resources of their own (a
+   missing language file just shows English)
 3. Add the card file as a dashboard resource: `/local/ha-dockhand-cards.js`, type
    **JavaScript Module**
-4. When updating, replace both files and add or bump a version on the resource URL, e.g.
+4. When updating, replace all the files and add or bump a version on the resource URL, e.g.
    `/local/ha-dockhand-cards.js?v=1.4.0`, so browsers load the new files
 
 ### Test builds
@@ -162,7 +166,7 @@ show_controls: true # row of start/stop/restart buttons under the status — off
 visible_sections: [status, metrics, io, containers, git_sync] # which sections show, independent of each other
 ```
 
-The stack's status, CPU/memory and network/disk I/O totals, its containers (each one a pill that
+Under the header, the stack's Dockhand tags as coloured pills (when it has any). The stack's status, CPU/memory and network/disk I/O totals, its containers (each one a pill that
 opens that container), pending updates, and — for git stacks — sync status, last sync time and any
 sync error. The totals are Dockhand's own (the same numbers its Stacks page shows), from
 ha-dockhand 1.11.0's stack stats sensors — they need Dockhand 1.0.52 or later and ha-dockhand's
@@ -192,7 +196,7 @@ show_controls: true # row of start/stop/restart buttons under the status — off
 visible_sections: [state, metrics, io] # which sections show, independent of each other
 ```
 
-The container's state, health (when it has a healthcheck), CPU/memory and network/disk I/O. CPU,
+Under the header, the container's Dockhand tags as coloured pills (when it has any). The container's state, health (when it has a healthcheck), CPU/memory and network/disk I/O. CPU,
 memory and I/O need ha-dockhand's **Enable container and stack stats** option; without it the card simply
 leaves them out, and its editor tells you what to enable.
 
@@ -218,7 +222,7 @@ exclude_device_ids: [] # environments to leave out
 name: null # optional — Composed or Custom, same as every other card's Name field
 show_settings_link: true # link to view stacks in Dockhand
 show_controls: false # start/stop and restart buttons on each row
-visible_badges: [container_count, updates, type] # per-row details; add `environment` for an environment pill
+visible_badges: [container_count, updates, type, tags] # per-row details; add `environment` for an environment pill
 group_by: environment # none | environment | status | type
 sort_by: name # name | status
 ```
@@ -248,7 +252,7 @@ exclude_device_ids: [] # environments to leave out
 name: null # optional — Composed or Custom, same as every other card's Name field
 show_settings_link: true # link to view containers in Dockhand
 show_controls: false # start/stop and restart buttons on each row
-visible_badges: [health, updates, cpu, memory] # per-row details; add `environment` for an environment pill
+visible_badges: [health, updates, cpu, memory, tags] # per-row details; add `environment` for an environment pill
 group_by: environment # none | environment | status
 sort_by: name # name | status
 ```
@@ -382,7 +386,8 @@ pencil icon on each opens more settings:
 Every card and editor is translated into the same languages as the integration: German, Spanish,
 French, Italian, Norwegian, Dutch, Polish, Portuguese, Swedish and Chinese (Simplified), alongside
 English, following your Home Assistant language. Numbers and times ("5 min ago") follow your
-language and number format too. Translations are machine-generated; corrections from native
+language and number format too. Each language is its own small file beside the cards, so a
+dashboard only loads the one it shows. Translations are machine-generated; corrections from native
 speakers are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---

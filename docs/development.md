@@ -26,6 +26,13 @@ from. Both bundles carry their own copy of shared code: a shared chunk would loa
 resource URL carries a cache-busting version query (`?hacstag=` under HACS, `?v=` in the
 Marketplace; see `rollup.config.mjs`).
 
+Each non-English language is a third kind of file, `ha-dockhand-cards-i18n-<lang>.js`, built from
+`src/i18n/<lang>.ts` (one Rollup entry per file there) and loaded at runtime by both bundles
+(`common/i18n-loader.ts`): English is built into the bundles. The card bundle holds back defining
+its elements (a top-level `await`, at most 1.5 s) until the page's language has loaded, so cards
+don't draw in English first. Releases attach every `dist/*.js`. A new language is a new file in
+`src/i18n/`, added to `LANGUAGES` in the loader and to `src/test-setup.ts`.
+
 ## One-time setup
 
 Node 24 (what CI uses), then:
@@ -48,7 +55,7 @@ published npm package, so the lockfile is what makes a clone reproducible.
 
 ```bash
 npm run watch    # rebuilds dist/ on every save
-npm run verify   # typecheck + lint + test + build + audit of shipped dependencies: what CI runs
+npm run verify   # typecheck + lint + test (with its coverage floor) + build + audit of shipped dependencies: what CI runs
 ```
 
 The individual steps (`npm run typecheck`, `npm run lint`, `npm test`, `npm run build`) also run
@@ -102,8 +109,10 @@ updates open pull requests for the ones with a fix.
 
 Home Assistant's translation system only covers backend strings (an integration's
 `strings.json`); it has no channel for a Lovelace card's own text. So this repo bundles its own
-dictionaries, looked up from `hass.language` at render time: `src/common/i18n-card.ts` for the
-cards and `src/common/i18n-editor.ts` for the editors. The locales match ha-dockhand's (de, es,
+dictionaries, looked up from `hass.language` at render time: English in `src/common/i18n-card.ts`
+for the cards and `src/common/i18n-editor.ts` for the editors, every other language (both parts)
+in `src/i18n/<lang>.ts`, built into its own file and loaded on demand (see "Layout" for
+how). The locales match ha-dockhand's (de, es,
 fr, it, nb, nl, pl, pt, sv, zh-Hans), machine-translated the same way, using ha-dockhand's own
 terms where it has one.
 
@@ -170,9 +179,8 @@ release pull request dates it.
   *without* a working backward-compatible fallback, or dropping support for an entity or attribute
   shape a released version reads. A rename *with* a verified, unconditional fallback (the old key
   keeps working indefinitely and the editor migrates configs to the new key on load) is minor.
-  First case: `environment_overrides`/`environment_order` became
-  `environments_overrides`/`environments_order` in 1.1.0, read forever through
-  `getEnvironmentOverrides()`/`getEnvironmentOrder()`.
+  Removing such a fallback later is major: `environment_overrides`/`environment_order` (renamed
+  in 1.1.0) stopped being read in 2.0.0.
 - **Minor:** a new card, a new optional config key or editor field, new locale coverage. Also when
   picking up an ha-dockhand `translation_key` rename (which shows up here as entities silently no
   longer resolving, not a compile error): call out the ha-dockhand version needed in the

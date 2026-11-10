@@ -257,7 +257,7 @@ function buildEnvironment(addDevice, addEntity, opts) {
     const devId = `container_${envId}_${c.name}`;
     addDevice(device(devId, [`container_${envId}_${c.name}`], c.name, { model: 'Container', configuration_url: `http://${slug}.example.internal:2376/containers` }));
     addEntity(
-      entity(`sensor.${slug}_${c.name}_state`, devId, 'state', c.state, { name: c.name, type: 'Compose', image: c.image }, { friendly_name: c.name })
+      entity(`sensor.${slug}_${c.name}_state`, devId, 'state', c.state, { name: c.name, type: 'Compose', image: c.image, ...mockTags(c.name) }, { friendly_name: c.name })
     );
     if (c.health) {
       addEntity(entity(`sensor.${slug}_${c.name}_health`, devId, 'health', c.health));
@@ -366,7 +366,8 @@ function buildEnvironment(addDevice, addEntity, opts) {
         name: s.name,
         type: s.type,
         container_count: s.containerCount,
-        container_names: s.containerNames
+        container_names: s.containerNames,
+        ...mockTags(s.name)
       })
     );
     addEntity(
@@ -590,6 +591,18 @@ function buildSchedules(addDevice, addEntity) {
     status: 'queued',
     nextRunIso: null
   });
+}
+
+// ha-dockhand 2.0's Dockhand tags, on a few containers and stacks (Dockhand's palette).
+const MOCK_TAGS = {
+  traefik: [['edge', '#0ea5e9']],
+  postgres: [['database', '#8b5cf6'], ['critical', '#ef4444']],
+  monitoring: [['observability', '#22c55e']],
+  core: [['critical', '#ef4444']]
+};
+function mockTags(name) {
+  const tags = MOCK_TAGS[name];
+  return tags ? { tags: tags.map(([n]) => n), tag_colors: Object.fromEntries(tags) } : {};
 }
 
 export function buildMockHass() {

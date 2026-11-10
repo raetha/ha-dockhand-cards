@@ -1,6 +1,6 @@
 {
   "name": "ha-dockhand-cards",
-  "version": "1.6.0",
+  "version": "2.0.0",
   "description": "Lovelace cards for the ha-dockhand Home Assistant integration",
   "private": true,
   "type": "module",
@@ -33,6 +33,7 @@
     "@types/d3-shape": "^3.2.0",
     "@typescript-eslint/eslint-plugin": "^8.72.1",
     "@typescript-eslint/parser": "^8.72.1",
+    "@vitest/coverage-v8": "^5.1.0",
     "custom-card-helpers": "^2.0.0",
     "eslint": "^10.14.0",
     "globals": "^17.14.0",

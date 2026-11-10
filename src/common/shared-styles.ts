@@ -773,6 +773,21 @@ export const sharedStyles = css`
     white-space: nowrap;
     line-height: 1;
   }
+  /* A row's Dockhand tags give way before its name: the name keeps its
+   * whole width (any shrinking at all, even a fraction of a pixel, shows
+   * an ellipsis) up to the full row, and the tags take what's left,
+   * clipping the last pills when the row is narrow. */
+  .row-left:has(.tag-pills) .item-name {
+    flex: 0 0 auto;
+    max-width: 100%;
+  }
+  .tag-pills {
+    display: flex;
+    gap: var(--ha-space-1, 4px);
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+  }
   /* Icon+count summary row (Environment card's container stats,
    * Schedules card's status counts) — spread evenly across the full card
    * width via flex, not a fixed-column grid: a grid needs its column

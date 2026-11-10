@@ -94,6 +94,7 @@ export class DockhandContainersCardEditor extends LitElement implements Lovelace
               updates: t(this._hass, 'badge_updates'),
               cpu: t(this._hass, 'badge_cpu'),
               memory: t(this._hass, 'badge_memory'),
+              tags: t(this._hass, 'badge_tags'),
               ...(this.cardIsEmbedded ? {} : { environment: t(this._hass, 'badge_environment') })
             }
           }

@@ -8,9 +8,9 @@ import type { EntityNameItem } from '../common/ha-types';
  * 'environment' is new alongside multi-environment support — same
  * checkbox-group convention as everything else here (docs/
  * editor-design.md rule 5), not a standalone toggle. */
-export type StacksCardBadge = 'container_count' | 'updates' | 'type' | 'environment';
+export type StacksCardBadge = 'container_count' | 'updates' | 'type' | 'environment' | 'tags';
 
-export const DEFAULT_STACKS_BADGES: StacksCardBadge[] = ['container_count', 'updates', 'type'];
+export const DEFAULT_STACKS_BADGES: StacksCardBadge[] = ['container_count', 'updates', 'type', 'tags'];
 
 /** 'status'/'type' group by the same fields STATUS_ICON/the type pill
  * already expose per row in card.ts — no new data needed to support

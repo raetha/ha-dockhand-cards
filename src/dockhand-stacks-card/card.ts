@@ -15,6 +15,7 @@ import { renderSettingsLink, renderIcon, onKeydownActivate } from '../common/ico
 import type { StackTranslationKey } from '../common/const';
 import { DEFAULT_STACKS_BADGES, type DockhandStacksCardConfig, type StacksGroupBy, type StacksSortBy } from './types';
 import { renderRowControls, resolveDeviceControls } from '../common/device-controls';
+import { renderTagPills } from '../common/tag-pills';
 import { cardStyles } from './styles';
 
 // Matches Dockhand's own stackStatusTypes color list (src/routes/stacks/+page.svelte).
@@ -280,6 +281,7 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
           <span class="item-name">${row.name}</span>
           ${visible.has('type') ? html`<span class="label-pill">${stateLabel(this._hass, 'stack_type', row.type)}</span>` : nothing}
           ${visible.has('environment') ? html`<span class="label-pill">${row.environment}</span>` : nothing}
+          ${visible.has('tags') ? renderTagPills(found.status?.state) : nothing}
         </div>
         <div class="row-right">
           ${updatesOn && visible.has('updates')

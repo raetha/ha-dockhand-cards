@@ -18,6 +18,7 @@ import { renderVersionTagPill, type NewerVersionTag } from '../common/version-ta
 import { updateKindIcon, updateStatus, type UpdateStatus } from '../common/update-kind';
 import { DEFAULT_CONTAINERS_BADGES, type DockhandContainersCardConfig, type ContainersGroupBy, type ContainersSortBy } from './types';
 import { renderRowControls, resolveDeviceControls } from '../common/device-controls';
+import { renderTagPills } from '../common/tag-pills';
 import { cardStyles } from './styles';
 
 // Matches Dockhand's own statusTypes color list (src/routes/containers/+page.svelte).
@@ -290,6 +291,7 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
           <ha-icon class="row-icon ${stateIcon.cls}" icon=${stateIcon.icon} title=${stateLabel(this._hass, 'container_state', st, found.state!.state)}></ha-icon>
           <span class="item-name">${row.name}</span>
           ${visible.has('environment') ? html`<span class="label-pill">${row.environment}</span>` : nothing}
+          ${visible.has('tags') ? renderTagPills(found.state!.state) : nothing}
         </div>
         <div class="row-right">
           ${row.newerVersion && visible.has('updates') ? renderVersionTagPill(this._hass, row.newerVersion, () => this._moreInfo(row.updateEntityId)) : nothing}

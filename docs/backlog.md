@@ -26,25 +26,20 @@ gotchas (not "this got fixed", but "here's a pattern worth remembering") belong 
 
 ## Containers / Stacks cards
 
-- **Dockhand container and stack tags.** Dockhand 1.0.49+ has user-defined tags (name, colour,
-  icon) on containers and stacks. Once ha-dockhand exposes them (its backlog has the API details),
-  show them as pills on Containers/Stacks rows and the Container/Stack cards, and use them for the
-  filtering/grouping planned for 2.0.0. Tag colours are user-chosen, so they'd follow the same
-  inline-colour approach as the environment label pills. Raetha: worth doing, not urgent
-  (2026-10-14).
+- **Filtering and grouping by Dockhand tag** on the Containers and Stacks cards. The pills ship in
+  2.0.0; filters for the list cards are being defined first (Raetha, 2026-11-09), so tag filtering
+  waits to be part of that design.
 
 ## Cross-card
 
 - **Pill padding `3px 8px`** was tried and reverted: leave pills as they are for now. Revisit only
   as part of a wider look at pill sizing across all cards.
 
-- **Test coverage of the card renderers.** ha-dockhand's tests cover every line; here the shared
-  modules in `src/common` are at about 85% but the cards' own `card.ts` render code mostly isn't
-  exercised (about 36% overall), and the editors not at all. DOM tests like
-  `dockhand-updates-card/card.dom.test.ts` per card, then a coverage gate in `npm run verify`
-  (it needs `@vitest/coverage-v8` added as a dev dependency), would catch render regressions the
-  screenshot harness only shows when someone looks. A sizeable piece of work; not started.
-
+- **Raising test coverage further.** Every card and editor now renders in tests against the
+  screenshot harness's mock data (`src/render.dom.test.ts`), and `npm test` fails below floors set
+  just under today's coverage (about 72% of lines, `vitest.config.ts`). What's left is mostly
+  interaction: editor value changes and the Overview editor's per-environment views, the cards'
+  click handlers, and `index.ts`'s entity suggestions. Raise the floors as tests are added.
 - **Real-browser / screen-reader verification** of the keyboard interaction pattern (`tabindex`
   + `role="button"` + `@keydown` on non-`<button>` elements) — implemented per WAI-ARIA guidance
   and checked automatically by `scripts/screenshot-harness/a11y.py`, but not yet manually verified
@@ -97,21 +92,6 @@ gotchas (not "this got fixed", but "here's a pattern worth remembering") belong 
   instead — see `docs/architecture.md` §2 — which works fine. Not worth raising the floor for on its
   own (dropping 2026.6/2026.7 support is a major change under `docs/development.md` → "Versioning"); switch over
   whenever the floor reaches 2026.8 for some other reason.
-
-- **Remove `environment_overrides`/`environment_order` backward compatibility.** Renamed to
-  `environments_overrides`/`environments_order` in 1.1.0 (see CHANGELOG) — the deprecated fields
-  still exist on `DockhandOverviewCardConfig`, `getEnvironmentOverrides()`/`getEnvironmentOrder()`
-  in `dockhand-overview-card/types.ts` still fall back to them for reading, and the editor's
-  `migrateOverviewConfig()` still normalizes them away on load. This was done specifically while
-  ha-dockhand-cards has very close to zero real users (1.0.0 had just shipped, no stars, no visible
-  adoption). **Target: 2.0.0.** Removing the fallback is a major change under `docs/development.md` → "Versioning", and
-  Raetha decided (Oct 2026, after 1.3.2) to defer it to the next major rather than make a policy
-  exception — not because any real configs are expected to still use the old keys. Removal means:
-  delete both deprecated fields from the config interface, delete the fallback branch in each
-  accessor function (leaving them as trivial `config?.environments_overrides` one-liners — at that
-  point worth asking whether keeping them as functions at all is still justified, or whether reading
-  the field directly everywhere is simpler once there's no migration logic left to centralize), and
-  delete `migrateOverviewConfig()` and its call in the editor's `setConfig()`.
 
 - **A single-environment Overview card given extra dashboard width (e.g. spanning 3 grid columns)
   currently just stretches, rather than spreading its sections out to use the width.** Confirmed

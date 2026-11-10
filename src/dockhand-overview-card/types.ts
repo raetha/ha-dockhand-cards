@@ -171,33 +171,14 @@ export interface DockhandOverviewCardConfig extends LovelaceCardConfig {
    * the environments section/list as a whole, not one environment's
    * card settings the way environment_mode etc. are (singular there is
    * correct: each of those really is a per-card-type default, this
-   * isn't). Read via getEnvironmentOverrides(), not this field directly
-   * — see that function for why. */
+   * isn't). */
   environments_overrides?: Record<string, EnvironmentOverride>;
-  /** @deprecated Renamed to `environments_overrides` (see above) shortly
-   * after the 1.1.0 release that introduced it, while ha-dockhand-cards
-   * had close to zero real users — the rename fixes a genuine
-   * inconsistency (singular "environment", unlike every sibling
-   * plural-when-about-the-section key) and removes the one case where
-   * a top-level key collided with a global-defaults section prefix
-   * (see docs/architecture.md §4). Read via getEnvironmentOverrides(),
-   * never directly, so this fallback can be deleted from that one
-   * function (and this field from this interface) once enough time has
-   * passed that remaining old-style saved configs are a non-issue —
-   * tracked in docs/backlog.md with a target date. */
-  environment_overrides?: Record<string, EnvironmentOverride>;
   exclude_device_ids?: string[];
   /** Device ids in the order the user dragged them to, in the editor.
    * Environments not listed here (newly added ones) sort after the
-   * ordered ones, alphabetically. Read via getEnvironmentOrder(), not
-   * this field directly — see environments_overrides above for the
-   * same reasoning (plural, matches show_environments; not a
-   * per-environment-card setting the way environment_mode is). */
+   * ordered ones, alphabetically. Plural, matching show_environments,
+   * like environments_overrides above. */
   environments_order?: string[];
-  /** @deprecated Renamed to `environments_order` (see above) — same
-   * migration, same reasoning, same removal tracking in
-   * docs/backlog.md. Read via getEnvironmentOrder(), never directly. */
-  environment_order?: string[];
   /** Section order within each environment's column, user-arranged in
    * the editor the same way environments_order is. Sections not listed
    * (newly added ones, e.g. after an update) sort after the ordered
@@ -215,49 +196,4 @@ export interface DockhandOverviewCardConfig extends LovelaceCardConfig {
    * flex-wrap layout when section heights differ significantly between
    * environments. */
   align_columns?: boolean;
-}
-
-/** Prefers the current environments_overrides key, falling back to the
- * deprecated environment_overrides for a config saved before the rename
- * — see that field's own doc comment in DockhandOverviewCardConfig for
- * the full reasoning and removal tracking. The only place either field
- * should ever be read from; card.ts and editor.ts both call this rather
- * than reading either key directly. */
-export function getEnvironmentOverrides(config: DockhandOverviewCardConfig | undefined): Record<string, EnvironmentOverride> | undefined {
-  return config?.environments_overrides ?? config?.environment_overrides;
-}
-
-/** Same fallback as getEnvironmentOverrides, for environments_order /
- * the deprecated environment_order. */
-export function getEnvironmentOrder(config: DockhandOverviewCardConfig | undefined): string[] | undefined {
-  return config?.environments_order ?? config?.environment_order;
-}
-
-/** Normalizes a config's deprecated environment_overrides/environment_order
- * keys to their current environments_overrides/environments_order names
- * (preferring an already-current value if somehow both are present),
- * deleting the deprecated key either way. Called once, in the editor's
- * own setConfig() — not here in types.ts as a side effect of the getters
- * above, since a pure accessor shouldn't also mutate — so this._config is
- * always in the post-rename shape from the moment the editor loads,
- * before any of its own code ever reads or writes either key again. This
- * is what lets _globalEditorConfig's generic prefix scan (see
- * docs/architecture.md §4) skip needing a denylist of its own: by the
- * time it runs, the deprecated keys it would otherwise have to exclude
- * simply aren't present in memory anymore. The live card (card.ts)
- * doesn't need this: it never writes anything back, and
- * getEnvironmentOverrides()/getEnvironmentOrder() already read either
- * key name correctly for rendering on their own. */
-export function migrateOverviewConfig(config: DockhandOverviewCardConfig): DockhandOverviewCardConfig {
-  if (config.environment_overrides === undefined && config.environment_order === undefined) return config;
-  const next = { ...config } as Record<string, unknown>;
-  if (next.environment_overrides !== undefined) {
-    next.environments_overrides ??= next.environment_overrides;
-    delete next.environment_overrides;
-  }
-  if (next.environment_order !== undefined) {
-    next.environments_order ??= next.environment_order;
-    delete next.environment_order;
-  }
-  return next as DockhandOverviewCardConfig;
 }

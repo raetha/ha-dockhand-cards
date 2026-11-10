@@ -12,6 +12,9 @@ and [Unreleased] is the notes of the current test build.
 
 ### Added
 
+- **Dockhand tags** as coloured pills, as in Dockhand's own lists: on Stacks and Containers card
+  rows (a new **Tags** detail, on by default) and under the Stack and Container cards' headers.
+  Needs ha-dockhand 2.0.0 or later; earlier releases simply show none.
 - **Controls on list rows** — a **Show controls** option, off by default, on the Stacks and
   Containers cards (start or stop, and restart while running, asking before stopping or
   restarting) and the Schedules card (**Run now**, which asks first, and enable/disable). Schedule
@@ -19,17 +22,37 @@ and [Unreleased] is the notes of the current test build.
 
 ### Changed
 
+- **Smaller downloads: each language is its own file.** The cards and their editors now carry
+  only English and load the dashboard's language from a small file beside them, so the card file
+  is about 40% smaller (about 140 KB instead of 220 KB) and the editors' 75 KB instead of 130 KB.
+  Marketplace and HACS installs get the language files automatically. **A manual install must copy
+  every `.js` file from the release**, not just the two it used to; without them the cards show
+  English.
 - README: installing through Home Assistant's Marketplace (2026.11+), with HACS for older
   versions, and the Marketplace's resource path for YAML-managed dashboards.
 - Versions show without a leading "v": HACS shows release tags, which from this release are plain
-  version numbers (`1.6.0`, test builds such as `1.6.1-dev.42`), like most other HACS
+  version numbers (`2.0.0`, test builds such as `2.0.1-dev.42`), like most other HACS
   repositories. Earlier releases keep their `v` tags.
+
+### Removed
+
+- **Breaking: the Overview card's old `environment_overrides` and `environment_order` keys** are
+  no longer read. They were renamed `environments_overrides` and `environments_order` in 1.1.0,
+  and the editor has rewritten them on every save since, so only an Overview card configured
+  before 1.1.0 and never edited since is affected: rename the two keys in its YAML (add the
+  missing "s"), or open and save it in the editor before updating.
 
 ### Fixed
 
 - Updates card: ready for ha-dockhand 2.0, which keeps each environment's Update all button and
   makes it unavailable while nothing can be updated. An unavailable one is now ignored, so the card
   doesn't offer Update all, or list an environment with nothing pending, because of it.
+
+### Internal
+
+- Every card and editor is rendered in tests against the screenshot harness's mock data, and
+  `npm test` checks a coverage floor (about 72% of lines, up from about 45%) that can only rise.
+
 
 ## [1.5.1] - 2026-11-03
 

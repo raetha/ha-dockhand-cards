@@ -11,9 +11,9 @@ import type { EntityNameItem } from '../common/ha-types';
  * is new alongside multi-environment support — same checkbox-group
  * convention as everything else here (docs/editor-design.md rule 5),
  * not a standalone toggle. */
-export type ContainersCardBadge = 'health' | 'updates' | 'cpu' | 'memory' | 'environment';
+export type ContainersCardBadge = 'health' | 'updates' | 'cpu' | 'memory' | 'environment' | 'tags';
 
-export const DEFAULT_CONTAINERS_BADGES: ContainersCardBadge[] = ['health', 'updates', 'cpu', 'memory'];
+export const DEFAULT_CONTAINERS_BADGES: ContainersCardBadge[] = ['health', 'updates', 'cpu', 'memory', 'tags'];
 
 /** No 'type' option, unlike Stacks' equivalent — containers don't have a
  * comparable per-row type concept to group by. */

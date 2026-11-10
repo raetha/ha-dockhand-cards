@@ -112,7 +112,7 @@ jobs:
           fi
           node scripts/release.mjs notes "$version" > notes.md
           gh release create "$tag" --target "$GITHUB_SHA" --title "Dockhand Cards $version" \
-            --notes-file notes.md dist/ha-dockhand-cards.js dist/ha-dockhand-cards-editor.js
+            --notes-file notes.md dist/*.js
           echo "Released $tag"
 
       - name: Delete test builds
@@ -178,7 +178,7 @@ jobs:
           node scripts/release.mjs notes Unreleased --test-build "$GITHUB_RUN_NUMBER" > notes.md
           gh release create "$tag" --target "$GITHUB_SHA" --prerelease \
             --title "Dockhand Cards $tag (test build)" \
-            --notes-file notes.md dist/ha-dockhand-cards.js dist/ha-dockhand-cards-editor.js
+            --notes-file notes.md dist/*.js
           gh release list --limit 100 --json tagName,isPrerelease --jq '.[] | select(.isPrerelease) | .tagName' |
             { grep -E '^v?[0-9.]+-dev\.[0-9]+$' | grep -vx "$tag" || true; } | while read -r old; do
               gh release delete "$old" --yes --cleanup-tag

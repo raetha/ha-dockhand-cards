@@ -21,6 +21,11 @@ import { DockhandUpdatesCard } from './dockhand-updates-card/card';
 import { DockhandOverviewCard } from './dockhand-overview-card/card';
 import { DockhandSchedulesCard } from './dockhand-schedules-card/card';
 import { t } from './common/i18n-card';
+import { pageLanguageReady } from './common/i18n-loader';
+
+// Defined once the page's language has loaded (or after a short wait), so
+// cards draw in it from the start rather than in English first.
+await pageLanguageReady();
 
 customElements.define('dockhand-environment-card', DockhandEnvironmentCard);
 customElements.define('dockhand-vulnerability-card', DockhandVulnerabilityCard);
