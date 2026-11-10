@@ -120,11 +120,8 @@ export function resolveEffectiveGroupBy<T extends string>(groupBy: T | 'environm
  * needed. Passed explicitly (Updates) — only solos when scope is
  * specifically `'environment'`, so a `device_id` left over from some
  * hand-edited YAML doesn't accidentally solo an environment while scope
- * is `'all'`. Consolidated from two separate near-identical functions
- * (one per card), once it was clear they differed only in this one
- * respect — worth remembering as the shape any *future* card's own
- * legacy-shape migration should extend this same function to cover, not
- * a third near-copy.
+ * is `'all'`. A future card with a legacy shape extends this function
+ * rather than adding a near-copy.
  */
 export function resolveIncludedOrderedWithLegacy(
   all: EnvironmentDeviceOption[],

@@ -203,13 +203,8 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
     };
   }
 
-  /** Delegates to the shared resolveEnvironmentOrder (src/common/
-   * environment-scope.ts) rather than its own copy of this logic, which
-   * this used to be — same "unlisted sorts after, alphabetically"
-   * convention as everywhere else this pattern shows up now (Schedules'
-   * own environment order, badge_order), rather than Overview's own
-   * previous behavior of leaving unlisted environments in whatever order
-   * the device registry happened to iterate them in. */
+  /** The shared order: listed environments first, the rest after them
+   * alphabetically, as everywhere else. */
   private _orderedDevices() {
     if (!this._hass) return [];
     return resolveEnvironmentOrder(getEnvironmentDevices(this._hass), this._config?.environments_order);
@@ -694,18 +689,10 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
    * it gets here — trusting that rather than duplicating the same
    * conditional a second time.
    *
-   * Also carries the ev.stopPropagation() every sibling section-changed
-   * handler needs — without it, the embedded editor's own raw
-   * config-changed event (still typed as e.g. custom:dockhand-stacks-card
-   * with an empty device_id, since that's its own config, not Overview's)
-   * keeps bubbling right past this listener and reaches HA's own
-   * card-editor dialog outside this component entirely. That outer
-   * dialog treats any config-changed bubbling from inside the mounted
-   * editor as the thing being edited, and tries to preview the embedded
-   * editor's raw config instead of Overview's own — which is exactly
-   * where "Please select a Dockhand environment." was coming from: the
-   * card being mistakenly previewed was dockhand-stacks-card with
-   * device_id: '', not dockhand-overview-card. */
+   * Stops the embedded editor's own config-changed (its own card type,
+   * with an empty device_id) from bubbling on to Home Assistant's card
+   * dialog, which would otherwise preview that config instead of the
+   * Overview's. */
   private _globalSectionChanged(section: 'environments' | 'vulnerabilities' | 'stacks' | 'containers' | 'schedules' | 'updates') {
     return (ev: CustomEvent<{ config: Record<string, unknown> }>): void => {
       ev.stopPropagation();
@@ -749,25 +736,11 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
     this._updateConfig({ environments_overrides: Object.keys(overrides).length > 0 ? overrides : undefined });
   }
 
-  /** Consolidated replacement for what used to be 4 nearly-identical
-   * handlers (one per section type), each hand-picking which fields of
-   * ev.detail.config to extract into the override object. That approach
-   * had a real, silent bug: when visible_badges was added to the Stacks/
-   * Containers cards, the two handlers for those sections were never
-   * updated to extract it, so a per-environment override of that field
-   * was accepted by the UI and then silently dropped on the floor — the
-   * user would set it, see it reflected in the editor, and it would
-   * never actually be saved. Generic extraction (everything the embedded
-   * editor emits except type/device_id) makes that specific bug
-   * structurally impossible: a field the embedded editor's own schema
-   * doesn't have doesn't get emitted in the first place, and a field it
-   * does have is captured automatically, with nothing here to remember
-   * to update. Safe to do unconditionally here (unlike the global
-   * defaults' read side, see _globalEditorConfig) because the data fed
-   * into each embedded editor by _mountEditor is already narrowly scoped
-   * to just that one environment's override sub-object for this one
-   * section — never the whole Overview config — so there's no risk of
-   * an unrelated key leaking in. */
+  /** Takes everything the embedded editor emits except type/device_id, so
+   * a field added to one of those editors is saved here with nothing to
+   * update. Safe without the exceptions _globalEditorConfig's prefix scan
+   * reasons about, because each embedded editor is only ever given this
+   * one environment's override for this one section. */
   private _overrideSectionChanged<K extends 'environment' | 'vulnerabilities' | 'stacks' | 'containers' | 'schedules' | 'updates'>(deviceId: string, section: K) {
     return (ev: CustomEvent<{ config: Record<string, unknown> }>): void => {
       ev.stopPropagation();

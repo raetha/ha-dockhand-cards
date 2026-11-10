@@ -29,8 +29,8 @@ type RenderIconBaseOpts = {
    * new context wants to use it. Every current caller passes one of:
    * `.header-icon` (a card's own header, either side — 32×32 clickable
    * footprint, the icon itself left at HA's own native 24px default;
-   * also the shape for Environment's own connection-type icon, merged
-   * in from what was once a separate `.conn-icon`), `.row-icon` (16px
+   * also the shape for Environment's own connection-type icon),
+   * `.row-icon` (16px
    * — the shape for a compact icon+optional-text badge, positioned by
    * whichever ancestor row/group it sits in, not by this class itself
    * — a `.row-icon` badge nested inside an outer `.row-right` wrapper,
@@ -74,16 +74,9 @@ type RenderIconBaseOpts = {
  * (a card's own header badge, a decorative connection-type indicator).
  * See `baseClass`'s own doc above for how sizing/layout is supplied.
  *
- * Keyboard activation (Enter/Space triggering the same thing a click
- * does) is wired up automatically here, internally, from `onClick` alone
- * — every card used to independently hand-roll its own private
- * `_onKeydown()` method to wire this up manually per call site, which is
- * exactly the kind of duplication that let one real call site (the
- * Dockhand link) silently ship without it at all: keyboard-focusable
- * (`tabindex="0"`) but not keyboard-*activatable*, since nothing was
- * listening for Enter/Space there. There is no longer a way to add a
- * clickable icon without also making it keyboard-accessible, since the
- * two are no longer two separate things a caller could forget to pair.
+ * Keyboard activation (Enter/Space doing what a click does) is wired up
+ * here from `onClick` alone, so no clickable icon can be focusable but
+ * not activatable from the keyboard.
  *
  * `onClick` is required unless `disabled: true` or `static: true` is
  * set explicitly — a discriminated union, not just an optional field,

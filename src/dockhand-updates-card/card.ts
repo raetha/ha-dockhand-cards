@@ -197,9 +197,7 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
     // explicitly excluded) makes the group header redundant the same
     // way scope: 'environment' always did; more than one still needs it
     // even if, at this exact moment, only one happens to have anything
-    // pending (a real bug this already fixed once: it used to require
-    // groups.length > 1, so a single populated group silently dropped
-    // the one piece of context that says *where* the update lives).
+    // pending, since the header is what says *where* the update lives.
     // Same shared suppression Stacks/Containers/Schedules now all use
     // (see resolveEffectiveGroupBy in common/environment-scope.ts) —
     // 'environment' collapses to 'none' when there's only one
@@ -311,12 +309,7 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
       // DockhandUpdateCoordinator.async_check_environment(), each
       // environment's "Check for updates" button genuinely only checks
       // its own environment, so this is real, non-redundant work per
-      // button, not duplicated effort. (An earlier version of this card
-      // pressed only the first entity, since at the time every button
-      // triggered a full all-environments refresh regardless of which
-      // one was pressed — that's no longer how it works, ha-dockhand
-      // fixed the underlying design rather than the card working around
-      // it.)
+      // button, not duplicated effort.
       await this._hass.callService('button', 'press', {}, { entity_id: entityIds });
     } catch {
       // hass.callService has already shown HA's error toast for this.

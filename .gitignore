@@ -9,7 +9,6 @@ npm-debug.log*
 !.vscode/extensions.json
 
 # Screenshot harness working copies — regenerate, don't commit
-scripts/screenshot-harness/ha-dockhand-cards.js
-scripts/screenshot-harness/ha-dockhand-cards-editor.js
+scripts/screenshot-harness/ha-dockhand-cards*.js
 scripts/screenshot-harness/__pycache__/
 scripts/screenshot-harness/out/

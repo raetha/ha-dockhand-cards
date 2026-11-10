@@ -53,14 +53,9 @@ export function effectiveExcludeDeviceIds(
  * with the native `no-collapse` attribute set so it can't currently be
  * collapsed at all (confirmed real against HA frontend source —
  * `ha-expansion-panel.ts` has a genuine `no-collapse` boolean, not
- * something hand-built here). An earlier version of this function
- * removed the panel entirely in favor of a bare heading, reasoning
- * nothing needed collapsing — reverted after seeing it rendered: the
- * bare version looked worse in practice than the panel does, even
- * fixed open. `no-collapse` is deliberately marked "for now" in the
- * maintainer's own words — revisit if collapsing turns out to be
- * wanted after all, at which point removing the attribute is enough,
- * no other change needed.
+ * something hand-built here): a bare heading looked worse rendered than
+ * the panel does, even fixed open. If collapsing is ever wanted,
+ * removing the attribute is enough.
  */
 export function renderEnvironmentOrderSection(opts: {
   hass: HomeAssistant;

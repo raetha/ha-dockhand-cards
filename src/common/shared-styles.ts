@@ -92,15 +92,8 @@ export const sharedStyles = css`
    * icon-badge + name, or a list row's own leading icon + name/pill —
    * flex, explicitly vertically centered rather than relying on
    * flexbox's own default (stretch), plus the standard 8px gap every
-   * current usage needs. Previously two separate classes (.header-left,
-   * .row-left) differing only in .header-left's own flex: 1 — tested
-   * directly against a real, overflowing header before merging, and
-   * confirmed to make zero visible difference (identical width with
-   * and without it): space-between already positions the two groups
-   * regardless, and min-width: 0 here already does the actual work of
-   * letting a child (a name, an item-name) shrink and truncate when
-   * space is tight. Not carried into this merged class, since it
-   * wasn't doing anything to carry. */
+   * current usage needs. min-width: 0 lets a child (a name) shrink and
+   * truncate when space is tight. */
   .row-left {
     display: flex;
     align-items: center;
@@ -420,9 +413,7 @@ export const sharedStyles = css`
    * Also the shape for Environment's own connection-type icon (a
    * card's own header-left content, not header-right — position comes
    * entirely from wherever it's placed in the DOM, not from this
-   * class) — merged from what was once a separate .conn-icon class, once
-   * nothing distinguished them but a stray flex-shrink:0, folded in
-   * below rather than kept as a second, near-identical class. */
+   * class). */
   .header-icon {
     display: inline-flex;
     align-items: center;
@@ -651,16 +642,9 @@ export const sharedStyles = css`
   /* The standard data-row shape — icon+label pushed to one side, an
    * optional value pushed to the other (space-between naturally has no
    * visible effect with only one child, so this is safe even for
-   * label-only rows with nothing on the right). Covers what were
-   * previously two separate classes (.split-row + .item-row) — in
-   * practice every row in this repo either wants both behaviors
-   * together or neither, so there was no real case that needed one
-   * without the other. .row-left (above) stays separate for a
-   * different role: the tightly-grouped "left group" nested *within*
-   * a .row (an icon + name + optional pill(s) together, with the row's
-   * own value still pushed to the far side) rather than a standalone
-   * space-between row on its own — the same shape a card's own header
-   * uses too, merged from what was once a separate .header-left. */
+   * label-only rows with nothing on the right). .row-left (above) is the
+   * tightly grouped left part within a .row or a card header (icon, name,
+   * pills), with the value still pushed to the far side. */
   .row {
     display: flex;
     align-items: center;
@@ -730,9 +714,7 @@ export const sharedStyles = css`
   /* A secondary bit of metadata at the end of a row (Schedules' own
    * next-run time, Updates' own version info) — and a card header's own
    * right-side content (the Dockhand link, an update chip, feature
-   * toggles). Previously two separate, identical classes (.header-right,
-   * .row-right); merged once there was nothing left distinguishing
-   * them. */
+   * toggles). */
   .row-right {
     display: flex;
     align-items: center;
@@ -809,14 +791,9 @@ export const sharedStyles = css`
   /* A standalone class, not scoped under any ancestor (e.g. not
    * .stats-row .stat .group-header) — an over-scoped selector that only
    * works nested several levels deep in one specific card's own layout
-   * doesn't read as something safe to reuse elsewhere, which is exactly
-   * why this shape had drifted into multiple local copies before being
-   * unified here (see architecture.md §11). */
-  /* Moved here from the Schedules card's own styles.ts once Stacks
-   * needed the identical thing for its own new group_by support —
-   * shared, not duplicated, the same principle this repo already
-   * applies to editor code (docs/editor-design.md rule 5's own
-   * reasoning). Same font-size as .section-title (Environment card's
+   * doesn't read as something safe to reuse elsewhere (see
+   * architecture.md §11). Shared by every card that groups rows. Same
+   * font-size as .section-title (Environment card's
    * own content-header style, below) — both are the same concept, a
    * header for a chunk of content, one just happens to be a group
    * divider rather than an icon-prefixed section label. Sentence case
@@ -869,35 +846,16 @@ export const sharedStyles = css`
    * modifier (the same four semantic names read consistently across
    * every icon-class tier in this file, not reinvented per shape).
    *
-   * There used to be a second, smaller "status icon" tier alongside
-   * this one (.status-icon — a container's own update-available badge,
-   * a stack's own warning), consolidated from five near-identical
-   * definitions that had drifted apart across Environment/Vulnerability/
-   * Stack/Container/Updates. It's since been eliminated entirely rather
-   * than just consolidated: both of its own remaining uses (Container's
-   * own header-positioned update-chip, its own hero-row-positioned
-   * health-chip) already belonged to one of the four primary icon-class
-   * tiers this file is organized around (header/hero-row/item-row/pill —
-   * see each one's own comment for its own size and color-modifier set),
-   * so giving them a third, separate class purely for color dressed up
-   * an ordinary header/hero-row icon as if it were a distinct shape,
-   * when the only thing it ever needed beyond that context was a color.
+   * A status-colored icon in a header or hero row (Container's update
+   * and health chips) uses that tier's class plus a color modifier, not a
+   * separate status-icon class.
    *
    * Neither this banner nor an icon carrying one of these color
    * modifiers signals "clicking this does something" on its own — most
    * usages either do nothing on click or only open a more-info dialog,
-   * informational either way. A card with a *real* action button (one
-   * that actually triggers something, not just more-info) shouldn't
-   * reuse this shape at all — see the Updates card's own "Update all"/
-   * "Check for updates," which use the real <ha-button> component
-   * instead (confirmed safe to use directly: it's a transitive import of
-   * <ha-icon-button>, which is loaded by hui-root.ts, the Lovelace
-   * dashboard root itself — see docs/architecture.md §11). Its own
-   * native variant values already carry this repo's own semantic
-   * colors (brand≈accent, success≈ok, warning≈warn, danger≈error), so
-   * there's no reason to hand-roll a status-chip-based button when the
-   * real component already does the job, and does it more consistently
-   * with the rest of HA's own UI besides. */
+   * informational either way. Real actions (the Updates card's Update
+   * all and Check for updates) are header icons with .filled and a
+   * busy spinner instead (docs/architecture.md §17). */
   .status-banner {
     display: flex;
     align-items: center;
