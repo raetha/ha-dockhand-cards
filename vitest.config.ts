@@ -16,8 +16,8 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text-summary', 'html'],
       include: ['src/**/*.ts'],
-      exclude: ['src/**/*.test.ts', 'src/test-setup.ts'],
-      thresholds: { lines: 71, statements: 69, branches: 64, functions: 64 }
+      exclude: ['src/**/*.test.ts', 'src/**/*.test-elements.ts', 'src/test-setup.ts'],
+      thresholds: { lines: 98, statements: 95, branches: 85, functions: 97 }
     }
   }
 });
