@@ -264,25 +264,8 @@ That generic scan is only safe because of one thing: `environments_overrides` (t
 override map) and `environments_order` (environment display order) are the *only* two other
 top-level Overview config keys that share a section prefix (`environment_`/`environments_`), and
 they're plural, so they don't collide with the singular `environment_`-prefixed global-default
-keys. They didn't always avoid this collision — until 1.1.0 they were named `environment_overrides`/
-`environment_order` (singular), which *did* collide with the `environments` section's prefix, and
-which the global-defaults scan originally had to work around with a small denylist. Both keys were
-renamed specifically because the collision (and the pre-existing singular/plural inconsistency —
-these are section-wide concepts, not per-card-type settings, so they should have been plural from
-the start) was worth fixing while this repo has close to zero real users; doing this once real
-adoption exists would need a real migration, not a quick fix. Backward compatibility for existing
-saved configs: `card.ts` never migrates anything, it just reads through
-`getEnvironmentOverrides()`/`getEnvironmentOrder()` (`dockhand-overview-card/types.ts`), which fall
-back to the deprecated singular names — an old-style saved config keeps rendering correctly
-indefinitely with no special handling. The *editor*'s `setConfig()` calls `migrateOverviewConfig()`
-unconditionally, normalizing to the new keys the instant a config loads, before any of the editor's
-own code (including the global-defaults scan) ever runs — any edit at all, even one unrelated to
-overrides or order, saves the full config back in the new shape. What this can't do: force a
-rewrite of a dashboard nobody ever reopens in the editor — there's no mechanism for a live Lovelace
-card to write back to its own stored YAML (confirmed against HA's own Heading card, which handles
-an analogous old-config-shape case the same "read forever, never force a save" way). The deprecated
-fields, the fallback branches, and `migrateOverviewConfig()` itself are tracked for removal in
-2.0.0 in `docs/backlog.md` (removing them is a major change under `docs/development.md` → "Versioning").
+keys. (Their singular names before 1.1.0 did, which is why they were renamed; 2.0.0 dropped the old
+names.) A new top-level key must not start with a section prefix either.
 
 **A card that generates another card's config must not pass explicit `undefined` for a field the
 target card defaults via `{ default, ...config }` in its own `setConfig()`.** Object spread copies

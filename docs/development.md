@@ -170,9 +170,8 @@ release pull request dates it.
   *without* a working backward-compatible fallback, or dropping support for an entity or attribute
   shape a released version reads. A rename *with* a verified, unconditional fallback (the old key
   keeps working indefinitely and the editor migrates configs to the new key on load) is minor.
-  First case: `environment_overrides`/`environment_order` became
-  `environments_overrides`/`environments_order` in 1.1.0, read forever through
-  `getEnvironmentOverrides()`/`getEnvironmentOrder()`.
+  Removing such a fallback later is major: `environment_overrides`/`environment_order` (renamed
+  in 1.1.0) stopped being read in 2.0.0.
 - **Minor:** a new card, a new optional config key or editor field, new locale coverage. Also when
   picking up an ha-dockhand `translation_key` rename (which shows up here as entities silently no
   longer resolving, not a compile error): call out the ha-dockhand version needed in the

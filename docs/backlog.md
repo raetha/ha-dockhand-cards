@@ -98,21 +98,6 @@ gotchas (not "this got fixed", but "here's a pattern worth remembering") belong 
   own (dropping 2026.6/2026.7 support is a major change under `docs/development.md` → "Versioning"); switch over
   whenever the floor reaches 2026.8 for some other reason.
 
-- **Remove `environment_overrides`/`environment_order` backward compatibility.** Renamed to
-  `environments_overrides`/`environments_order` in 1.1.0 (see CHANGELOG) — the deprecated fields
-  still exist on `DockhandOverviewCardConfig`, `getEnvironmentOverrides()`/`getEnvironmentOrder()`
-  in `dockhand-overview-card/types.ts` still fall back to them for reading, and the editor's
-  `migrateOverviewConfig()` still normalizes them away on load. This was done specifically while
-  ha-dockhand-cards has very close to zero real users (1.0.0 had just shipped, no stars, no visible
-  adoption). **Target: 2.0.0.** Removing the fallback is a major change under `docs/development.md` → "Versioning", and
-  Raetha decided (Oct 2026, after 1.3.2) to defer it to the next major rather than make a policy
-  exception — not because any real configs are expected to still use the old keys. Removal means:
-  delete both deprecated fields from the config interface, delete the fallback branch in each
-  accessor function (leaving them as trivial `config?.environments_overrides` one-liners — at that
-  point worth asking whether keeping them as functions at all is still justified, or whether reading
-  the field directly everywhere is simpler once there's no migration logic left to centralize), and
-  delete `migrateOverviewConfig()` and its call in the editor's `setConfig()`.
-
 - **A single-environment Overview card given extra dashboard width (e.g. spanning 3 grid columns)
   currently just stretches, rather than spreading its sections out to use the width.** Confirmed
   against the actual CSS: `.overview` is now a CSS Grid (`repeat(auto-fill, minmax(320px, 1fr))`)

@@ -22,8 +22,16 @@ and [Unreleased] is the notes of the current test build.
 - README: installing through Home Assistant's Marketplace (2026.11+), with HACS for older
   versions, and the Marketplace's resource path for YAML-managed dashboards.
 - Versions show without a leading "v": HACS shows release tags, which from this release are plain
-  version numbers (`1.6.0`, test builds such as `1.6.1-dev.42`), like most other HACS
+  version numbers (`2.0.0`, test builds such as `2.0.1-dev.42`), like most other HACS
   repositories. Earlier releases keep their `v` tags.
+
+### Removed
+
+- **Breaking: the Overview card's old `environment_overrides` and `environment_order` keys** are
+  no longer read. They were renamed `environments_overrides` and `environments_order` in 1.1.0,
+  and the editor has rewritten them on every save since, so only an Overview card configured
+  before 1.1.0 and never edited since is affected: rename the two keys in its YAML (add the
+  missing "s"), or open and save it in the editor before updating.
 
 ### Fixed
 

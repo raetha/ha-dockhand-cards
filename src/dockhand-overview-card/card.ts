@@ -13,7 +13,7 @@ import type { DockhandStacksCardConfig } from '../dockhand-stacks-card/types';
 import type { DockhandContainersCardConfig } from '../dockhand-containers-card/types';
 import type { DockhandUpdatesCardConfig } from '../dockhand-updates-card/types';
 import type { DockhandSchedulesCardConfig } from '../dockhand-schedules-card/types';
-import { DEFAULT_SECTION_ORDER, enabledSections, getEnvironmentOrder, getEnvironmentOverrides, type DockhandOverviewCardConfig, type OverviewSection } from './types';
+import { DEFAULT_SECTION_ORDER, enabledSections, type DockhandOverviewCardConfig, type OverviewSection } from './types';
 import { cardStyles } from './styles';
 import { t } from '../common/i18n-card';
 
@@ -267,7 +267,7 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
     // left in whatever order the device registry happened to iterate
     // them in, not alphabetical as claimed. resolveIncludedOrdered does
     // sort them alphabetically, for real.
-    const devices = resolveIncludedOrdered(getEnvironmentDevices(this._hass), getEnvironmentOrder(this._config), this._config.exclude_device_ids);
+    const devices = resolveIncludedOrdered(getEnvironmentDevices(this._hass), this._config?.environments_order, this._config.exclude_device_ids);
 
     const alignColumns = this._config?.align_columns !== false;
 
@@ -318,7 +318,7 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
   }
 
   private _renderColumn(deviceId: string, name: string, alignColumns: boolean): TemplateResult {
-    const override = getEnvironmentOverrides(this._config)?.[deviceId];
+    const override = this._config?.environments_overrides?.[deviceId];
 
     // Deliberately NOT `title: override?.environment?.title` etc. for
     // every field — Environment/Vulnerability cards' own setConfig()

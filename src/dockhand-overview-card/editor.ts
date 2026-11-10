@@ -20,9 +20,6 @@ import type { DockhandSchedulesCardConfig } from '../dockhand-schedules-card/typ
 import type { DockhandUpdatesCardConfig } from '../dockhand-updates-card/types';
 import {
   DEFAULT_SECTION_ORDER,
-  getEnvironmentOrder,
-  getEnvironmentOverrides,
-  migrateOverviewConfig,
   type DockhandOverviewCardConfig,
   type OverviewSection,
   type EnvironmentOverride
@@ -193,7 +190,7 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
   }
 
   setConfig(config: DockhandOverviewCardConfig): void {
-    this._config = migrateOverviewConfig({
+    this._config = {
       show_environments: true,
       show_vulnerabilities: false,
       show_stacks: false,
@@ -203,7 +200,7 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
       environment_mode: 'standard',
       align_columns: true,
       ...config
-    });
+    };
   }
 
   /** Delegates to the shared resolveEnvironmentOrder (src/common/
@@ -215,7 +212,7 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
    * the device registry happened to iterate them in. */
   private _orderedDevices() {
     if (!this._hass) return [];
-    return resolveEnvironmentOrder(getEnvironmentDevices(this._hass), getEnvironmentOrder(this._config));
+    return resolveEnvironmentOrder(getEnvironmentDevices(this._hass), this._config?.environments_order);
   }
 
   private _isSectionShown(section: OverviewSection): boolean {
@@ -481,7 +478,7 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
   }
 
   private _renderDetailSection(section: OverviewSection, deviceId: string): TemplateResult {
-    const overrides = getEnvironmentOverrides(this._config);
+    const overrides = this._config?.environments_overrides;
     // Starts expanded only if this section already has an override in
     // place — otherwise collapsed, matching rule 2's "collapsed unless
     // it's the thing you actually came here to look at" reasoning.
@@ -499,7 +496,7 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
   }
 
   private _renderDetailSectionContent(section: OverviewSection, deviceId: string): TemplateResult {
-    const overrides = getEnvironmentOverrides(this._config);
+    const overrides = this._config?.environments_overrides;
     switch (section) {
       case 'environments':
         return html`
@@ -647,13 +644,9 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
    * under the embedded editor's own (unprefixed) field name. device_id
    * is a placeholder — harmless, since cardIsEmbedded means it's
    * never rendered or read by anything other than the schema entry
-   * that's already omitted. Genuinely safe to scan with no exceptions:
-   * the only 2 keys that would otherwise collide with the 'environments'
-   * prefix (environments_overrides, environments_order) are both
-   * plural, matching show_environments — only the deprecated, singular
-   * environment_overrides/environment_order collided, and setConfig()
-   * always migrates those away before this._config is ever read from
-   * here (see migrateOverviewConfig in types.ts). */
+   * that's already omitted. Safe to scan with no exceptions: the
+   * only keys sharing the 'environments' prefix (environments_overrides,
+   * environments_order) aren't fields of the Environment card. */
   private _globalEditorConfig(section: 'environments' | 'vulnerabilities' | 'stacks' | 'containers' | 'schedules' | 'updates'): Record<string, unknown> {
     const cfg = (this._config ?? {}) as unknown as Record<string, unknown>;
     const prefix = DockhandOverviewCardEditor.GLOBAL_SECTION_PREFIX[section];
@@ -692,11 +685,7 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
    * the user changed. This is what makes adding a new field to one of
    * these cards' editors "just work" on both the read and write-back
    * directions, with nothing in this file to remember to touch at all —
-   * see docs/architecture.md §4 for why this scan needs no exceptions
-   * of any kind now (environments_overrides/environments_order were
-   * renamed specifically to stop colliding with the 'environments'
-   * prefix; migrateOverviewConfig in types.ts, called from setConfig,
-   * keeps this._config in that shape from the moment it loads).
+   * see docs/architecture.md §4 for why this scan needs no exceptions.
    * Doesn't re-implement the Environment editor's own "drop
    * custom_sections once mode leaves custom" cleanup: that already
    * happened inside the embedded editor's own _valueChanged before
@@ -739,15 +728,9 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
   /** Merges one card-type section's override for one environment, pruning
    * empty leaves so a cleared-out override doesn't linger as `{}` in the
    * saved config — same hygiene as exclude_device_ids/environments_order
-   * elsewhere in this editor. Reads via getEnvironmentOverrides (so an
-   * old-style saved config still shows correctly) but always writes
-   * environments_overrides, never the deprecated environment_overrides
-   * — every edit through this method naturally migrates a config fully
-   * over to the new key, deleting the old one at the same time (see
-   * _updateConfig's own migration step for the case where the old key
-   * is still present but this specific method wasn't what changed). */
+   * elsewhere in this editor. */
   private _updateSectionOverride<K extends keyof EnvironmentOverride>(deviceId: string, section: K, value: EnvironmentOverride[K]): void {
-    const overrides: Record<string, EnvironmentOverride> = { ...(getEnvironmentOverrides(this._config) ?? {}) };
+    const overrides: Record<string, EnvironmentOverride> = { ...(this._config?.environments_overrides ?? {}) };
     const envOverride: EnvironmentOverride = { ...(overrides[deviceId] ?? {}) };
     const isEmpty = !value || Object.values(value).every((v) => v === undefined || v === '' || (Array.isArray(v) && v.length === 0));
 
