@@ -35,3 +35,11 @@ describe('card picker suggestions', () => {
   });
 });
 
+
+describe('the Dockhand dashboard registration', () => {
+  it('offers the dashboard strategy under Add dashboard, and defines both strategies', () => {
+    expect(window.customStrategies).toContainEqual(expect.objectContaining({ type: 'dockhand', strategyType: 'dashboard', name: 'Dockhand' }));
+    expect(customElements.get('ll-strategy-dashboard-dockhand')).toBeDefined();
+    expect(customElements.get('ll-strategy-view-dockhand-environment')).toBeDefined();
+  });
+});

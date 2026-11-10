@@ -474,3 +474,26 @@ environment scope and before grouping and sorting; a group left empty disappears
   `include_global: false`, which the Overview sets for its columns; the standalone editor rewrites
   it as `scope: { not: [global] }` (`migrateIncludeGlobal()`), and doesn't offer Where when
   embedded.
+
+## 22. The Dockhand dashboard (strategies)
+
+`src/dockhand-strategy/strategy.ts` holds two Home Assistant strategies: code that writes a
+dashboard configuration each time the dashboard loads (frontend `get-strategy.ts`; developer docs
+"Custom strategies").
+
+- **`ll-strategy-dashboard-dockhand`** (`custom:dockhand`), registered in
+  `window.customStrategies` (`index.ts`), so it's offered under Add dashboard → Community
+  dashboards. An overview view (a section per environment with a heading that navigates to its
+  view, plus all-environment Updates and Schedules), then one view per environment that only
+  names its view strategy, so each is built when opened. `noEditor`: nothing to configure.
+- **`ll-strategy-view-dockhand-environment`**: one environment's cards in a sections view, the
+  list cards solo'd to it with `exclude_device_ids` as the editors' solo action writes it, and
+  the Vulnerability card only where the environment has the vulnerabilities sensor. View
+  strategies can't be picked in Home Assistant's UI, so it isn't registered.
+- **Regenerating:** by default HA rebuilds a strategy whenever the entity, device, area or floor
+  registry changes. `shouldRegenerate()` narrows that to the set of environments (and their
+  names): the cards already follow containers and stacks themselves.
+- View paths come from the device id, not the name, since names repeat across instances.
+- A section strategy (per environment, offered under "Automatic section" with a preview) became
+  possible after HA 2026.8; see `docs/backlog.md`.
+

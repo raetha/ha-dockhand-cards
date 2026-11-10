@@ -200,7 +200,9 @@ const card: Record<CardTranslationKey, string> = {
   update_listed: 'Getoonde bijwerken',
   update_all_tooltip: 'Alle getoonde updates installeren ({count})',
   update_listed_tooltip: 'Alleen de getoonde updates installeren ({count}); filters verbergen de rest',
-  update_all_nothing_installable: 'Niets van wat getoond wordt kan hier worden geïnstalleerd: nieuwere tags en vastgezette digests wijzig je in Dockhand, tegengehouden updates wachten op hun minimale leeftijd en systeemcontainers werken zichzelf bij'
+  update_all_nothing_installable: 'Niets van wat getoond wordt kan hier worden geïnstalleerd: nieuwere tags en vastgezette digests wijzig je in Dockhand, tegengehouden updates wachten op hun minimale leeftijd en systeemcontainers werken zichzelf bij',
+  strategy_overview: 'Overzicht',
+  strategy_no_environments: 'Nog geen Dockhand-omgevingen gevonden. Voeg de Dockhand-integratie toe en laad dit dashboard opnieuw.'
 };
 
 const editor: Record<EditorTranslationKey, string> = {

@@ -11,6 +11,10 @@ and [Unreleased] is the notes of the current test build.
 ## [Unreleased]
 
 ### Added
+- **A Dockhand dashboard** — pick **Dockhand** under Community dashboards when adding a dashboard
+  for an overview of every environment and a view for each, with all its cards, that keeps up as
+  environments come and go. Nothing to configure; **Take control** turns it into a normal
+  dashboard.
 - **Filters on the list cards** — a **Filters** section in the Stacks, Containers, Updates and
   Schedules editors. Pick one or more values per filter, or flip it to **is not**; set several
   and a row has to pass them all. Containers: state (exited cleanly or with an error), health,

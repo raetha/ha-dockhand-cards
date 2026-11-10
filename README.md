@@ -433,6 +433,22 @@ pencil icon on each opens more settings:
 
 *Environments, Stacks and Containers turned on, across two environments.*
 
+## Dockhand dashboard
+
+A ready-made dashboard instead of building one card by card: in **Settings → Dashboards → Add
+dashboard**, pick **Dockhand** under Community dashboards. It has an overview of every environment
+(click an environment's name to open it) with pending updates and schedules, then a view per
+environment with all its cards in Home Assistant's sections layout. Environments you add or remove
+in Dockhand appear and disappear by themselves.
+
+There's nothing to configure. To change it, use the dashboard's **Take control** to turn it into a
+normal dashboard you edit like any other (it then stops updating itself). In YAML it's:
+
+```yaml
+strategy:
+  type: custom:dockhand
+```
+
 ---
 
 ## Translations

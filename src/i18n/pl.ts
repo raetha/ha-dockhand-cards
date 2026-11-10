@@ -200,7 +200,9 @@ const card: Record<CardTranslationKey, string> = {
   update_listed: 'Aktualizuj widoczne',
   update_all_tooltip: 'Zainstaluj wszystkie widoczne aktualizacje ({count})',
   update_listed_tooltip: 'Zainstaluj tylko widoczne aktualizacje ({count}); filtry ukrywają resztę',
-  update_all_nothing_installable: 'Niczego z listy nie można stąd zainstalować: nowsze tagi i przypięte digesty zmienia się w Dockhand, wstrzymane aktualizacje czekają na minimalny wiek, a kontenery systemowe aktualizują się same'
+  update_all_nothing_installable: 'Niczego z listy nie można stąd zainstalować: nowsze tagi i przypięte digesty zmienia się w Dockhand, wstrzymane aktualizacje czekają na minimalny wiek, a kontenery systemowe aktualizują się same',
+  strategy_overview: 'Przegląd',
+  strategy_no_environments: 'Nie znaleziono jeszcze środowisk Dockhand. Dodaj integrację Dockhand, a potem odśwież ten pulpit.'
 };
 
 const editor: Record<EditorTranslationKey, string> = {
