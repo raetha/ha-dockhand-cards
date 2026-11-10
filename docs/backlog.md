@@ -86,10 +86,6 @@ gotchas (not "this got fixed", but "here's a pattern worth remembering") belong 
   a page reload, and works around a missing HA feature rather than using a real one. Revisit only
   if HA ever adds native support.
 
-- **`ha-form`'s `visible:` conditions.** Available from HA 2026.8, the floor since 2.0.0. The one
-  conditional field (the Environment card's `custom_sections`) is included in the schema only in
-  custom mode, in plain code, which does the same thing; switching buys nothing.
-
 - **A single-environment Overview card given extra dashboard width (e.g. spanning 3 grid columns)
   currently just stretches, rather than spreading its sections out to use the width.** Confirmed
   against the actual CSS: `.overview` is now a CSS Grid (`repeat(auto-fill, minmax(320px, 1fr))`)

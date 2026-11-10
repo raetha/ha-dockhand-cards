@@ -58,9 +58,10 @@ Rules:
 - **Every schema field needs a `computeLabel` case**, or the raw field name shows as its label. A
   `multi_select`'s option labels come from its `options` map, separately from the field label. The
   interaction tests (`src/interactions.dom.test.ts`) compute every field's label and helper.
-- **Conditional fields are included or left out of the schema in code** (`custom_sections` only in
-  `mode: 'custom'`). `ha-form`'s `visible: {...}` exists in newer HA frontends; check it's in a
-  release the minimum HA version covers before relying on it.
+- **A field that depends on another field's value uses `visible:`** (HA 2026.8+, `conditions.ts`),
+  as HA's own editors do: `custom_sections` shows only in `mode: 'custom'`. A hidden field keeps
+  its value. Fields that depend on the editor rather than the data (hidden when embedded in the
+  Overview, §3) are left out of the schema in code, since a condition only sees form data.
 - **A field that only filters another field's options can simply be saved** if saving it is
   harmless (§5).
 

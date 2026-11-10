@@ -55,6 +55,7 @@ and [Unreleased] is the notes of the current test build.
   doesn't offer Update all, or list an environment with nothing pending, because of it.
 
 ### Internal
+- The Environment card's section picker appears through Home Assistant's own form conditions.
 
 - Dependencies: d3-shape 3.2.1; build and test tools rollup 4.67.5, @rollup/plugin-terser 1.0.2,
   jsdom 31.
