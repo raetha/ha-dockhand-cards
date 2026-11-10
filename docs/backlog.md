@@ -35,11 +35,12 @@ gotchas (not "this got fixed", but "here's a pattern worth remembering") belong 
 - **Pill padding `3px 8px`** was tried and reverted: leave pills as they are for now. Revisit only
   as part of a wider look at pill sizing across all cards.
 
-- **Raising test coverage further.** Every card and editor now renders in tests against the
-  screenshot harness's mock data (`src/render.dom.test.ts`), and `npm test` fails below floors set
-  just under today's coverage (about 72% of lines, `vitest.config.ts`). What's left is mostly
-  interaction: editor value changes and the Overview editor's per-environment views, the cards'
-  click handlers, and `index.ts`'s entity suggestions. Raise the floors as tests are added.
+- **The last few percent of test coverage.** Tests render every card and editor against the
+  screenshot harness's mock data and drive every control (`src/*.dom.test.ts`); `npm test` fails
+  below floors set just under today's coverage (`vitest.config.ts`). What's left is mostly
+  defensive early returns (no hass yet, a sensor missing in a way the integration doesn't
+  produce) and layout measurement jsdom can't do. Cover them when a change touches them; raise the
+  floors as tests are added.
 - **Real-browser / screen-reader verification** of the keyboard interaction pattern (`tabindex`
   + `role="button"` + `@keydown` on non-`<button>` elements) — implemented per WAI-ARIA guidance
   and checked automatically by `scripts/screenshot-harness/a11y.py`, but not yet manually verified

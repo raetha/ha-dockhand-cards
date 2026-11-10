@@ -52,8 +52,9 @@ and [Unreleased] is the notes of the current test build.
 
 - Dependencies: d3-shape 3.2.1; build and test tools rollup 4.67.5, @rollup/plugin-terser 1.0.2,
   jsdom 31.
-- Every card and editor is rendered in tests against the screenshot harness's mock data, and
-  `npm test` checks a coverage floor (about 72% of lines, up from about 45%) that can only rise.
+- Tests render every card and editor against the screenshot harness's mock data and drive every
+  control, and `npm test` checks a coverage floor (about 98% of lines, up from about 45%) that can
+  only rise.
 
 
 ## [1.5.1] - 2026-11-03

@@ -251,3 +251,36 @@ describe('schedule device resolution', () => {
   });
 });
 
+
+describe('devices that are not what a lookup expects', () => {
+  const foreign = makeDevice({ id: 'foreign', identifiers: [['other', 'env_1'], ['other', 'container_1_web'], ['other', 'stack_1_core']] });
+  const group = makeDevice({ id: 'group', identifiers: [['dockhand', 'env_1_Containers']] });
+  const env = makeDevice({ id: 'env', identifiers: [['dockhand', 'env_1']], config_entry_id: 'a' });
+  const orphan = makeDevice({ id: 'orphan', identifiers: [['dockhand', 'schedule_9']], via_device_id: 'missing' });
+
+  it('finds no environment, container or stack in another integration\'s or a group device', () => {
+    expect(getEnvId(foreign)).toBeNull();
+    expect(getEnvIdForContainerDevice(foreign)).toBeNull();
+    expect(getEnvIdForStackDevice(foreign)).toBeNull();
+    expect(getEnvIdForContainerDevice(group)).toBeNull();
+    expect(getEnvIdForStackDevice(group)).toBeNull();
+  });
+
+  it('lists nothing under a device that is not an environment', () => {
+    const hass = makeHass({ devices: [foreign, group, env] });
+    expect(getContainerDevicesForEnvironment(hass, foreign)).toEqual([]);
+    expect(getStackDevicesForEnvironment(hass, foreign)).toEqual([]);
+    expect(getScheduleGroupDeviceForEnvironment(hass, foreign)).toBeNull();
+  });
+
+  it('finds no environment for a number no environment has', () => {
+    const hass = makeHass({ devices: [env] });
+    expect(getEnvDeviceForEnvId(hass, 7, env)).toBeNull();
+  });
+
+  it('gives a schedule whose parent is gone, or not a schedules group, no environment', () => {
+    const hass = makeHass({ devices: [orphan, foreign, env] });
+    expect(getEnvIdForScheduleDevice(hass, orphan)).toBeNull();
+    expect(getEnvIdForScheduleDevice(hass, { ...orphan, via_device_id: 'foreign' })).toBeNull();
+  });
+});
