@@ -200,7 +200,9 @@ const card: Record<CardTranslationKey, string> = {
   update_listed: 'Gelistete aktualisieren',
   update_all_tooltip: 'Alle gelisteten Updates installieren ({count})',
   update_listed_tooltip: 'Nur die gelisteten Updates installieren ({count}); Filter blenden den Rest aus',
-  update_all_nothing_installable: 'Nichts Gelistetes lässt sich hier installieren: Neuere Tags und fixierte Digests werden in Dockhand geändert, zurückgehaltene Updates warten auf ihr Mindestalter, und Systemcontainer aktualisieren sich selbst'
+  update_all_nothing_installable: 'Nichts Gelistetes lässt sich hier installieren: Neuere Tags und fixierte Digests werden in Dockhand geändert, zurückgehaltene Updates warten auf ihr Mindestalter, und Systemcontainer aktualisieren sich selbst',
+  strategy_overview: 'Übersicht',
+  strategy_no_environments: 'Noch keine Dockhand-Umgebungen gefunden. Die Dockhand-Integration hinzufügen und dieses Dashboard neu laden.'
 };
 
 const editor: Record<EditorTranslationKey, string> = {

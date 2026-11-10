@@ -212,7 +212,9 @@ const en = {
   update_listed: 'Update listed',
   update_all_tooltip: 'Install every update listed ({count})',
   update_listed_tooltip: 'Install the listed updates only ({count}); filters hide the rest',
-  update_all_nothing_installable: 'Nothing listed can be installed from here: newer tags and pinned digests are changed in Dockhand, held updates wait for their minimum image age, and system containers update themselves'
+  update_all_nothing_installable: 'Nothing listed can be installed from here: newer tags and pinned digests are changed in Dockhand, held updates wait for their minimum image age, and system containers update themselves',
+  strategy_overview: 'Overview',
+  strategy_no_environments: 'No Dockhand environments found yet. Add the Dockhand integration, then reload this dashboard.'
 } as const;
 
 

@@ -26,11 +26,21 @@ gotchas (not "this got fixed", but "here's a pattern worth remembering") belong 
 
 ## Containers / Stacks cards
 
-- **Filtering and grouping by Dockhand tag** on the Containers and Stacks cards. The pills ship in
-  2.0.0; filters for the list cards are being defined first (Raetha, 2026-11-09), so tag filtering
-  waits to be part of that design.
+- **Grouping by Dockhand tag** on the Containers and Stacks cards (filtering by tag shipped in
+  2.0.0). A row can have several tags, so it would appear in several groups; not attempted yet.
+- **Filter option B (add-a-filter rows)** if cards gain many more filters: Raetha likes it better
+  in the long run; 2.0.0 ships option A (every filter listed) since `ha-form` can't model rows
+  that choose their own field.
 
 ## Cross-card
+
+- **A section strategy per environment** for the Dockhand dashboard (§22): Home Assistant after
+  2026.8 lets a registered section strategy be picked under "Automatic section", with a preview
+  (`getStubConfig`) and an editor (`getConfigElement`, needed there). Would let people drop one
+  environment's cards into their own sections dashboard. Needs the HA minimum to reach the
+  release that added the picker, or to degrade quietly below it.
+- **Options for the Dockhand dashboard** (which environments, which sections, Overview card
+  instead of per-environment views): left out so it has nothing to configure; add only if asked.
 
 - **Pill padding `3px 8px`** was tried and reverted: leave pills as they are for now. Revisit only
   as part of a wider look at pill sizing across all cards.

@@ -200,7 +200,9 @@ const card: Record<CardTranslationKey, string> = {
   update_listed: 'Oppdater de viste',
   update_all_tooltip: 'Installer alle oppdateringene som vises ({count})',
   update_listed_tooltip: 'Installer bare oppdateringene som vises ({count}); filtrene skjuler resten',
-  update_all_nothing_installable: 'Ingenting som vises kan installeres herfra: nyere tagger og låste digester endres i Dockhand, tilbakeholdte oppdateringer venter på minstealderen, og systemcontainere oppdaterer seg selv'
+  update_all_nothing_installable: 'Ingenting som vises kan installeres herfra: nyere tagger og låste digester endres i Dockhand, tilbakeholdte oppdateringer venter på minstealderen, og systemcontainere oppdaterer seg selv',
+  strategy_overview: 'Oversikt',
+  strategy_no_environments: 'Fant ingen Dockhand-miljøer ennå. Legg til Dockhand-integrasjonen og last inn dette dashbordet på nytt.'
 };
 
 const editor: Record<EditorTranslationKey, string> = {

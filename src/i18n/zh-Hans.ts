@@ -200,7 +200,9 @@ const card: Record<CardTranslationKey, string> = {
   update_listed: '更新所列项',
   update_all_tooltip: '安装所列的全部更新（{count}）',
   update_listed_tooltip: '仅安装所列更新（{count}）；其余被筛选隐藏',
-  update_all_nothing_installable: '所列项无法在此安装：较新标签和固定摘要需在 Dockhand 中更改，暂缓的更新需等待最短镜像时长，系统容器会自行更新'
+  update_all_nothing_installable: '所列项无法在此安装：较新标签和固定摘要需在 Dockhand 中更改，暂缓的更新需等待最短镜像时长，系统容器会自行更新',
+  strategy_overview: '概览',
+  strategy_no_environments: '尚未找到 Dockhand 环境。请添加 Dockhand 集成，然后重新加载此仪表盘。'
 };
 
 const editor: Record<EditorTranslationKey, string> = {

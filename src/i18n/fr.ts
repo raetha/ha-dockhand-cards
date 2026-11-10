@@ -200,7 +200,9 @@ const card: Record<CardTranslationKey, string> = {
   update_listed: 'Mettre à jour la liste',
   update_all_tooltip: 'Installer toutes les mises à jour de la liste ({count})',
   update_listed_tooltip: 'Installer uniquement les mises à jour de la liste ({count}) ; les filtres masquent les autres',
-  update_all_nothing_installable: 'Rien dans la liste ne peut être installé d’ici : les tags plus récents et les digests épinglés se changent dans Dockhand, les mises à jour retenues attendent leur âge minimum, et les conteneurs système se mettent à jour eux-mêmes'
+  update_all_nothing_installable: 'Rien dans la liste ne peut être installé d’ici : les tags plus récents et les digests épinglés se changent dans Dockhand, les mises à jour retenues attendent leur âge minimum, et les conteneurs système se mettent à jour eux-mêmes',
+  strategy_overview: 'Vue d’ensemble',
+  strategy_no_environments: 'Aucun environnement Dockhand trouvé pour l’instant. Ajoutez l’intégration Dockhand, puis rechargez ce tableau de bord.'
 };
 
 const editor: Record<EditorTranslationKey, string> = {
