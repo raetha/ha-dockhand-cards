@@ -95,6 +95,7 @@ export class DockhandStacksCardEditor extends LitElement implements LovelaceCard
               container_count: t(this._hass, 'badge_container_count'),
               updates: t(this._hass, 'badge_updates'),
               type: t(this._hass, 'badge_type'),
+              tags: t(this._hass, 'badge_tags'),
               ...(this.cardIsEmbedded ? {} : { environment: t(this._hass, 'badge_environment') })
             }
           }

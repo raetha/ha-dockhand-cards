@@ -31,6 +31,7 @@ credentials of their own and never contact Dockhand directly.
   | "Hide when no updates" counting a system container's own update | 1.8.2 |
   | Update counts including new version tags | 1.10.2 |
   | Newer version tags, moved pinned digests and held updates | 1.11.0 |
+  | Dockhand tags, schedule and row controls | 2.0.0 |
 
 ---
 
@@ -162,7 +163,7 @@ show_controls: true # row of start/stop/restart buttons under the status — off
 visible_sections: [status, metrics, io, containers, git_sync] # which sections show, independent of each other
 ```
 
-The stack's status, CPU/memory and network/disk I/O totals, its containers (each one a pill that
+Under the header, the stack's Dockhand tags as coloured pills (when it has any). The stack's status, CPU/memory and network/disk I/O totals, its containers (each one a pill that
 opens that container), pending updates, and — for git stacks — sync status, last sync time and any
 sync error. The totals are Dockhand's own (the same numbers its Stacks page shows), from
 ha-dockhand 1.11.0's stack stats sensors — they need Dockhand 1.0.52 or later and ha-dockhand's
@@ -192,7 +193,7 @@ show_controls: true # row of start/stop/restart buttons under the status — off
 visible_sections: [state, metrics, io] # which sections show, independent of each other
 ```
 
-The container's state, health (when it has a healthcheck), CPU/memory and network/disk I/O. CPU,
+Under the header, the container's Dockhand tags as coloured pills (when it has any). The container's state, health (when it has a healthcheck), CPU/memory and network/disk I/O. CPU,
 memory and I/O need ha-dockhand's **Enable container and stack stats** option; without it the card simply
 leaves them out, and its editor tells you what to enable.
 
@@ -218,7 +219,7 @@ exclude_device_ids: [] # environments to leave out
 name: null # optional — Composed or Custom, same as every other card's Name field
 show_settings_link: true # link to view stacks in Dockhand
 show_controls: false # start/stop and restart buttons on each row
-visible_badges: [container_count, updates, type] # per-row details; add `environment` for an environment pill
+visible_badges: [container_count, updates, type, tags] # per-row details; add `environment` for an environment pill
 group_by: environment # none | environment | status | type
 sort_by: name # name | status
 ```
@@ -248,7 +249,7 @@ exclude_device_ids: [] # environments to leave out
 name: null # optional — Composed or Custom, same as every other card's Name field
 show_settings_link: true # link to view containers in Dockhand
 show_controls: false # start/stop and restart buttons on each row
-visible_badges: [health, updates, cpu, memory] # per-row details; add `environment` for an environment pill
+visible_badges: [health, updates, cpu, memory, tags] # per-row details; add `environment` for an environment pill
 group_by: environment # none | environment | status
 sort_by: name # name | status
 ```

@@ -19,6 +19,7 @@ import { renderSettingsLink, renderIcon } from '../common/icon';
 import { CONTAINER_STATE_CLASS, HEALTH_ICON, HEALTH_STATUS_CLASS, DEFAULT_CONTAINER_ICON, UPDATE_PENDING_VERSION } from '../common/const';
 import { renderDeviceControls, resolveDeviceControls } from '../common/device-controls';
 import { DEFAULT_CONTAINER_SECTIONS, type DockhandContainerCardConfig } from './types';
+import { renderTagRow } from '../common/tag-pills';
 import { cardStyles } from './styles';
 
 const STATE_ICON: Record<string, string> = {
@@ -163,6 +164,7 @@ export class DockhandContainerCard extends LitElement implements LovelaceCard {
               })}
             </div>
           </div>
+          ${renderTagRow(s.state?.state)}
           <div class="divider"></div>
           ${this._renderBody(s, controls ? renderDeviceControls(this, this._hass, controls, name) : nothing)}
         </div>

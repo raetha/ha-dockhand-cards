@@ -12,6 +12,9 @@ and [Unreleased] is the notes of the current test build.
 
 ### Added
 
+- **Dockhand tags** as coloured pills, as in Dockhand's own lists: on Stacks and Containers card
+  rows (a new **Tags** detail, on by default) and under the Stack and Container cards' headers.
+  Needs ha-dockhand 2.0.0 or later; earlier releases simply show none.
 - **Controls on list rows** — a **Show controls** option, off by default, on the Stacks and
   Containers cards (start or stop, and restart while running, asking before stopping or
   restarting) and the Schedules card (**Run now**, which asks first, and enable/disable). Schedule

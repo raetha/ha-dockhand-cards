@@ -151,7 +151,10 @@ useful ones:
   own name does
 - `.label-pill` — a small rounded label (a stack/container type, a custom environment label) —
   shared by every card that has one, see `docs/architecture.md` §10. `.version-tag-pill` is the
-  newer version tag one on Updates and Containers rows (additive, so `.label-pill` still matches it); its text uses `--dockhand-status-warn-text-color`
+  newer version tag one on Updates and Containers rows (additive, so `.label-pill` still matches it); its text uses `--dockhand-status-warn-text-color`.
+  `.tag-pill` is a Dockhand tag on Stacks/Containers rows and in the Stack/Container cards'
+  `.tag-row`; its colour is the user's own choice in Dockhand, set inline like an environment
+  label's (text mixed halfway toward `--primary-text-color`, background at 15%)
 - `.header-icon` — every header icon on every card, clickable or genuinely static, either side of
   the header: an update chip, a feature toggle, the Dockhand link, and Environment's own
   connection-type icon (merged in from a former separate `.conn-icon`) — all one shared shape and

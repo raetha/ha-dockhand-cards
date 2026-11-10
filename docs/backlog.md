@@ -26,12 +26,9 @@ gotchas (not "this got fixed", but "here's a pattern worth remembering") belong 
 
 ## Containers / Stacks cards
 
-- **Dockhand container and stack tags.** Dockhand 1.0.49+ has user-defined tags (name, colour,
-  icon) on containers and stacks. Once ha-dockhand exposes them (its backlog has the API details),
-  show them as pills on Containers/Stacks rows and the Container/Stack cards, and use them for the
-  filtering/grouping planned for 2.0.0. Tag colours are user-chosen, so they'd follow the same
-  inline-colour approach as the environment label pills. Raetha: worth doing, not urgent
-  (2026-10-14).
+- **Filtering and grouping by Dockhand tag** on the Containers and Stacks cards. The pills ship in
+  2.0.0; filters for the list cards are being defined first (Raetha, 2026-11-09), so tag filtering
+  waits to be part of that design.
 
 ## Cross-card
 
