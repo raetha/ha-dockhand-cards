@@ -3,7 +3,7 @@ import typescript from '@rollup/plugin-typescript';
 import terser from '@rollup/plugin-terser';
 import replace from '@rollup/plugin-replace';
 import minifyHTML from '@lit-labs/rollup-plugin-minify-html-literals';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 
 const dev = process.env.ROLLUP_WATCH === 'true';
 // CI's test builds pass their own version (e.g. 1.5.1-dev.12) so the console banner shows it.
@@ -61,5 +61,18 @@ export default [
       sourcemap: dev
     },
     plugins: plugins()
-  }
+  },
+  // One file per non-English language, loaded on demand by both bundles
+  // (common/i18n-loader.ts). Only data: nothing shared with the bundles.
+  ...readdirSync('src/i18n')
+    .filter((file) => file.endsWith('.ts'))
+    .map((file) => ({
+      input: `src/i18n/${file}`,
+      output: {
+        file: `dist/ha-dockhand-cards-i18n-${file.replace(/\.ts$/, '')}.js`,
+        format: 'es',
+        sourcemap: dev
+      },
+      plugins: plugins()
+    }))
 ];

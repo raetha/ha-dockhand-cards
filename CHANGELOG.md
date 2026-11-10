@@ -22,6 +22,12 @@ and [Unreleased] is the notes of the current test build.
 
 ### Changed
 
+- **Smaller downloads: each language is its own file.** The cards and their editors now carry
+  only English and load the dashboard's language from a small file beside them, so the card file
+  is about 40% smaller (about 140 KB instead of 220 KB) and the editors' 75 KB instead of 130 KB.
+  Marketplace and HACS installs get the language files automatically. **A manual install must copy
+  every `.js` file from the release**, not just the two it used to; without them the cards show
+  English.
 - README: installing through Home Assistant's Marketplace (2026.11+), with HACS for older
   versions, and the Marketplace's resource path for YAML-managed dashboards.
 - Versions show without a leading "v": HACS shows release tags, which from this release are plain

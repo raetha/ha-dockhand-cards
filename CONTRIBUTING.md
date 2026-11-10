@@ -9,7 +9,8 @@ Thanks for helping with Dockhand Cards. Bug reports, ideas and translation fixes
   releases). Run `npm run verify` first, and add a line under `## [Unreleased]` in `CHANGELOG.md`
   describing the change for people installing the cards.
 - **Translations** are machine-generated; corrections from native speakers are especially
-  welcome. The strings are in `src/common/i18n-card.ts` and `src/common/i18n-editor.ts`.
+  welcome. English is in `src/common/i18n-card.ts` and `src/common/i18n-editor.ts`; every other
+  language is in its own `src/i18n/<language>.ts`.
 
 Setup, the everyday loop, the translation and accessibility rules, and how releases work are in
 [docs/development.md](docs/development.md). How the cards work is in

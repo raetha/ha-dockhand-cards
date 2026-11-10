@@ -56,13 +56,16 @@ it, refresh). HACS's resource path is `/hacsfiles/ha-dockhand-cards/ha-dockhand-
 
 ### Manual
 
-1. Download `ha-dockhand-cards.js` and `ha-dockhand-cards-editor.js` from the
-   [latest release](https://github.com/raetha/ha-dockhand-cards/releases)
-2. Copy both into the same folder, e.g. `<HA config>/www/`. The editor file is loaded automatically
-   from beside the card file, so it doesn't need a resource of its own
+1. Download every `.js` file from the
+   [latest release](https://github.com/raetha/ha-dockhand-cards/releases): the cards
+   (`ha-dockhand-cards.js`), their editors (`ha-dockhand-cards-editor.js`) and one
+   `ha-dockhand-cards-i18n-<language>.js` per language
+2. Copy them all into the same folder, e.g. `<HA config>/www/`. The editor and language files are
+   loaded automatically from beside the card file, so they don't need resources of their own (a
+   missing language file just shows English)
 3. Add the card file as a dashboard resource: `/local/ha-dockhand-cards.js`, type
    **JavaScript Module**
-4. When updating, replace both files and add or bump a version on the resource URL, e.g.
+4. When updating, replace all the files and add or bump a version on the resource URL, e.g.
    `/local/ha-dockhand-cards.js?v=1.4.0`, so browsers load the new files
 
 ### Test builds
@@ -383,7 +386,8 @@ pencil icon on each opens more settings:
 Every card and editor is translated into the same languages as the integration: German, Spanish,
 French, Italian, Norwegian, Dutch, Polish, Portuguese, Swedish and Chinese (Simplified), alongside
 English, following your Home Assistant language. Numbers and times ("5 min ago") follow your
-language and number format too. Translations are machine-generated; corrections from native
+language and number format too. Each language is its own small file beside the cards, so a
+dashboard only loads the one it shows. Translations are machine-generated; corrections from native
 speakers are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---

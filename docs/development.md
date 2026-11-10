@@ -26,6 +26,13 @@ from. Both bundles carry their own copy of shared code: a shared chunk would loa
 resource URL carries a cache-busting version query (`?hacstag=` under HACS, `?v=` in the
 Marketplace; see `rollup.config.mjs`).
 
+Each non-English language is a third kind of file, `ha-dockhand-cards-i18n-<lang>.js`, built from
+`src/i18n/<lang>.ts` (one Rollup entry per file there) and loaded at runtime by both bundles
+(`common/i18n-loader.ts`): English is built into the bundles. The card bundle holds back defining
+its elements (a top-level `await`, at most 1.5 s) until the page's language has loaded, so cards
+don't draw in English first. Releases attach every `dist/*.js`. A new language is a new file in
+`src/i18n/`, added to `LANGUAGES` in the loader and to `src/test-setup.ts`.
+
 ## One-time setup
 
 Node 24 (what CI uses), then:
@@ -102,8 +109,10 @@ updates open pull requests for the ones with a fix.
 
 Home Assistant's translation system only covers backend strings (an integration's
 `strings.json`); it has no channel for a Lovelace card's own text. So this repo bundles its own
-dictionaries, looked up from `hass.language` at render time: `src/common/i18n-card.ts` for the
-cards and `src/common/i18n-editor.ts` for the editors. The locales match ha-dockhand's (de, es,
+dictionaries, looked up from `hass.language` at render time: English in `src/common/i18n-card.ts`
+for the cards and `src/common/i18n-editor.ts` for the editors, every other language (both parts)
+in `src/i18n/<lang>.ts`, built into its own file and loaded on demand (see "Layout" for
+how). The locales match ha-dockhand's (de, es,
 fr, it, nb, nl, pl, pt, sv, zh-Hans), machine-translated the same way, using ha-dockhand's own
 terms where it has one.
 
