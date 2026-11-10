@@ -18,11 +18,13 @@ considered and set aside are in [backlog.md](backlog.md); reviews are recorded i
 | `.github/workflows/build.yml` | All of CI: checks, releases, test builds (see "What CI does") |
 
 `dist/` is built, never committed: releases attach the built files (see "Branches and releases").
-HACS installs a plugin from the release asset named by `hacs.json`'s `filename` (falling back to
-the repo tree only when no release has that asset), and downloads every asset of the release into
-the same folder, which is where the card bundle loads the editor bundle from. Both bundles carry
-their own copy of shared code: a shared chunk would load twice under HACS, which appends a
-`?hacstag=` cache-buster to resource URLs (see `rollup.config.mjs`).
+The Marketplace (HA 2026.11+, HACS built in: same catalog, same `hacs.json`) and HACS install a
+plugin from the release asset named by `hacs.json`'s `filename` (falling back to the repo tree
+only when no release has that asset), and download every asset of the release into the same
+folder (`www/community/ha-dockhand-cards/`), which is where the card bundle loads the editor bundle
+from. Both bundles carry their own copy of shared code: a shared chunk would load twice, since the
+resource URL carries a cache-busting version query (`?hacstag=` under HACS, `?v=` in the
+Marketplace; see `rollup.config.mjs`).
 
 ## One-time setup
 
@@ -196,7 +198,7 @@ Day to day:
 1. Claude runs `dev`: small, safe changes are committed to it directly; anything else goes on a
    `try/<topic>` branch with a pull request into `dev`, which Claude squash-merges once CI is
    green. Either way the `[Unreleased]` line comes with the change and `npm run verify` passes.
-2. The owner installs the test build from HACS to try it on a real dashboard.
+2. The owner installs the test build from the Marketplace to try it on a real dashboard.
 3. `dev` stays releasable: a change that needs the owner's decision first waits on its `try/`
    branch (a draft pull request) until they've seen it.
 
@@ -242,9 +244,10 @@ after a release, before `dev` moves on, `<next patch>-dev.<run>`), so it sorts a
 release. Its notes are the `[Unreleased]` section, and the cards' console banner shows the test
 build's version. Older test builds are deleted, so there's only ever one.
 
-To install one: HACS adds a **Pre-release** switch entity for each repository, disabled by
-default. Enable Dockhand Cards' switch (Settings → Entities) and turn it on; HACS then offers the
-test build as an update. To go back, turn the switch off and redownload the latest release from
+To install one: turn on pre-releases for Dockhand Cards from its **⋮** menu in the Marketplace, or
+with the **Pre-release** switch entity the Marketplace (or HACS) adds for each repository,
+disabled by default (enable it under Settings → Entities); it then offers the
+test build as an update. To go back, turn pre-releases off and redownload the latest release from
 HACS (⋮ → Redownload).
 
 ### Repository settings
