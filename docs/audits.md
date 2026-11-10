@@ -51,8 +51,10 @@ first.
   `ha-button` sizes): none used here.
 - `docs/quality.md` claimed `setConfig` throws and that no render tests exist; both corrected.
   History comments rewritten to say why across the cards; a comment still described `ha-button`
-  on the Updates card, which uses header icons. `docs/architecture.md` still reads partly as a
-  development diary; a dedicated trim is proposed.
+  on the Updates card, which uses header icons. `docs/architecture.md` rewritten afterwards
+  (about 1,090 lines to 440): the same rules and reasons, without the development history, and two
+  stale claims fixed (Updates is in the Overview's section-default map; embedded editors do get
+  later `hass` updates).
 
 ## 2026-11-02: moved to the dev/main workflow
 
