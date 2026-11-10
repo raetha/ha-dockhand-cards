@@ -90,11 +90,14 @@ describe('Stacks card filters', () => {
 });
 
 describe('Updates card filters', () => {
-  it('lists only matching updates, counts them in the header, and hides Update all', async () => {
+  it('lists only matching updates, counts them in the header, and limits Update all to them', async () => {
     const el = await mount('updates', { exclude_device_ids: ['env_2', 'env_3', 'env_4'], filters: { update: ['tag'] } });
     expect([...el.shadowRoot!.querySelectorAll('.update-row .item-name')].map((n) => n.textContent)).toEqual(['postgres']);
     expect(el.shadowRoot!.querySelector('.card-header .truncate')!.textContent).toContain('(1)');
-    expect(el.shadowRoot!.querySelector('.header-icon.filled')).toBeNull();
+    // A newer tag can't be installed from here, so Update listed stays, disabled, saying why.
+    const updateListed = el.shadowRoot!.querySelector('.header-icon.filled')!;
+    expect(updateListed.textContent).toContain('Update listed');
+    expect(updateListed.getAttribute('title')).toMatch(/^Nothing listed can be installed/);
     expect(note(el)).toMatch(/^Hidden by filters: \d+$/);
   });
 

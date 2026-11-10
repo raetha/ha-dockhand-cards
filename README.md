@@ -291,9 +291,11 @@ show_filtered_count: true # a "Hidden by filters" line under a filtered list
 ```
 
 Every pending container update across the environments you choose, with **Check for updates**
-and **Update all** buttons in the header. Update all presses each environment's own ha-dockhand
-Update all button, so it behaves exactly like Dockhand's: system containers are left out. Click a
-row to open that container's update dialog and install just that one.
+and **Update all** buttons in the header. Update all installs every update the card lists that
+Home Assistant can install, as one Dockhand job per environment; like Dockhand's own Update all,
+that leaves out system containers, newer tags, pinned digests and held updates (the button is
+disabled, with a tooltip saying why, when that's everything listed). Click a row to open that
+container's update dialog and install just that one.
 
 A newer version tag (one you'd move to by changing the container's image tag rather than installing
 from Home Assistant) gets a grey tag icon in place of the update icon when it's the row's only
@@ -309,9 +311,9 @@ updates** is on. Needs ha-dockhand 1.11.0 or later.
 Updates are grouped by environment by default; `group_by: none` shows one combined list. Older
 configs using `scope`/`device_id` keep working as before.
 
-With filters set, the header counts the updates listed, and **Update all** isn't offered while
-filters hide some updates, since it updates whole environments. **Hide when no updates** still
-goes by everything pending, so a filtered card with nothing to list stays, saying so.
+With filters set, the header counts the updates listed, and while filters hide some updates the
+button reads **Update listed** and installs only those shown. **Hide when no updates** still goes
+by everything pending, so a filtered card with nothing to list stays, saying so.
 
 <p>
   <img src="docs/images/updates.png" alt="Updates card, dark theme" width="420">

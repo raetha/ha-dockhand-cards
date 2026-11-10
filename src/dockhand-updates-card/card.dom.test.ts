@@ -15,17 +15,22 @@ type UpdatesCardElement = HTMLElement & {
 type NodeProcess = { on(event: string, listener: (...args: unknown[]) => void): void; off(event: string, listener: (...args: unknown[]) => void): void };
 const nodeProcess = (globalThis as unknown as { process: NodeProcess }).process;
 
+/** An environment with one container whose update can be installed
+ * (supported_features 1 = Install) and one whose can't. */
 function setup() {
-  const env = makeDevice({ id: 'env-device', identifiers: [['dockhand', 'entry_env_1']], name: 'Nebula' });
+  const env = makeDevice({ id: 'env-device', identifiers: [['dockhand', 'entry_env_1']], config_entry_id: 'entry', name: 'Nebula' });
+  const container = (name: string) => makeDevice({ id: `dev-${name}`, identifiers: [['dockhand', `entry_container_1_${name}`]], config_entry_id: 'entry', name });
   const hass = makeHass({
-    devices: [env],
+    devices: [env, container('web'), container('hawser')],
     entities: [
       makeEntity({ entity_id: 'button.nebula_check_updates', device_id: 'env-device', translation_key: 'check_updates' }),
-      makeEntity({ entity_id: 'button.nebula_update_all', device_id: 'env-device', translation_key: 'env_bulk_update' })
+      makeEntity({ entity_id: 'update.web', device_id: 'dev-web' }),
+      makeEntity({ entity_id: 'update.hawser', device_id: 'dev-hawser' })
     ],
     states: [
       makeState({ entity_id: 'button.nebula_check_updates', state: 'unknown' }),
-      makeState({ entity_id: 'button.nebula_update_all', state: 'unknown' })
+      makeState({ entity_id: 'update.web', state: 'on', attributes: { name: 'web', installed_version: 'a', latest_version: 'b', supported_features: 1 } }),
+      makeState({ entity_id: 'update.hawser', state: 'on', attributes: { name: 'hawser', installed_version: 'a', latest_version: 'b', supported_features: 0 } })
     ]
   });
   const pending: (() => void)[] = [];
@@ -54,9 +59,10 @@ function headerButton(card: UpdatesCardElement, title: RegExp): HTMLElement {
 }
 
 describe.each([
-  { label: 'Check for updates', idle: /^Check for updates$/, busy: /^Checking…$/, entity: 'button.nebula_check_updates' },
-  { label: 'Update all', idle: /^Update all$/, busy: /^Updating…$/, entity: 'button.nebula_update_all' }
-])('Updates card "$label" button while its request is in flight', ({ idle, busy, entity }) => {
+  { label: 'Check for updates', idle: /^Check for updates$/, busy: /^Checking…$/, call: ['button', 'press', {}, { entity_id: ['button.nebula_check_updates'] }] },
+  // Only what Home Assistant can install: the system container is left out.
+  { label: 'Update all', idle: /^Install every update listed \(1\)$/, busy: /^Updating…$/, call: ['update', 'install', {}, { entity_id: ['update.web'] }] }
+])('Updates card "$label" button while its request is in flight', ({ idle, busy, call }) => {
   it('shows a spinner and is disabled, then returns to normal once the request settles', async () => {
     const { hass, callService, finish } = setup();
     const card = await mount(hass);
@@ -70,7 +76,7 @@ describe.each([
     await card.updateComplete;
 
     const busyButton = headerButton(card, busy);
-    expect(callService).toHaveBeenCalledWith('button', 'press', {}, { entity_id: [entity] });
+    expect(callService).toHaveBeenCalledWith(...call);
     expect(busyButton.className).toContain('link-unavailable');
     expect(busyButton.className).not.toContain('clickable');
     expect(busyButton.getAttribute('tabindex')).toBeNull();
@@ -216,13 +222,42 @@ describe('Updates card version-tag pill', () => {
   });
 });
 
-describe('Updates card with an unavailable Update all button', () => {
-  it('leaves Update all out of the header, and the environment out when nothing is pending', async () => {
+describe('Updates card Update all', () => {
+  it('stays, disabled and saying why, when nothing listed can be installed', async () => {
     const { hass } = setup();
-    hass.states['button.nebula_update_all'] = makeState({ entity_id: 'button.nebula_update_all', state: 'unavailable' });
+    hass.states['update.web'] = makeState({ entity_id: 'update.web', state: 'on', attributes: { name: 'web', installed_version: 'a', latest_version: 'b', supported_features: 0 } });
     const card = await mount(hass);
-    expect(() => headerButton(card, /^Update all$/)).toThrow();
-    expect(headerButton(card, /^Check for updates$/)).toBeTruthy();
+    const button = headerButton(card, /^Nothing listed can be installed/);
+    expect(button.textContent).toContain('Update all');
+    expect(button.getAttribute('tabindex')).toBeNull();
+    card.remove();
+  });
+
+  it('installs only the listed updates when filters hide some, and says so', async () => {
+    const { hass, callService, finish } = setup();
+    // hawser can be installed too, but sits in a stack the filter leaves out.
+    const stack = makeDevice({ id: 'dev-stack', identifiers: [['dockhand', 'entry_stack_1_core']], config_entry_id: 'entry', name: 'core' });
+    hass.devices['dev-stack'] = stack;
+    hass.devices['dev-hawser'] = { ...hass.devices['dev-hawser'], via_device_id: 'dev-stack' };
+    hass.states['update.hawser'] = makeState({ entity_id: 'update.hawser', state: 'on', attributes: { name: 'hawser', installed_version: 'a', latest_version: 'b', supported_features: 1 } });
+    const card = document.createElement(TAG) as UpdatesCardElement;
+    card.setConfig({ type: 'custom:dockhand-updates-card', filters: { stack: ['(none)'] } });
+    card.hass = hass;
+    document.body.appendChild(card);
+    await card.updateComplete;
+    const button = headerButton(card, /^Install the listed updates only \(1\)/);
+    expect(button.textContent).toContain('Update listed');
+    button.click();
+    expect(callService).toHaveBeenCalledWith('update', 'install', {}, { entity_id: ['update.web'] });
+    finish();
+    card.remove();
+  });
+
+  it('is absent when nothing is pending', async () => {
+    const { hass } = setup();
+    for (const id of ['update.web', 'update.hawser']) hass.states[id] = makeState({ entity_id: id, state: 'off', attributes: { installed_version: 'a', latest_version: 'a' } });
+    const card = await mount(hass);
+    expect(card.shadowRoot!.querySelector('.header-icon.filled')).toBeNull();
     expect(card.shadowRoot!.querySelector('.card-message')?.textContent).toContain('up to date');
     card.remove();
   });

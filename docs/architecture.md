@@ -463,9 +463,13 @@ environment scope and before grouping and sorting; a group left empty disappears
   match the cards and Home Assistant's own translated states.
 - **On the card:** "Nothing matches" (Updates: "No updates match") rather than the card's empty
   state, and a `.filtered-note` line counting hidden rows unless `show_filtered_count: false`.
-  The Updates card counts listed rows in its header when filtered, and drops **Update all** while
-  filters hide updates, since it acts on whole environments. *Hide when no updates* still reads
-  the unfiltered aggregate (§9).
+  The Updates card counts listed rows in its header when filtered. Its Update all calls
+  `update.install` on the listed rows Home Assistant can install (`canInstall()`: the entity
+  offers Install, which ha-dockhand withholds where Dockhand's own Update all skips a container),
+  in one call; ha-dockhand's installer turns Installs that start together into one Dockhand job
+  per environment. Filtered, it reads "Update listed"; with nothing installable it stays,
+  disabled, with a tooltip saying why. *Hide when no updates* still reads the unfiltered
+  aggregate (§9).
 - **Schedules' Where filter** (`scope`) replaces `include_global`. The card still honours
   `include_global: false`, which the Overview sets for its columns; the standalone editor rewrites
   it as `scope: { not: [global] }` (`migrateIncludeGlobal()`), and doesn't offer Where when

@@ -196,7 +196,11 @@ const card: Record<CardTranslationKey, string> = {
   stack_status_restarting: 'Herstarten',
   msg_no_containers_yet: 'Nog geen containers gevonden in de geselecteerde omgevingen.',
   msg_no_stacks_yet: 'Nog geen stacks gevonden in de geselecteerde omgevingen.',
-  msg_no_environment_entities: 'Nog geen Dockhand-entiteiten gevonden voor deze omgeving. Als je de integratie net hebt toegevoegd, wacht dan op de eerste vernieuwing; controleer anders of dit apparaat nog bij ha-dockhand hoort.'
+  msg_no_environment_entities: 'Nog geen Dockhand-entiteiten gevonden voor deze omgeving. Als je de integratie net hebt toegevoegd, wacht dan op de eerste vernieuwing; controleer anders of dit apparaat nog bij ha-dockhand hoort.',
+  update_listed: 'Getoonde bijwerken',
+  update_all_tooltip: 'Alle getoonde updates installeren ({count})',
+  update_listed_tooltip: 'Alleen de getoonde updates installeren ({count}); filters verbergen de rest',
+  update_all_nothing_installable: 'Niets van wat getoond wordt kan hier worden geïnstalleerd: nieuwere tags en vastgezette digests wijzig je in Dockhand, tegengehouden updates wachten op hun minimale leeftijd en systeemcontainers werken zichzelf bij'
 };
 
 const editor: Record<EditorTranslationKey, string> = {

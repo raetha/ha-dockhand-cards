@@ -196,7 +196,11 @@ const card: Record<CardTranslationKey, string> = {
   stack_status_restarting: 'Startar om',
   msg_no_containers_yet: 'Inga containrar hittades ännu i de valda miljöerna.',
   msg_no_stacks_yet: 'Inga stackar hittades ännu i de valda miljöerna.',
-  msg_no_environment_entities: 'Inga Dockhand-entiteter hittades ännu för den här miljön. Om du nyss lade till integrationen, vänta på första uppdateringen; kontrollera annars att enheten fortfarande hör till ha-dockhand.'
+  msg_no_environment_entities: 'Inga Dockhand-entiteter hittades ännu för den här miljön. Om du nyss lade till integrationen, vänta på första uppdateringen; kontrollera annars att enheten fortfarande hör till ha-dockhand.',
+  update_listed: 'Uppdatera de listade',
+  update_all_tooltip: 'Installera alla listade uppdateringar ({count})',
+  update_listed_tooltip: 'Installera bara de listade uppdateringarna ({count}); filtren döljer resten',
+  update_all_nothing_installable: 'Inget av det listade kan installeras härifrån: nyare taggar och låsta digester ändras i Dockhand, vilande uppdateringar väntar på minsta ålder och systemcontainrar uppdaterar sig själva'
 };
 
 const editor: Record<EditorTranslationKey, string> = {

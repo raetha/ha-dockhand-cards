@@ -196,7 +196,11 @@ const card: Record<CardTranslationKey, string> = {
   stack_status_restarting: 'A reiniciar',
   msg_no_containers_yet: 'Ainda não foram encontrados contentores nos ambientes selecionados.',
   msg_no_stacks_yet: 'Ainda não foram encontrados stacks nos ambientes selecionados.',
-  msg_no_environment_entities: 'Ainda não foram encontradas entidades do Dockhand para este ambiente. Se acabou de adicionar a integração, aguarde a primeira atualização; caso contrário, verifique se este dispositivo ainda pertence ao ha-dockhand.'
+  msg_no_environment_entities: 'Ainda não foram encontradas entidades do Dockhand para este ambiente. Se acabou de adicionar a integração, aguarde a primeira atualização; caso contrário, verifique se este dispositivo ainda pertence ao ha-dockhand.',
+  update_listed: 'Atualizar as listadas',
+  update_all_tooltip: 'Instalar todas as atualizações listadas ({count})',
+  update_listed_tooltip: 'Instalar apenas as atualizações listadas ({count}); os filtros ocultam as restantes',
+  update_all_nothing_installable: 'Nada do que está listado pode ser instalado aqui: as tags mais recentes e os digests fixados alteram-se no Dockhand, as atualizações retidas aguardam a idade mínima e os contentores de sistema atualizam-se sozinhos'
 };
 
 const editor: Record<EditorTranslationKey, string> = {

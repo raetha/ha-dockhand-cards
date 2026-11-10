@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sortPendingUpdates, shouldShowEnvironmentGroup, type PendingUpdate } from './card';
+import { sortPendingUpdates, type PendingUpdate } from './card';
 
 function update(overrides: Partial<PendingUpdate> & { name: string }): PendingUpdate {
   return {
@@ -25,20 +25,5 @@ describe('sortPendingUpdates', () => {
 
   it('returns an empty array unchanged', () => {
     expect(sortPendingUpdates([])).toEqual([]);
-  });
-});
-
-describe('shouldShowEnvironmentGroup', () => {
-  it('shows a group with pending updates, regardless of the bulk button', () => {
-    expect(shouldShowEnvironmentGroup([update({ name: 'a' })], true)).toBe(true);
-    expect(shouldShowEnvironmentGroup([update({ name: 'a' })], false)).toBe(true);
-  });
-
-  it('shows a group with a working bulk-update button even when nothing is currently pending — the button should stay discoverable', () => {
-    expect(shouldShowEnvironmentGroup([], true)).toBe(true);
-  });
-
-  it('hides a group with neither pending updates nor a bulk-update button', () => {
-    expect(shouldShowEnvironmentGroup([], false)).toBe(false);
   });
 });
