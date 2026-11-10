@@ -483,17 +483,29 @@ dashboard configuration each time the dashboard loads (frontend `get-strategy.ts
 
 - **`ll-strategy-dashboard-dockhand`** (`custom:dockhand`), registered in
   `window.customStrategies` (`index.ts`), so it's offered under Add dashboard → Community
-  dashboards. An overview view (a section per environment with a heading that navigates to its
-  view, plus all-environment Updates and Schedules), then one view per environment that only
-  names its view strategy, so each is built when opened. `noEditor`: nothing to configure.
-- **`ll-strategy-view-dockhand-environment`**: one environment's cards in a sections view, the
-  list cards solo'd to it with `exclude_device_ids` as the editors' solo action writes it, and
-  the Vulnerability card only where the environment has the vulnerabilities sensor. View
-  strategies can't be picked in Home Assistant's UI, so it isn't registered.
+  dashboards. The overview view: a `column_span: 2` section of environments, two to a row (each a
+  vertical stack of a heading that navigates to its view and a standard Environment card), a
+  section with Updates and each scanned environment's Vulnerability card, and one with Schedules.
+  Then a `subview` per environment, so the views aren't identical tabs: each has a back arrow to
+  the overview (hui-root falls back to the dashboard's first view) and only names its view
+  strategy, so it's built when opened.
+- **`ll-strategy-view-dockhand-environment`**: one environment's cards, in columns: the
+  Environment card alone, Vulnerabilities, Updates and Schedules together, then Stacks, then
+  Containers, ordered by where each column's first section falls in `section_order`. List cards
+  are solo'd with `exclude_device_ids` as the editors' solo action writes it; Vulnerabilities only
+  where the environment has the vulnerabilities sensor. View strategies can't be picked in Home
+  Assistant's UI, so it isn't registered.
+- **Settings** are the Overview card's keys (`show_*`, `section_order`, prefixed section
+  defaults, `environments_order`, `exclude_device_ids`, `environments_overrides`), resolved by the
+  same `sectionSettings()`/`orderedSections()` (`dockhand-overview-card/types.ts`), with
+  `DASHBOARD_DEFAULTS` on top: every section on, the views' Environment card in full mode (the
+  overview's stays standard). `getConfigElement()` returns `dockhand-dashboard-strategy-editor`
+  (`editor.ts`, in the editor bundle): the Overview editor with `dashboardStrategy` set, which
+  hides column alignment. It writes back only values that differ from the defaults. The dashboard
+  passes its settings into each view strategy's config.
 - **Regenerating:** by default HA rebuilds a strategy whenever the entity, device, area or floor
   registry changes. `shouldRegenerate()` narrows that to the set of environments (and their
-  names): the cards already follow containers and stacks themselves.
+  names): the cards already follow containers and stacks themselves. A settings change rebuilds it
+  anyway.
 - View paths come from the device id, not the name, since names repeat across instances.
-- A section strategy (per environment, offered under "Automatic section" with a preview) became
-  possible after HA 2026.8; see `docs/backlog.md`.
-
+- A section strategy and free layout: see `docs/backlog.md`.

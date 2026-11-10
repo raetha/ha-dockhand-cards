@@ -436,13 +436,17 @@ pencil icon on each opens more settings:
 ## Dockhand dashboard
 
 A ready-made dashboard instead of building one card by card: in **Settings → Dashboards → Add
-dashboard**, pick **Dockhand** under Community dashboards. It has an overview of every environment
-(click an environment's name to open it) with pending updates and schedules, then a view per
-environment with all its cards in Home Assistant's sections layout. Environments you add or remove
-in Dockhand appear and disappear by themselves.
+dashboard**, pick **Dockhand** under Community dashboards. Its overview shows every environment,
+two to a row, beside pending updates, vulnerabilities and schedules; click an environment's name
+to open its own page, with all its cards in Home Assistant's sections layout and a back arrow to
+the overview. Environments you add or remove in Dockhand appear and disappear by themselves.
 
-There's nothing to configure. To change it, use the dashboard's **Take control** to turn it into a
-normal dashboard you edit like any other (it then stops updating itself). In YAML it's:
+To change what it shows, open the dashboard's **⋮ → Edit dashboard**: the settings are the
+[Overview card](#dockhand-overview-card)'s, applied to the whole dashboard: which sections each
+environment's page shows and in what order, their settings, the order of environments and which
+to leave out, and per-environment overrides. Every section is on by default. Moving cards around
+freely needs **Take control**, which turns it into a normal dashboard you edit like any other (it
+then stops updating itself). In YAML it's:
 
 ```yaml
 strategy:

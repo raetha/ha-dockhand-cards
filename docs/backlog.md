@@ -36,11 +36,12 @@ gotchas (not "this got fixed", but "here's a pattern worth remembering") belong 
 
 - **A section strategy per environment** for the Dockhand dashboard (§22): Home Assistant after
   2026.8 lets a registered section strategy be picked under "Automatic section", with a preview
-  (`getStubConfig`) and an editor (`getConfigElement`, needed there). Would let people drop one
-  environment's cards into their own sections dashboard. Needs the HA minimum to reach the
-  release that added the picker, or to degrade quietly below it.
-- **Options for the Dockhand dashboard** (which environments, which sections, Overview card
-  instead of per-environment views): left out so it has nothing to configure; add only if asked.
+  (`getStubConfig`) and an editor (`getConfigElement`, needed there); 2026.8 has no picker, so it
+  would be YAML-only until the minimum moves. Set aside: with settings it comes close to an
+  Overview card limited to one environment, which already works in any dashboard.
+- **Free layout in the Dockhand dashboard** (dragging its sections and cards around): a strategy
+  writes the layout each time, so that's what **Take control** is for. Its settings cover which
+  sections, their order and their settings.
 
 - **Pill padding `3px 8px`** was tried and reverted: leave pills as they are for now. Revisit only
   as part of a wider look at pill sizing across all cards.

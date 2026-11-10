@@ -25,6 +25,49 @@ export function enabledSections(sections: OverviewSection[], config: DockhandOve
   return sections.filter((s) => shown[s]);
 }
 
+/** Section → the prefix of its defaults' keys (§4) and its key in an
+ * environment's override. */
+const SECTION_PREFIX: Record<OverviewSection, string> = {
+  environments: 'environment',
+  vulnerabilities: 'vulnerabilities',
+  stacks: 'stacks',
+  containers: 'containers',
+  updates: 'updates',
+  schedules: 'schedules'
+};
+const OVERRIDE_KEY: Record<OverviewSection, keyof EnvironmentOverride> = {
+  environments: 'environment',
+  vulnerabilities: 'vulnerabilities',
+  stacks: 'stacks',
+  containers: 'containers',
+  updates: 'updates',
+  schedules: 'schedules'
+};
+
+/** A section's settings for one environment's card: the section's
+ * defaults (`stacks_group_by` → `group_by`), then the environment's
+ * override. The singular `environment_` prefix can't match the plural
+ * `environments_overrides`/`environments_order` (§4). Shared by the
+ * Overview card and the Dockhand dashboard (§22). */
+export function sectionSettings(config: Record<string, unknown>, section: OverviewSection, override: EnvironmentOverride | undefined): Record<string, unknown> {
+  const prefix = `${SECTION_PREFIX[section]}_`;
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(config)) {
+    if (key.startsWith(prefix) && value !== undefined) out[key.slice(prefix.length)] = value;
+  }
+  for (const [key, value] of Object.entries(override?.[OVERRIDE_KEY[section]] ?? {})) {
+    if (value !== undefined) out[key] = value;
+  }
+  return out;
+}
+
+/** The saved section order, with any section it doesn't name after it. */
+export function orderedSections(saved: OverviewSection[] | undefined): OverviewSection[] {
+  if (!saved) return DEFAULT_SECTION_ORDER;
+  const known = new Set(saved);
+  return [...saved, ...DEFAULT_SECTION_ORDER.filter((s) => !known.has(s))];
+}
+
 /** Per-environment override of any field the standalone Environment/
  * Vulnerability/Stacks/Containers card itself exposes — same fields,
  * same meaning, just scoped to one environment's column here instead of

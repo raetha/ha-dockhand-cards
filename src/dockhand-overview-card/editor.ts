@@ -1,4 +1,4 @@
-import { LitElement, html, css, type TemplateResult } from 'lit';
+import { LitElement, html, css, nothing, type TemplateResult } from 'lit';
 import { state } from 'lit/decorators.js';
 import { ref } from 'lit/directives/ref.js';
 import { keyed } from 'lit/directives/keyed.js';
@@ -19,7 +19,7 @@ import { DEFAULT_CONTAINERS_BADGES, type DockhandContainersCardConfig } from '..
 import type { DockhandSchedulesCardConfig } from '../dockhand-schedules-card/types';
 import type { DockhandUpdatesCardConfig } from '../dockhand-updates-card/types';
 import {
-  DEFAULT_SECTION_ORDER,
+  orderedSections,
   type DockhandOverviewCardConfig,
   type OverviewSection,
   type EnvironmentOverride
@@ -106,6 +106,9 @@ interface EmbeddableCardEditor<C> extends HTMLElement {
 }
 
 export class DockhandOverviewCardEditor extends LitElement implements LovelaceCardEditor {
+  /** Set by the Dockhand dashboard's settings (§22), whose sections sit
+   * in Home Assistant's own grid: no columns to align. */
+  dashboardStrategy = false;
   @state() private _config?: DockhandOverviewCardConfig;
   @state() private _hass?: HomeAssistant;
   /** Which environment's override detail view is open, if any — an
@@ -227,14 +230,6 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
     }
   }
 
-  private _orderedSections(): OverviewSection[] {
-    const saved = this._config?.section_order;
-    if (!saved) return DEFAULT_SECTION_ORDER;
-    const known = new Set(saved);
-    const rest = DEFAULT_SECTION_ORDER.filter((s) => !known.has(s));
-    return [...saved, ...rest];
-  }
-
   protected render(): TemplateResult {
     if (!this._hass || !this._config) return html``;
 
@@ -261,7 +256,7 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
 
   private _renderList(): TemplateResult {
     if (!this._config || !this._hass) return html``;
-    const orderedSections = this._orderedSections();
+    const sections = orderedSections(this._config?.section_order);
 
     return html`
       <ha-expansion-panel outlined expanded>
@@ -275,7 +270,7 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
             <button class="link-btn" @click=${this._clearAllSections}>${t(this._hass, 'clear_all_environments')}</button>
           </div>
           <ha-sortable handle-selector=".order-handle" @item-moved=${this._sectionMoved}>
-            <div class="order-list">${orderedSections.map((s) => this._renderSectionOrderRow(s))}</div>
+            <div class="order-list">${sections.map((s) => this._renderSectionOrderRow(s))}</div>
           </ha-sortable>
         </div>
       </ha-expansion-panel>
@@ -306,14 +301,16 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
         }
       })}
 
-      <ha-form
-        .hass=${this._hass}
-        .data=${this._config}
-        .schema=${[{ name: 'align_columns', default: true, selector: { boolean: {} } }]}
-        .computeLabel=${() => t(this._hass, 'align_columns')}
-        .computeHelper=${() => t(this._hass, 'align_columns_hint')}
-        @value-changed=${this._sectionSettingsChanged}
-      ></ha-form>
+      ${this.dashboardStrategy
+        ? nothing
+        : html`<ha-form
+            .hass=${this._hass}
+            .data=${this._config}
+            .schema=${[{ name: 'align_columns', default: true, selector: { boolean: {} } }]}
+            .computeLabel=${() => t(this._hass, 'align_columns')}
+            .computeHelper=${() => t(this._hass, 'align_columns_hint')}
+            @value-changed=${this._sectionSettingsChanged}
+          ></ha-form>`}
     `;
   }
 
@@ -467,7 +464,7 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
         </div>
         <div class="hint">${t(this._hass, 'detail_view_hint')}</div>
 
-        ${this._orderedSections().map((section) => this._renderDetailSection(section, deviceId))}
+        ${orderedSections(this._config?.section_order).map((section) => this._renderDetailSection(section, deviceId))}
       `
     )}`;
   }
@@ -756,7 +753,7 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
 
   private _sectionMoved(ev: CustomEvent<{ oldIndex: number; newIndex: number }>): void {
     ev.stopPropagation();
-    const newOrder = this._orderedSections();
+    const newOrder = orderedSections(this._config?.section_order);
     const [moved] = newOrder.splice(ev.detail.oldIndex, 1);
     newOrder.splice(ev.detail.newIndex, 0, moved);
     this._updateConfig({ section_order: newOrder });
