@@ -212,3 +212,14 @@ describe('editors with stale or partial setups', () => {
     }
   });
 });
+
+describe('Schedules card environment pill', () => {
+  it('is off by default, since rows are grouped by environment', async () => {
+    const el = await mount('schedules', {});
+    const groups = el.shadowRoot!.querySelectorAll('.group-header');
+    expect(groups.length).toBeGreaterThan(1);
+    const envNames = [...groups].map((g) => g.textContent!.trim());
+    const pills = [...el.shadowRoot!.querySelectorAll('.row .label-pill')].map((p) => p.textContent!.trim());
+    expect(pills.filter((p) => envNames.some((n) => n.startsWith(p)))).toEqual([]);
+  });
+});

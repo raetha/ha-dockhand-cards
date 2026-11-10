@@ -58,9 +58,10 @@ Rules:
 - **Every schema field needs a `computeLabel` case**, or the raw field name shows as its label. A
   `multi_select`'s option labels come from its `options` map, separately from the field label. The
   interaction tests (`src/interactions.dom.test.ts`) compute every field's label and helper.
-- **Conditional fields are included or left out of the schema in code** (`custom_sections` only in
-  `mode: 'custom'`). `ha-form`'s `visible: {...}` exists in newer HA frontends; check it's in a
-  release the minimum HA version covers before relying on it.
+- **A field that depends on another field's value uses `visible:`** (HA 2026.8+, `conditions.ts`),
+  as HA's own editors do: `custom_sections` shows only in `mode: 'custom'`. A hidden field keeps
+  its value. Fields that depend on the editor rather than the data (hidden when embedded in the
+  Overview, §3) are left out of the schema in code, since a condition only sees form data.
 - **A field that only filters another field's options can simply be saved** if saving it is
   harmless (§5).
 
@@ -227,7 +228,10 @@ lists every class.
 
 - **`.row`**: the default data row — flex, centered, `space-between`, `8px` gap.
 - **`.row-left`** / **`.row-right`**: the grouped left part (icon, name, pills) and trailing part
-  of a row. Position comes from `.row`'s `space-between` and DOM order.
+  of a row.
+- **`.row-actions`**: a list row's controls (`show_controls`), after `.row-right`: two fixed 16px
+  slots on every row (`.row-control-slot` fills an unused one; a row without controls gets an
+  empty column), so controls and the values before them line up down the card. Position comes from `.row`'s `space-between` and DOM order.
 - **`.header-left`** / **`.header-right`**: a card header's groups, separate from the row classes
   because their gaps differ. `.header-icon` is a 32×32 box around a 24px icon (4px invisible
   padding each side), so `.header-right` has `gap: 0` (4 + 4 = 8px between visible icons) and
@@ -373,6 +377,7 @@ Every class in use. `docs/styling.md`'s card_mod section is the public subset.
 | `.stacked-pair` | A line plus secondary content, 2px apart. |
 | `.list` | List row container, `display: contents`. |
 | `.row`, `.row-left`, `.row-right` | The default data row and its groups. |
+| `.row-actions`, `.row-control`, `.row-control-slot` | A list row's controls column, its buttons, and an unused slot. |
 | `.item-name` | A row's name: `flex: 1`, truncating. |
 | `.row-icon` | Small icon with optional text: a row's state icon or a trailing badge. Color modifiers. |
 | `.label-row`, `.label-pill` | A wrapping row of pills (8px gap) and the pill (12px text, `line-height: 1`). |

@@ -52,7 +52,7 @@ export class DockhandEnvironmentCardEditor extends LitElement implements Lovelac
     this._config = migrateTitleToName(config as Record<string, unknown>) as DockhandEnvironmentCardConfig;
   }
 
-  private _mainSchema(devices: ReturnType<typeof getEnvironmentDevices>, selectedMode: CardMode): HaFormSchema[] {
+  private _mainSchema(devices: ReturnType<typeof getEnvironmentDevices>): HaFormSchema[] {
     const sectionOptions: Record<string, string> = {};
     for (const section of CUSTOM_SECTION_ORDER) {
       sectionOptions[section] = t(this._hass, SECTION_LABEL_KEY[section]);
@@ -77,26 +77,16 @@ export class DockhandEnvironmentCardEditor extends LitElement implements Lovelac
           select: { mode: 'dropdown', options: (Object.keys(MODE_KEYS) as CardMode[]).map((value) => ({ value, label: t(this._hass, MODE_KEYS[value]) })) }
         }
       },
-      // Root, directly below mode — not in Content. Picking "Custom"
-      // mode needs this picker to appear immediately as the obvious next
-      // step; buried inside a collapsed Content section, someone who
-      // doesn't already know to expand it has no visible way to actually
-      // choose which sections show. Included in the schema only in custom
-      // mode: plain code, rather than ha-form's `visible:` condition, which
-      // does the same with more to verify against HA's source.
-      ...(selectedMode === 'custom' ? [{ name: 'custom_sections', type: 'multi_select' as const, options: sectionOptions }] : []),
-      // Content covers everything else shaping how this environment
-      // displays. `mode`/`custom_sections` both stay at root, not in
-      // here — `mode`'s own reason is that ha-form-expandable doesn't
-      // forward the `.warning` prop to its nested <ha-form> at all (only
-      // hass/data/schema/disabled/computeLabel/computeHelper/
-      // localizeValue are), and this card's own warning (which entities
-      // a given mode needs) is attached to `mode` specifically — moving
-      // it into Content would have silently broken that feature, not
-      // just changed where the field sits. `custom_sections`' reason is
-      // the discoverability one above; worth remembering these are two
-      // different, unrelated reasons even though both fields ended up
-      // at root the same way.
+      // At the root, below mode, so picking Custom shows the picker straight
+      // away rather than inside a collapsed section. Shown through ha-form's
+      // own condition, as HA's editors do. (mode stays at the root because
+      // ha-form-expandable doesn't pass `.warning` on to its nested form.)
+      {
+        name: 'custom_sections',
+        type: 'multi_select' as const,
+        options: sectionOptions,
+        visible: { field: 'mode', value: 'custom' }
+      },
       {
         name: 'content',
         type: 'expandable',
@@ -125,7 +115,7 @@ export class DockhandEnvironmentCardEditor extends LitElement implements Lovelac
       <ha-form
         .hass=${this._hass}
         .data=${{ ...this._config, custom_sections: this._config.custom_sections ?? DEFAULT_CUSTOM_SECTIONS }}
-        .schema=${this._mainSchema(devices, selectedMode)}
+        .schema=${this._mainSchema(devices)}
         .computeLabel=${this._computeLabel}
         .computeHelper=${this._computeHelper}
         .warning=${this._warning(selectedMode)}

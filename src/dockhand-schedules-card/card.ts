@@ -20,7 +20,7 @@ import { resolveIncludedOrdered, groupRowsByEnvironment, resolveEffectiveGroupBy
 import { t } from '../common/i18n-card';
 import type { DockhandSchedulesCardConfig, ScheduleSortBy, ScheduleGroupBy } from './types';
 import { resolveVisibleBadges } from './types';
-import { renderScheduleControls, resolveScheduleControls } from '../common/device-controls';
+import { renderActionsColumn, renderScheduleControls, resolveScheduleControls } from '../common/device-controls';
 import { cardStyles } from './styles';
 
 // Status values per Dockhand's own ScheduleStatus type (db.ts) — the richer
@@ -456,7 +456,8 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
         ? (STATUS_ICON[row.status] ?? { icon: 'mdi:help-circle', cls: 'neutral' as const })
         : { icon: 'mdi:minus-circle-outline', cls: 'neutral' as const };
 
-    const visibleBadges = resolveVisibleBadges(this._config?.visible_badges, this._config?.group_by);
+    // group_by's own default, as the grouping and the editor use.
+    const visibleBadges = resolveVisibleBadges(this._config?.visible_badges, this._config?.group_by ?? 'environment');
     const showEnvironment = visibleBadges.includes('environment');
     // The 'environment' badge is hidden by default once group_by:
     // 'environment' groups rows into per-environment sections already —
@@ -489,12 +490,8 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
           ${showEnvironment && row.environment ? html`<span class="label-pill">${row.environment}</span>` : nothing}
           ${showInstanceLabel && row.instanceLabel ? html`<span class="label-pill">${row.instanceLabel}</span>` : nothing}
         </div>
-        ${showNextRun || controls
-          ? html`<div class="row-right">
-              ${showNextRun ? html`<span>${nextRunText}</span>` : nothing}
-              ${controls ? renderScheduleControls(this, this._hass, controls, row.name) : nothing}
-            </div>`
-          : nothing}
+        ${showNextRun ? html`<div class="row-right"><span>${nextRunText}</span></div>` : nothing}
+        ${this._config?.show_controls ? renderActionsColumn(controls ? renderScheduleControls(this, this._hass, controls, row.name) : null) : nothing}
       </div>
     `;
   }

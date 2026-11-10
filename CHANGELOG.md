@@ -17,8 +17,9 @@ and [Unreleased] is the notes of the current test build.
   Needs ha-dockhand 2.0.0 or later; earlier releases simply show none.
 - **Controls on list rows** — a **Show controls** option, off by default, on the Stacks and
   Containers cards (start or stop, and restart while running, asking before stopping or
-  restarting) and the Schedules card (**Run now**, which asks first, and enable/disable). Schedule
-  controls need ha-dockhand 2.0.0 or later.
+  restarting) and the Schedules card (**Run now**, which asks first, and enable/disable). They sit
+  in their own column at the end of each row, so controls and values line up down the card.
+  Schedule controls need ha-dockhand 2.0.0 or later.
 
 ### Changed
 
@@ -46,12 +47,16 @@ and [Unreleased] is the notes of the current test build.
   missing "s"), or open and save it in the editor before updating.
 
 ### Fixed
-
+- **Schedules card: the environment pill showed on every row by default**, though rows are
+  grouped by environment and the editor showed the pill as off.
+- **Schedules card: every Dockhand schedule type has a name in every language**, including
+  container start and stop, backups, repository prune, check and verify, and stack deploy.
 - Updates card: ready for ha-dockhand 2.0, which keeps each environment's Update all button and
   makes it unavailable while nothing can be updated. An unavailable one is now ignored, so the card
   doesn't offer Update all, or list an environment with nothing pending, because of it.
 
 ### Internal
+- The Environment card's section picker appears through Home Assistant's own form conditions.
 
 - Dependencies: d3-shape 3.2.1; build and test tools rollup 4.67.5, @rollup/plugin-terser 1.0.2,
   jsdom 31.

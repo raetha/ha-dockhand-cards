@@ -36,6 +36,10 @@ const DEVICE_CONTROL_KEYS = {
   gitDeploy: 'git_stack_deploy'
 } as const;
 
+/** A row's place in the actions column: a fixed slot per control, so each
+ * control lines up down the card even where a row lacks one. */
+const EMPTY_SLOT = html`<span class="row-control-slot"></span>`;
+
 export interface DeviceControls {
   running: { entityId: string; isOn: boolean };
   restartEntityId: string | null;
@@ -145,8 +149,15 @@ export function renderRowControls(host: HTMLElement, hass: HomeAssistant | undef
       : button('mdi:play', t(hass, 'control_start'), () => performAction(host, 'switch.turn_on', entityId))}
     ${restartEntityId
       ? button('mdi:restart', t(hass, 'control_restart'), () => performAction(host, 'button.press', restartEntityId, t(hass, 'control_restart_confirm', { name })))
-      : nothing}
+      : EMPTY_SLOT}
   `;
+}
+
+/** The actions column of a list row, present on every row while controls
+ * are shown (empty for a row without any), so the values beside it line
+ * up too. */
+export function renderActionsColumn(content: TemplateResult | null): TemplateResult {
+  return html`<div class="row-actions">${content ?? nothing}</div>`;
 }
 
 export interface ScheduleControls {
@@ -177,7 +188,7 @@ export function renderScheduleControls(host: HTMLElement, hass: HomeAssistant | 
           title: t(hass, enabled.isOn ? 'control_disable_schedule' : 'control_enable_schedule'),
           onClick: () => performAction(host, enabled.isOn ? 'switch.turn_off' : 'switch.turn_on', enabled.entityId)
         })
-      : nothing}
+      : EMPTY_SLOT}
     ${runEntityId
       ? renderIcon({
           baseClass: 'row-icon row-control',
@@ -185,6 +196,6 @@ export function renderScheduleControls(host: HTMLElement, hass: HomeAssistant | 
           title: t(hass, 'control_run_now'),
           onClick: () => performAction(host, 'button.press', runEntityId, t(hass, 'control_run_now_confirm', { name }))
         })
-      : nothing}
+      : EMPTY_SLOT}
   `;
 }

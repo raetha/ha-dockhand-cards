@@ -34,6 +34,13 @@ export interface HaFormSelector {
   } | null;
 }
 
+/** ha-form's field conditions (HA 2026.8+, `conditions.ts`). */
+export interface HaFormFieldCondition {
+  field: string;
+  operator?: 'eq' | 'not_eq' | 'in' | 'not_in' | 'exists' | 'not_exists';
+  value?: unknown;
+}
+
 export interface HaFormSchema {
   name: string;
   type?: 'multi_select' | 'expandable' | 'grid';
@@ -42,6 +49,8 @@ export interface HaFormSchema {
   /** Applied only for display when the field is absent from `data` —
    * doesn't get written back unless the field is actually touched. */
   default?: unknown;
+  /** Shown while every condition holds; the value is kept when hidden. */
+  visible?: boolean | HaFormFieldCondition | HaFormFieldCondition[];
   selector?: HaFormSelector;
   /** Only meaningful together with type: 'multi_select'. */
   options?: Record<string, string> | readonly string[] | readonly (readonly [string, string])[];
