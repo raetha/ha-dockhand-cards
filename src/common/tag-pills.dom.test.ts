@@ -55,10 +55,10 @@ describe('renderTagPill', () => {
   });
 });
 
-const env = makeDevice({ id: 'env-device', identifiers: [['dockhand', 'entry_env_1']], config_entries: ['entry'], name: 'Nebula' });
+const env = makeDevice({ id: 'env-device', identifiers: [['dockhand', 'entry_env_1']], config_entry_id: 'entry', name: 'Nebula' });
 
 function hassWith(kind: 'container' | 'stack', attributes: Record<string, unknown>): HomeAssistant {
-  const device = makeDevice({ id: 'dev-web', identifiers: [['dockhand', `entry_${kind}_1_web`]], config_entries: ['entry'], name: 'web', via_device_id: 'env-device' });
+  const device = makeDevice({ id: 'dev-web', identifiers: [['dockhand', `entry_${kind}_1_web`]], config_entry_id: 'entry', name: 'web', via_device_id: 'env-device' });
   const key = kind === 'container' ? 'state' : 'status';
   return makeHass({
     devices: [env, device],

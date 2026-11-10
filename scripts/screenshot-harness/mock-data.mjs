@@ -12,7 +12,7 @@ function device(id, identifiers, name, extra = {}) {
     model: extra.model ?? null,
     manufacturer: 'Dockhand',
     identifiers: identifiers.map((i) => ['dockhand', i]),
-    config_entries: [ENTRY_ID],
+    config_entry_id: ENTRY_ID,
     configuration_url: extra.configuration_url ?? null,
     hw_version: extra.hw_version ?? null,
     via_device_id: extra.via_device_id ?? null

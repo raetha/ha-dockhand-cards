@@ -2,5 +2,5 @@
   "name": "Dockhand Cards",
   "render_readme": true,
   "filename": "ha-dockhand-cards.js",
-  "homeassistant": "2026.6.0"
+  "homeassistant": "2026.8.0"
 }

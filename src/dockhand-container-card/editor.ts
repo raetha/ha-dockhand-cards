@@ -138,9 +138,7 @@ export class DockhandContainerCardEditor extends LitElement implements LovelaceC
   };
 
   /** Attached to the device_id field via ha-form's own native
-   * .warning/computeWarning mechanism (a real HA feature, confirmed
-   * against source, present since well before our HA floor — unlike
-   * `visible:`, this one's actually shipped) rather than a hand-built
+   * .warning/computeWarning mechanism rather than a hand-built
    * .hint-box below the form, matching how HA's own editors surface a
    * field-specific caveat: a real <ha-alert> renders right at the field
    * it's about, not a disconnected box at the bottom of an unrelated

@@ -8,7 +8,7 @@ export function makeDevice(overrides: Partial<DeviceRegistryEntry> & { id: strin
     model: null,
     manufacturer: null,
     identifiers: [],
-    config_entries: [],
+    config_entry_id: null,
     configuration_url: null,
     hw_version: null,
     via_device_id: null,

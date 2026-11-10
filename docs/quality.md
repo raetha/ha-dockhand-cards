@@ -60,7 +60,7 @@ quality as possible" means for this repo. Check it before every release.
 - [x] `getCardSize` and `getGridOptions` implemented (masonry layout, and the newer "sections"
       dashboard view's resizable grid respectively)
 - [x] Visual editor — no YAML required for basic use
-- [x] `getEntitySuggestion` (HA 2026.6+ entity-first card picker)
+- [x] `getEntitySuggestion` (HA's entity-first card picker)
 - [x] Every displayed value that maps to a real entity opens that entity's more-info dialog on
       click/Enter/Space
 - [x] Icons pulled from the entity (`<ha-state-icon>`) rather than hardcoded, wherever a 1:1

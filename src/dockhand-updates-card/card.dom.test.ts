@@ -122,12 +122,12 @@ describe.each([
 
 describe('Updates card version-tag pill', () => {
   function hassWithUpdates(rows: { name: string; installed: string; latest: string; newer?: string; state?: string; extra?: Record<string, unknown> }[]) {
-    const env = makeDevice({ id: 'env-device', identifiers: [['dockhand', 'entry_env_1']], config_entries: ['entry'], name: 'Nebula' });
+    const env = makeDevice({ id: 'env-device', identifiers: [['dockhand', 'entry_env_1']], config_entry_id: 'entry', name: 'Nebula' });
     const devices = [env];
     const entities = [];
     const states = [];
     for (const r of rows) {
-      devices.push(makeDevice({ id: `dev-${r.name}`, identifiers: [['dockhand', `entry_container_1_${r.name}`]], config_entries: ['entry'], name: r.name }));
+      devices.push(makeDevice({ id: `dev-${r.name}`, identifiers: [['dockhand', `entry_container_1_${r.name}`]], config_entry_id: 'entry', name: r.name }));
       entities.push(makeEntity({ entity_id: `update.${r.name}`, device_id: `dev-${r.name}` }));
       states.push(
         makeState({
