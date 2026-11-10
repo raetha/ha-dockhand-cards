@@ -14,7 +14,7 @@ import { stateLabel } from '../common/state-label';
 import { renderSettingsLink, renderIcon, onKeydownActivate } from '../common/icon';
 import type { StackTranslationKey } from '../common/const';
 import { DEFAULT_STACKS_BADGES, type DockhandStacksCardConfig, type StacksGroupBy, type StacksSortBy } from './types';
-import { renderRowControls, resolveDeviceControls } from '../common/device-controls';
+import { renderRowControls, renderActionsColumn, resolveDeviceControls } from '../common/device-controls';
 import { renderTagPills } from '../common/tag-pills';
 import { cardStyles } from './styles';
 
@@ -259,7 +259,7 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
   private _renderControls(row: StackRow): TemplateResult | typeof nothing {
     if (!this._config?.show_controls || !this._hass) return nothing;
     const controls = resolveDeviceControls(this._hass, row.deviceId, true);
-    return controls ? renderRowControls(this, this._hass, controls, row.name) : nothing;
+    return renderActionsColumn(controls ? renderRowControls(this, this._hass, controls, row.name) : null);
   }
 
   private _renderRow(row: StackRow): TemplateResult {
@@ -303,8 +303,8 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
                 onClick: () => this._moreInfo(containerCountId)
               })
             : nothing}
-          ${this._renderControls(row)}
         </div>
+        ${this._renderControls(row)}
       </div>
     `;
   }

@@ -722,6 +722,23 @@ export const sharedStyles = css`
     flex-shrink: 0;
     line-height: 1;
   }
+  /* A list row's controls (show_controls): two fixed 16px slots, the same
+   * on every row, so controls line up down the card and the values before
+   * them do too. A row-icon is 16px (below). */
+  .row-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 16px);
+    column-gap: var(--ha-space-2, 8px);
+    align-items: center;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  /* With a third part, .row's space-between would also open a gap before
+   * the actions column; the free space goes after the left part instead,
+   * so the values sit against the column on every row. */
+  .row:has(> .row-actions) > .row-left {
+    margin-right: auto;
+  }
   /* See renderFitParts (fit-parts.ts): pieces that don't fit wrap onto a
    * second line that the one-line height hides. Unlike a plain .row-right it
    * may shrink, which is what makes the wrapping happen. */

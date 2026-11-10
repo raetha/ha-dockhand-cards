@@ -147,6 +147,7 @@ useful ones:
 - `.row`, `.row-left`, `.row-right` — a card's own basic list row shape, content at both ends
   (`.row-left` the row's own icon+name, `.row-right` its own value or secondary label), used
   throughout every list-shaped card
+- `.row-actions` — the controls column a list card adds to every row when **Show controls** is on
 - `.item-name` — a row's own primary name text, truncating with an ellipsis the same way a header's
   own name does
 - `.label-pill` — a small rounded label (a stack/container type, a custom environment label) —

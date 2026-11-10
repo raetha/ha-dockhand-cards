@@ -60,10 +60,21 @@ describe.each([
   { kind: 'container' as const, tag: TAGS.containers, type: 'dockhand-containers-card' },
   { kind: 'stack' as const, tag: TAGS.stacks, type: 'dockhand-stacks-card' }
 ])('$type row controls', ({ kind, tag, type }) => {
-  it('are hidden unless show_controls is set', async () => {
+  it('are hidden unless show_controls is set, with no actions column', async () => {
     const card = await mount(tag, type, hassWithDevice(kind, true));
     expect(controlTitles(card)).toEqual([]);
+    expect(card.shadowRoot!.querySelector('.row-actions')).toBeNull();
     card.remove();
+  });
+
+  it('sit in their own column with a fixed slot each, so they line up', async () => {
+    for (const running of [true, false]) {
+      const card = await mount(tag, type, hassWithDevice(kind, running), { show_controls: true });
+      const column = card.shadowRoot!.querySelector('.row .row-actions')!;
+      expect(column.previousElementSibling?.classList.contains('row-right')).toBe(true);
+      expect(column.children.length).toBe(2);
+      card.remove();
+    }
   });
 
   it('offer stop and restart while running, each asking first, without opening more-info', async () => {
@@ -94,6 +105,8 @@ describe.each([
   it('are absent for a system one, which has no running switch', async () => {
     const card = await mount(tag, type, hassWithDevice(kind, true, { system: true }), { show_controls: true });
     expect(controlTitles(card)).toEqual([]);
+    // The column is still there, empty, so the row's values stay aligned.
+    expect(card.shadowRoot!.querySelector('.row-actions')!.children.length).toBe(0);
     card.remove();
   });
 });

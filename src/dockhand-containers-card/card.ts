@@ -17,7 +17,7 @@ import { HEALTH_ICON, HEALTH_STATUS_CLASS } from '../common/const';
 import { renderVersionTagPill, type NewerVersionTag } from '../common/version-tag';
 import { updateKindIcon, updateStatus, type UpdateStatus } from '../common/update-kind';
 import { DEFAULT_CONTAINERS_BADGES, type DockhandContainersCardConfig, type ContainersGroupBy, type ContainersSortBy } from './types';
-import { renderRowControls, resolveDeviceControls } from '../common/device-controls';
+import { renderRowControls, renderActionsColumn, resolveDeviceControls } from '../common/device-controls';
 import { renderTagPills } from '../common/tag-pills';
 import { cardStyles } from './styles';
 
@@ -269,7 +269,7 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
   private _renderControls(row: ContainerRow): TemplateResult | typeof nothing {
     if (!this._config?.show_controls || !this._hass) return nothing;
     const controls = resolveDeviceControls(this._hass, row.deviceId, true);
-    return controls ? renderRowControls(this, this._hass, controls, row.name) : nothing;
+    return renderActionsColumn(controls ? renderRowControls(this, this._hass, controls, row.name) : null);
   }
 
   private _renderRow(row: ContainerRow): TemplateResult {
@@ -321,8 +321,8 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
                 onClick: () => this._moreInfo(memId)
               })
             : nothing}
-          ${this._renderControls(row)}
         </div>
+        ${this._renderControls(row)}
       </div>
     `;
   }

@@ -228,7 +228,10 @@ lists every class.
 
 - **`.row`**: the default data row — flex, centered, `space-between`, `8px` gap.
 - **`.row-left`** / **`.row-right`**: the grouped left part (icon, name, pills) and trailing part
-  of a row. Position comes from `.row`'s `space-between` and DOM order.
+  of a row.
+- **`.row-actions`**: a list row's controls (`show_controls`), after `.row-right`: two fixed 16px
+  slots on every row (`.row-control-slot` fills an unused one; a row without controls gets an
+  empty column), so controls and the values before them line up down the card. Position comes from `.row`'s `space-between` and DOM order.
 - **`.header-left`** / **`.header-right`**: a card header's groups, separate from the row classes
   because their gaps differ. `.header-icon` is a 32×32 box around a 24px icon (4px invisible
   padding each side), so `.header-right` has `gap: 0` (4 + 4 = 8px between visible icons) and
@@ -374,6 +377,7 @@ Every class in use. `docs/styling.md`'s card_mod section is the public subset.
 | `.stacked-pair` | A line plus secondary content, 2px apart. |
 | `.list` | List row container, `display: contents`. |
 | `.row`, `.row-left`, `.row-right` | The default data row and its groups. |
+| `.row-actions`, `.row-control`, `.row-control-slot` | A list row's controls column, its buttons, and an unused slot. |
 | `.item-name` | A row's name: `flex: 1`, truncating. |
 | `.row-icon` | Small icon with optional text: a row's state icon or a trailing badge. Color modifiers. |
 | `.label-row`, `.label-pill` | A wrapping row of pills (8px gap) and the pill (12px text, `line-height: 1`). |

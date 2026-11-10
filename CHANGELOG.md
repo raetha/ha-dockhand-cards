@@ -17,8 +17,9 @@ and [Unreleased] is the notes of the current test build.
   Needs ha-dockhand 2.0.0 or later; earlier releases simply show none.
 - **Controls on list rows** — a **Show controls** option, off by default, on the Stacks and
   Containers cards (start or stop, and restart while running, asking before stopping or
-  restarting) and the Schedules card (**Run now**, which asks first, and enable/disable). Schedule
-  controls need ha-dockhand 2.0.0 or later.
+  restarting) and the Schedules card (**Run now**, which asks first, and enable/disable). They sit
+  in their own column at the end of each row, so controls and values line up down the card.
+  Schedule controls need ha-dockhand 2.0.0 or later.
 
 ### Changed
 
