@@ -24,7 +24,7 @@ before changing anything. This file is the short version.
   Never date the changelog or open the release pull request unless the owner asks: that pull
   request (`dev` → `main`) dates the section; CI then tags, publishes the release, and resets `dev`.
 - Each push to `dev` publishes a test build (`<version>-dev.<run>` pre-release) that the owner
-  installs through HACS's Pre-release switch to test on a real dashboard.
+  installs through the Marketplace's pre-release option to test on a real dashboard.
 - The cards and ha-dockhand are tightly coupled: when fixing a card problem, consider whether the
   integration should change too, and fix the same bug everywhere it occurs.
 - Push back when a requested change looks like a lot of complexity for little gain, or out of step
@@ -60,4 +60,5 @@ before changing anything. This file is the short version.
 - Sessions can't read Actions settings, secrets or security alerts through the proxy: ask the
   owner. A "full review" follows the checklist at the top of `docs/audits.md`.
 - HACS not showing the cards' icon in its store panel is an upstream HACS bug
-  (hacs/integration#5171, #5223): nothing to fix here.
+  (hacs/integration#5171, #5223): nothing to fix here. The Marketplace (HA 2026.11+) is HACS
+  built in, same catalog and `hacs.json`; HA 2026.10 and older still need HACS installed.

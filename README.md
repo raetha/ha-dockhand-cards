@@ -1,4 +1,4 @@
-[![HACS Badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/default)
+[![Marketplace](https://img.shields.io/badge/Marketplace-Default-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/default)
 [![Release](https://img.shields.io/github/v/release/raetha/ha-dockhand-cards?style=for-the-badge)](https://github.com/raetha/ha-dockhand-cards/releases)
 [![Validation](https://img.shields.io/github/actions/workflow/status/raetha/ha-dockhand-cards/build.yml?branch=main&label=build&style=for-the-badge)](https://github.com/raetha/ha-dockhand-cards/actions/workflows/build.yml)
 
@@ -36,17 +36,22 @@ credentials of their own and never contact Dockhand directly.
 
 ## Installation
 
-### HACS (Recommended)
+### Marketplace (Recommended)
 
-This repository is available in the default HACS catalog.
+Dockhand Cards is in the default catalog of Home Assistant's **Marketplace**, built in from Home
+Assistant 2026.11 (it grew out of HACS, and uses the same catalog).
 
-1. Open HACS in Home Assistant
-2. Go to **Frontend**
-3. Search for **Dockhand Cards** and install it
-4. Refresh your browser. If the cards don't appear, add the resource below under
-   **Settings → Dashboards → ⋮ → Resources**
+1. Go to **Settings → Marketplace**
+2. Find **Dockhand Cards** (a **Dashboard** item) and install it. The Marketplace adds the
+   dashboard resource for you
+3. Refresh your browser. If your dashboard resources are managed in YAML, add
+   `/local/community/ha-dockhand-cards/ha-dockhand-cards.js` as a **JavaScript Module** yourself
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=raetha&repository=ha-dockhand-cards&category=plugin)
+[![Open your Home Assistant instance and show Dockhand Cards in the Marketplace.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=raetha&repository=ha-dockhand-cards&category=plugin)
+
+**Home Assistant 2026.10 and older** have no Marketplace: install [HACS](https://hacs.xyz)
+yourself, then the steps are the same in HACS (**HACS → Frontend**, find Dockhand Cards, download
+it, refresh). HACS's resource path is `/hacsfiles/ha-dockhand-cards/ha-dockhand-cards.js`.
 
 ### Manual
 
@@ -62,13 +67,14 @@ This repository is available in the default HACS catalog.
 ### Test builds
 
 Upcoming changes are published as test builds (pre-releases such as `1.5.3-dev.42`) before
-they're released, for anyone willing to try them early. To get them through HACS:
+they're released, for anyone willing to try them early:
 
-1. Go to **Settings → Devices & services → Entities**, search for the Dockhand Cards
-   **Pre-release** switch that HACS creates (it's disabled by default), and enable it
-2. Turn the switch on. HACS then offers the latest test build as an update; install it and
-   refresh your browser
-3. To go back to releases, turn the switch off, then in HACS open Dockhand Cards, choose **⋮ →
+1. Turn on pre-releases for Dockhand Cards: in the Marketplace, open Dockhand Cards and use its
+   **⋮** menu, or turn on the Dockhand Cards **Pre-release** switch (**Settings → Devices &
+   services → Entities**; it's disabled by default, so enable it first). On HACS only the switch
+   is there.
+2. The latest test build is then offered as an update; install it and refresh your browser
+3. To go back to releases, turn pre-releases off again, then open Dockhand Cards, choose **⋮ →
    Redownload** and pick the latest release
 
 The browser console shows which version is loaded (`HA-DOCKHAND-CARDS v1.5.1-dev.42`); include it
@@ -415,6 +421,7 @@ MIT
 ## Removal
 
 1. Remove the Dockhand cards from your dashboards.
-2. In HACS, go to **Frontend**, find **Dockhand Cards**, and click **Remove**. For a manual install,
+2. In **Settings → Marketplace** (or **HACS → Frontend** on 2026.10 and older), find **Dockhand
+   Cards** and remove it; that removes its dashboard resource too. For a manual install,
    delete both files and remove the resource under **Settings → Dashboards → ⋮ → Resources**.
 3. Refresh your browser.

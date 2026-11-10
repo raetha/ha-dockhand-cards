@@ -19,6 +19,8 @@ and [Unreleased] is the notes of the current test build.
 
 ### Changed
 
+- README: installing through Home Assistant's Marketplace (2026.11+), with HACS for older
+  versions, and the Marketplace's resource path for YAML-managed dashboards.
 - Versions show without a leading "v": HACS shows release tags, which from this release are plain
   version numbers (`1.6.0`, test builds such as `1.6.1-dev.42`), like most other HACS
   repositories. Earlier releases keep their `v` tags.
