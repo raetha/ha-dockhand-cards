@@ -13,28 +13,9 @@ import type { DockhandStacksCardConfig } from '../dockhand-stacks-card/types';
 import type { DockhandContainersCardConfig } from '../dockhand-containers-card/types';
 import type { DockhandUpdatesCardConfig } from '../dockhand-updates-card/types';
 import type { DockhandSchedulesCardConfig } from '../dockhand-schedules-card/types';
-import { DEFAULT_SECTION_ORDER, enabledSections, type DockhandOverviewCardConfig, type EnvironmentOverride, type OverviewSection } from './types';
+import { enabledSections, orderedSections, sectionSettings, type DockhandOverviewCardConfig, type OverviewSection } from './types';
 import { cardStyles } from './styles';
 import { t } from '../common/i18n-card';
-
-/** Section → the prefix of its defaults' keys (§4) and its key in an
- * environment's override. */
-const SECTION_PREFIX: Record<OverviewSection, string> = {
-  environments: 'environment',
-  vulnerabilities: 'vulnerabilities',
-  stacks: 'stacks',
-  containers: 'containers',
-  updates: 'updates',
-  schedules: 'schedules'
-};
-const OVERRIDE_KEY: Record<OverviewSection, keyof EnvironmentOverride> = {
-  environments: 'environment',
-  vulnerabilities: 'vulnerabilities',
-  stacks: 'stacks',
-  containers: 'containers',
-  updates: 'updates',
-  schedules: 'schedules'
-};
 
 export class DockhandOverviewCard extends LitElement implements LovelaceCard {
   static styles = cardStyles;
@@ -285,40 +266,6 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
     `;
   }
 
-  /** Same "unlisted sorts after the ones that are ordered" approach as
-   * resolveEnvironmentOrder (src/common/environment-scope.ts) uses for
-   * environments, for sections within a column instead — a section not
-   * present in the user's saved order (e.g. "updates", added after
-   * they'd already arranged the others) sorts after the ordered ones, in
-   * DEFAULT_SECTION_ORDER's own relative order rather than arbitrarily.
-   * Not the same *function* since sections aren't keyed by device_id and
-   * have no "environment device list" to resolve against — just the same
-   * underlying idea, hand-rolled here rather than forced through a
-   * shared helper that doesn't actually fit this shape. */
-  private _orderedSections(): OverviewSection[] {
-    const saved = this._config?.section_order;
-    if (!saved) return DEFAULT_SECTION_ORDER;
-    const known = new Set(saved);
-    const rest = DEFAULT_SECTION_ORDER.filter((s) => !known.has(s));
-    return [...saved, ...rest];
-  }
-
-  /** A section's settings for one environment's card: the section's
-   * defaults (`stacks_group_by` → `group_by`), then the environment's
-   * override. The singular `environment_` prefix can't match the plural
-   * `environments_overrides`/`environments_order` (§4). */
-  private _sectionSettings(section: OverviewSection, override: EnvironmentOverride | undefined): Record<string, unknown> {
-    const prefix = `${SECTION_PREFIX[section]}_`;
-    const out: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(this._config ?? {})) {
-      if (key.startsWith(prefix) && value !== undefined) out[key.slice(prefix.length)] = value;
-    }
-    for (const [key, value] of Object.entries(override?.[OVERRIDE_KEY[section]] ?? {})) {
-      if (value !== undefined) out[key] = value;
-    }
-    return out;
-  }
-
   private _renderColumn(deviceId: string, name: string, alignColumns: boolean): TemplateResult {
     const override = this._config?.environments_overrides?.[deviceId];
 
@@ -326,7 +273,7 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
     // with this environment's override on top, whatever fields the card
     // has: nothing here changes when a card gains one. Keys only appear
     // when set, so a card's own `{ default, ...config }` defaults hold.
-    const settings = (section: OverviewSection): Record<string, unknown> => this._sectionSettings(section, override);
+    const settings = (section: OverviewSection): Record<string, unknown> => sectionSettings(this._config ?? {}, section, override);
     const allEnvDeviceIds = getEnvironmentDevices(this._hass!).map((d) => d.deviceId);
     const others = allEnvDeviceIds.filter((id) => id !== deviceId);
     const envCfg = { mode: 'standard', ...settings('environments'), type: 'custom:dockhand-environment-card', device_id: deviceId } as DockhandEnvironmentCardConfig;
@@ -353,7 +300,7 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
       include_global: false
     } as DockhandSchedulesCardConfig;
 
-    const sections = this._config ? enabledSections(this._orderedSections(), this._config) : [];
+    const sections = this._config ? enabledSections(orderedSections(this._config?.section_order), this._config) : [];
     const sectionRenderers: Record<OverviewSection, () => TemplateResult | typeof nothing> = {
       environments: () =>
         this._config?.show_environments
