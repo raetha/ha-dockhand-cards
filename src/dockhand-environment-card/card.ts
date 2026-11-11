@@ -7,7 +7,7 @@ import { computeDonutSegments, boundaryAngles } from '../common/donut-geometry';
 
 import type { HomeAssistant, LovelaceGridOptions } from '../common/ha-types';
 import { getEnvironmentDevices, getRepresentativeEntityId } from '../common/device-utils';
-import { resolveCardName, migrateTitleToName } from '../common/card-name';
+import { resolveCardName } from '../common/card-name';
 import {
   resolveEnvironmentEntities,
   type ResolutionResult,
@@ -172,7 +172,7 @@ export class DockhandEnvironmentCard extends LitElement implements LovelaceCard 
   }
 
   setConfig(config: DockhandEnvironmentCardConfig): void {
-    this._config = { mode: 'standard', show_settings_link: true, ...(migrateTitleToName(config as Record<string, unknown>) as DockhandEnvironmentCardConfig) };
+    this._config = { mode: 'standard', show_settings_link: true, ...config };
   }
 
   /** Alias so this element can be embedded declaratively (`.config=${cfg}`)

@@ -5,7 +5,7 @@ import { fireEvent, type LovelaceCard, type LovelaceCardEditor } from 'custom-ca
 
 import type { HomeAssistant, LovelaceGridOptions, DeviceRegistryEntry } from '../common/ha-types';
 import { getAllStackDevices, getEnvIdForStackDevice, getEnvDeviceForEnvId, getContainerDevicesForEnvironment, getRepresentativeEntityId } from '../common/device-utils';
-import { resolveCardName, migrateTitleToName } from '../common/card-name';
+import { resolveCardName } from '../common/card-name';
 import { resolveStackEntities, resolveContainerEntities, findPrimaryEntityByDomain, type ResolutionResult } from '../common/entity-resolver';
 import { DEFAULT_STACK_ICON, STACK_STATUS_CLASS, type StackTranslationKey } from '../common/const';
 import { getDockhandBaseUrl, formatRelativeTime } from '../common/format';
@@ -65,7 +65,7 @@ export class DockhandStackCard extends LitElement implements LovelaceCard {
   }
 
   setConfig(config: DockhandStackCardConfig): void {
-    this._config = { show_settings_link: true, ...(migrateTitleToName(config as Record<string, unknown>) as DockhandStackCardConfig) };
+    this._config = { show_settings_link: true, ...config };
   }
 
   set config(config: DockhandStackCardConfig) {

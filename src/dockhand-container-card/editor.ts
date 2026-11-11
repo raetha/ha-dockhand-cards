@@ -5,7 +5,7 @@ import type { HaFormSchema } from '../common/ha-form-types';
 
 import type { HomeAssistant } from '../common/ha-types';
 import { getEnvironmentDevices, getContainerDevicesForEnvironment, getEnvIdForContainerDevice, getEnvDeviceIdForEnvId, getRepresentativeEntityId } from '../common/device-utils';
-import { cardNameFieldSchema, migrateTitleToName } from '../common/card-name';
+import { cardNameFieldSchema } from '../common/card-name';
 import { resolveContainerEntities, getContainerDropdownOptions } from '../common/entity-resolver';
 import { t } from '../common/i18n-editor';
 import { editorFormStyles } from '../common/editor-styles';
@@ -29,7 +29,7 @@ export class DockhandContainerCardEditor extends LitElement implements LovelaceC
   }
 
   setConfig(config: DockhandContainerCardConfig): void {
-    this._config = migrateTitleToName(config as Record<string, unknown>) as DockhandContainerCardConfig;
+    this._config = config;
   }
 
   /** Falls back to deriving the environment from the currently configured

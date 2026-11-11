@@ -14,9 +14,9 @@ CARDS = [
     ("dockhand-vulnerability-card", {"device_id": "env_1"}, "vulnerability.png", 420, 260),
     ("dockhand-stack-card", {"device_id": "stack_1_core"}, "stack.png", 420, 420),
     ("dockhand-container-card", {"device_id": "container_1_web"}, "container.png", 420, 320),
-    ("dockhand-stacks-card", {"device_id": "env_1"}, "stacks-list.png", 420, 220),
-    ("dockhand-containers-card", {"device_id": "env_1"}, "containers-list.png", 420, 320),
-    ("dockhand-updates-card", {"scope": "all"}, "updates.png", 420, 320),
+    ("dockhand-stacks-card", {"exclude_device_ids": ["env_2", "env_3", "env_4"]}, "stacks-list.png", 420, 220),
+    ("dockhand-containers-card", {"exclude_device_ids": ["env_2", "env_3", "env_4"]}, "containers-list.png", 420, 320),
+    ("dockhand-updates-card", {}, "updates.png", 420, 320),
     ("dockhand-schedules-card", {"group_by": "environment"}, "schedules.png", 420, 460),
     (
         "dockhand-overview-card",

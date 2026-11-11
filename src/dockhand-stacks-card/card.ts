@@ -5,8 +5,8 @@ import { fireEvent, type LovelaceCard, type LovelaceCardEditor } from 'custom-ca
 
 import type { HomeAssistant, LovelaceGridOptions } from '../common/ha-types';
 import { getEnvironmentDevices, getStackDevicesForEnvironment, getRepresentativeEntityId, type EnvironmentDeviceOption } from '../common/device-utils';
-import { resolveCardName, migrateTitleToName, multiEnvCardNameFallback } from '../common/card-name';
-import { resolveIncludedOrderedWithLegacy, groupRowsByEnvironment, resolveEffectiveGroupBy } from '../common/environment-scope';
+import { resolveCardName, multiEnvCardNameFallback } from '../common/card-name';
+import { resolveIncludedOrdered, groupRowsByEnvironment, resolveEffectiveGroupBy } from '../common/environment-scope';
 import { resolveStackEntities, type ResolutionResult } from '../common/entity-resolver';
 import { getDockhandBaseUrl } from '../common/format';
 import { t } from '../common/i18n-card';
@@ -107,7 +107,7 @@ export function groupStackRows(
   if (!groupBy || groupBy === 'none') return [{ label: null, rows: sortStackRows(rows, sortBy) }];
 
   // 'environment' groups by iterating envDevices directly — already in
-  // the right order (call resolveIncludedOrderedWithLegacy before this,
+  // the right order (call resolveIncludedOrdered before this,
   // same as every other use of it) — rather than deriving a key per row
   // and re-sorting buckets against a separate order array afterward,
   // which can drift out of sync with the actual, already-correct order.
@@ -161,7 +161,7 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
   }
 
   setConfig(config: DockhandStacksCardConfig): void {
-    this._config = { show_settings_link: true, sort_by: 'name', ...(migrateTitleToName(config as Record<string, unknown>) as DockhandStacksCardConfig) };
+    this._config = { show_settings_link: true, sort_by: 'name', ...config };
   }
 
   set config(config: DockhandStacksCardConfig) {
@@ -195,7 +195,7 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
   private _buildRows(): { rows: StackRow[]; envDevices: EnvironmentDeviceOption[] } {
     if (!this._hass || !this._config) return { rows: [], envDevices: [] };
 
-    const envDevices = resolveIncludedOrderedWithLegacy(getEnvironmentDevices(this._hass), this._config.environments_order, this._config.exclude_device_ids, this._config.device_id);
+    const envDevices = resolveIncludedOrdered(getEnvironmentDevices(this._hass), this._config.environments_order, this._config.exclude_device_ids);
 
     const rows: StackRow[] = envDevices.flatMap((env) => {
       const envDevice = this._hass!.devices[env.deviceId];

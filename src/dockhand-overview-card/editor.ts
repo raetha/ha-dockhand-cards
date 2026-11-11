@@ -557,13 +557,9 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
    * here, since after that this element's own config-changed events are
    * the sole source of truth for its section of the override, right up
    * until the user switches environments and a new element is mounted. */
-  /** `device_id` in the constraint is `string | undefined`, not `string`
-   * — Stacks (and, as more cards migrate, others) now declare it as an
-   * optional legacy field once they support multiple environments (see
-   * that card's own types.ts), even though this specific function always
-   * passes a real value below. Widening the constraint to match is
-   * simpler and more honest than keeping it stricter than the config
-   * shapes it actually needs to accept. */
+  /** Every embedded editor is told the environment it's editing through
+   * `device_id`, though the multi-environment cards' own configs don't
+   * have one, hence optional in the constraint. */
   private _mountEditor<C extends { type: string; device_id?: string }>(deviceId: string, type: C['type'], currentOverride: Partial<C> | undefined) {
     return (el?: Element) => {
       if (!el || !this._hass) return;

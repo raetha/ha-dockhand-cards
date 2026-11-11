@@ -179,8 +179,13 @@ release pull request dates it.
   *without* a working backward-compatible fallback, or dropping support for an entity or attribute
   shape a released version reads. A rename *with* a verified, unconditional fallback (the old key
   keeps working indefinitely and the editor migrates configs to the new key on load) is minor.
-  Removing such a fallback later is major: `environment_overrides`/`environment_order` (renamed
-  in 1.1.0) stopped being read in 2.0.0.
+  Removing such a fallback later is major, and has a fixed time: **a setting replaced during
+  major version N keeps working through N and is dropped in N+1.0**, with a Breaking changelog
+  line saying what changes and how to fix the card. So 2.0.0 dropped everything replaced in 1.x
+  (`environment_overrides`/`environment_order`, `title`, the list cards' `device_id` and
+  Updates' `scope`), and what 2.x replaces (Schedules' `include_global`, the Vulnerability card's
+  `device_id`) goes in 3.0.0. Until then the editor converts it, and a fallback's code says the
+  version that replaced it, so the next major's removals are easy to find.
 - **Minor:** a new card, a new optional config key or editor field, new locale coverage. Also when
   picking up an ha-dockhand `translation_key` rename (which shows up here as entities silently no
   longer resolving, not a compile error): call out the ha-dockhand version needed in the

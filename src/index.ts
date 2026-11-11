@@ -24,6 +24,12 @@ import { DockhandDashboardStrategy, DockhandEnvironmentViewStrategy } from './do
 import { t } from './common/i18n-card';
 import { pageLanguageReady } from './common/i18n-loader';
 
+/** A multi-environment card limited to one environment, the way its
+ * editor's solo action writes it. */
+function only(hass: HomeAssistant, envDeviceId: string): { exclude_device_ids: string[] } {
+  return { exclude_device_ids: Object.values(hass.devices ?? {}).filter((d) => isEnvironmentDevice(d) && d.id !== envDeviceId).map((d) => d.id) };
+}
+
 // Defined once the page's language has loaded (or after a short wait), so
 // cards draw in it from the start rather than in English first.
 await pageLanguageReady();
@@ -89,15 +95,15 @@ window.customCards.push({
     // to see the stacks themselves, not just the environment tile.
     if (entry.translation_key === ENV_TRANSLATION_KEYS.vulnerabilities) {
       return [
-        { config: { type: 'custom:dockhand-vulnerability-card', device_id: device.id }, label: t(hass, 'suggest_vulnerability_summary') },
+        { config: { type: 'custom:dockhand-vulnerability-card', ...only(hass, device.id) }, label: t(hass, 'suggest_vulnerability_summary') },
         envSuggestion
       ];
     }
     if (entry.translation_key === ENV_TRANSLATION_KEYS.stacks) {
-      return [{ config: { type: 'custom:dockhand-stacks-card', device_id: device.id }, label: t(hass, 'suggest_all_stacks') }, envSuggestion];
+      return [{ config: { type: 'custom:dockhand-stacks-card', ...only(hass, device.id) }, label: t(hass, 'suggest_all_stacks') }, envSuggestion];
     }
     if (entry.translation_key === ENV_TRANSLATION_KEYS.containers) {
-      return [{ config: { type: 'custom:dockhand-containers-card', device_id: device.id }, label: t(hass, 'suggest_all_containers') }, envSuggestion];
+      return [{ config: { type: 'custom:dockhand-containers-card', ...only(hass, device.id) }, label: t(hass, 'suggest_all_containers') }, envSuggestion];
     }
     return envSuggestion;
   }
@@ -130,7 +136,7 @@ window.customCards.push({
     const envId = getEnvIdForStackDevice(device);
     const envDeviceId = envId !== null ? getEnvDeviceIdForEnvId(hass, envId, device) : null;
     if (envDeviceId) {
-      suggestions.push({ config: { type: 'custom:dockhand-stacks-card', device_id: envDeviceId }, label: t(hass, 'suggest_stacks_in_environment') });
+      suggestions.push({ config: { type: 'custom:dockhand-stacks-card', ...only(hass, envDeviceId) }, label: t(hass, 'suggest_stacks_in_environment') });
     }
     return suggestions;
   }
@@ -155,7 +161,7 @@ window.customCards.push({
     const envDeviceId = envId !== null ? getEnvDeviceIdForEnvId(hass, envId, device) : null;
     if (envDeviceId) {
       suggestions.push({
-        config: { type: 'custom:dockhand-containers-card', device_id: envDeviceId },
+        config: { type: 'custom:dockhand-containers-card', ...only(hass, envDeviceId) },
         label: t(hass, 'suggest_containers_in_environment')
       });
     }
@@ -197,7 +203,7 @@ window.customCards.push({
     const envId = getEnvIdForContainerDevice(device);
     const envDeviceId = envId !== null ? getEnvDeviceIdForEnvId(hass, envId, device) : null;
     return {
-      config: { type: 'custom:dockhand-updates-card', scope: envDeviceId ? 'environment' : 'all', device_id: envDeviceId ?? undefined },
+      config: { type: 'custom:dockhand-updates-card', ...(envDeviceId ? only(hass, envDeviceId) : {}) },
       label: t(hass, 'pending_updates')
     };
   }
@@ -227,9 +233,8 @@ window.customCards.push({
     const envDeviceId = envId !== null ? getEnvDeviceIdForEnvId(hass, envId, device) : null;
     // "Just this environment" is written the way the editor's per-row
     // solo action writes it: every other environment excluded.
-    const excludeOthers = envDeviceId ? Object.values(hass.devices ?? {}).filter((d) => isEnvironmentDevice(d) && d.id !== envDeviceId).map((d) => d.id) : [];
     return {
-      config: { type: 'custom:dockhand-schedules-card', ...(envDeviceId ? { exclude_device_ids: excludeOthers } : {}) },
+      config: { type: 'custom:dockhand-schedules-card', ...(envDeviceId ? only(hass, envDeviceId) : {}) },
       label: envDeviceId ? t(hass, 'suggest_schedules_in_environment') : t(hass, 'suggest_all_schedules')
     };
   }

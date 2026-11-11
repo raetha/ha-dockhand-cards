@@ -5,7 +5,7 @@ import type { HaFormSchema } from '../common/ha-form-types';
 
 import type { HomeAssistant } from '../common/ha-types';
 import { getEnvironmentDevices, getRepresentativeEntityId } from '../common/device-utils';
-import { cardNameFieldSchema, migrateTitleToName } from '../common/card-name';
+import { cardNameFieldSchema } from '../common/card-name';
 import { resolveEnvironmentEntities } from '../common/entity-resolver';
 import { REQUIRED_KEYS_BY_MODE, ENV_FRIENDLY_LABEL, type EnvTranslationKey } from '../common/const';
 import { t, type EditorTranslationKey } from '../common/i18n-editor';
@@ -49,7 +49,7 @@ export class DockhandEnvironmentCardEditor extends LitElement implements Lovelac
   }
 
   setConfig(config: DockhandEnvironmentCardConfig): void {
-    this._config = migrateTitleToName(config as Record<string, unknown>) as DockhandEnvironmentCardConfig;
+    this._config = config;
   }
 
   private _mainSchema(devices: ReturnType<typeof getEnvironmentDevices>): HaFormSchema[] {

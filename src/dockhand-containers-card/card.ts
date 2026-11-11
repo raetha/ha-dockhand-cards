@@ -5,8 +5,8 @@ import { fireEvent, type LovelaceCard, type LovelaceCardEditor } from 'custom-ca
 
 import type { HomeAssistant, LovelaceGridOptions } from '../common/ha-types';
 import { getEnvironmentDevices, getContainerDevicesForEnvironment, getRepresentativeEntityId, type EnvironmentDeviceOption } from '../common/device-utils';
-import { resolveCardName, migrateTitleToName, multiEnvCardNameFallback } from '../common/card-name';
-import { resolveIncludedOrderedWithLegacy, groupRowsByEnvironment, resolveEffectiveGroupBy } from '../common/environment-scope';
+import { resolveCardName, multiEnvCardNameFallback } from '../common/card-name';
+import { resolveIncludedOrdered, groupRowsByEnvironment, resolveEffectiveGroupBy } from '../common/environment-scope';
 import { resolveContainerEntities, findPrimaryEntityByDomain, type ResolutionResult } from '../common/entity-resolver';
 import { formatPercent, getDockhandBaseUrl, numericState } from '../common/format';
 import { t } from '../common/i18n-card';
@@ -139,7 +139,7 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
   }
 
   setConfig(config: DockhandContainersCardConfig): void {
-    this._config = { show_settings_link: true, sort_by: 'name', ...(migrateTitleToName(config as Record<string, unknown>) as DockhandContainersCardConfig) };
+    this._config = { show_settings_link: true, sort_by: 'name', ...config };
   }
 
   set config(config: DockhandContainersCardConfig) {
@@ -187,7 +187,7 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
   private _buildRows(): { rows: ContainerRow[]; envDevices: EnvironmentDeviceOption[] } {
     if (!this._hass || !this._config) return { rows: [], envDevices: [] };
 
-    const envDevices = resolveIncludedOrderedWithLegacy(getEnvironmentDevices(this._hass), this._config.environments_order, this._config.exclude_device_ids, this._config.device_id);
+    const envDevices = resolveIncludedOrdered(getEnvironmentDevices(this._hass), this._config.environments_order, this._config.exclude_device_ids);
 
     const rows: ContainerRow[] = envDevices.flatMap((env) => {
       const envDevice = this._hass!.devices[env.deviceId];
