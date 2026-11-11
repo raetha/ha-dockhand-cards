@@ -39,6 +39,13 @@ gotchas (not "this got fixed", but "here's a pattern worth remembering") belong 
   (`getStubConfig`) and an editor (`getConfigElement`, needed there); 2026.8 has no picker, so it
   would be YAML-only until the minimum moves. Set aside: with settings it comes close to an
   Overview card limited to one environment, which already works in any dashboard.
+- **The Dockhand dashboard's own card-settings editor** (§22), if the dashboard is kept. Its
+  card settings are, for now, the Overview card's editor inlined with `dashboardStrategy` hiding
+  what the layout decides. The plan: move the Overview editor's parts (the section rows with their
+  detail views for section defaults, the per-environment override detail view, the environment
+  list) into shared components, and build both editors from them, so the dashboard's reads as its
+  own (a section per page, settings next to each card in the layout) rather than the Overview's
+  with pieces hidden. Waiting on the owner's verdict on the dashboard.
 - **Free layout in the Dockhand dashboard** (dragging its sections and cards around): a strategy
   writes the layout each time, so that's what **Take control** is for. Its settings cover which
   sections, their order and their settings.

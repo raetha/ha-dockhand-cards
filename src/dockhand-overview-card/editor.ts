@@ -44,7 +44,7 @@ const EMBEDDED_EDITOR_TAGS = [
   'dockhand-updates-card-editor'
 ].join(', ');
 
-const SECTION_LABEL_KEY: Record<OverviewSection, EditorTranslationKey> = {
+export const SECTION_LABEL_KEY: Record<OverviewSection, EditorTranslationKey> = {
   environments: 'label_environments',
   vulnerabilities: 'label_vulnerabilities',
   stacks: 'label_stacks',
@@ -263,15 +263,18 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
         <ha-icon slot="leading-icon" icon="mdi:format-list-bulleted"></ha-icon>
         <h3 slot="header">${t(this._hass, 'section_order_heading')}</h3>
         <div class="content">
-          <div class="hint">${t(this._hass, 'order_list_hint')}</div>
-          <div class="bulk-actions">
-            <button class="link-btn" @click=${this._showAllSections}>${t(this._hass, 'select_all_environments')}</button>
-            <span class="bulk-actions-sep">·</span>
-            <button class="link-btn" @click=${this._clearAllSections}>${t(this._hass, 'clear_all_environments')}</button>
-          </div>
-          <ha-sortable handle-selector=".order-handle" @item-moved=${this._sectionMoved}>
-            <div class="order-list">${sections.map((s) => this._renderSectionOrderRow(s))}</div>
-          </ha-sortable>
+          ${this.dashboardStrategy
+            ? // The dashboard's layout decides which cards show, and where.
+              html`<div class="order-list">${sections.map((s) => this._renderSectionOrderRow(s))}</div>`
+            : html`<div class="hint">${t(this._hass, 'order_list_hint')}</div>
+                <div class="bulk-actions">
+                  <button class="link-btn" @click=${this._showAllSections}>${t(this._hass, 'select_all_environments')}</button>
+                  <span class="bulk-actions-sep">·</span>
+                  <button class="link-btn" @click=${this._clearAllSections}>${t(this._hass, 'clear_all_environments')}</button>
+                </div>
+                <ha-sortable handle-selector=".order-handle" @item-moved=${this._sectionMoved}>
+                  <div class="order-list">${sections.map((s) => this._renderSectionOrderRow(s))}</div>
+                </ha-sortable>`}
         </div>
       </ha-expansion-panel>
 
@@ -334,20 +337,22 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
             : undefined;
 
     return html`
-      <div class="order-row section-order-row ${shown ? '' : 'disabled'}" title=${rowHint ?? ''}>
-        <ha-icon class="order-handle" icon="mdi:drag-horizontal-variant"></ha-icon>
+      <div class="order-row section-order-row ${shown || this.dashboardStrategy ? '' : 'disabled'}" title=${rowHint ?? ''}>
+        ${this.dashboardStrategy ? nothing : html`<ha-icon class="order-handle" icon="mdi:drag-horizontal-variant"></ha-icon>`}
         <span class="order-name">${t(this._hass, SECTION_LABEL_KEY[section])}</span>
         <div class="row-actions">
           <ha-icon-button class="row-action-btn" label=${t(this._hass, 'override_env_settings')} @click=${this._openSectionSettings(section)}>
             <ha-icon icon="mdi:pencil"></ha-icon>
           </ha-icon-button>
-          <ha-icon-button
-            class="row-action-btn"
-            label=${shown ? t(this._hass, 'hide_this_environment') : t(this._hass, 'show_this_environment')}
-            @click=${this._sectionVisibilityToggled(section)}
-          >
-            <ha-icon icon=${shown ? 'mdi:eye' : 'mdi:eye-off'}></ha-icon>
-          </ha-icon-button>
+          ${this.dashboardStrategy
+            ? nothing
+            : html`<ha-icon-button
+                class="row-action-btn"
+                label=${shown ? t(this._hass, 'hide_this_environment') : t(this._hass, 'show_this_environment')}
+                @click=${this._sectionVisibilityToggled(section)}
+              >
+                <ha-icon icon=${shown ? 'mdi:eye' : 'mdi:eye-off'}></ha-icon>
+              </ha-icon-button>`}
         </div>
       </div>
     `;

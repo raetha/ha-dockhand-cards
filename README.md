@@ -441,17 +441,23 @@ pencil icon on each opens more settings:
 ## Dockhand dashboard
 
 A ready-made dashboard instead of building one card by card: in **Settings → Dashboards → Add
-dashboard**, pick **Dockhand** under Community dashboards. Its overview shows every environment,
-two to a row, beside pending updates, vulnerabilities and schedules; click an environment's name
-to open its own page, with all its cards in Home Assistant's sections layout and a back arrow to
-the overview. With a single environment, its page is the whole dashboard. Environments you add or remove in Dockhand appear and disappear by themselves.
+dashboard**, pick **Dockhand** under Community dashboards. Its overview shows your environments
+(in one column for one or two, two columns from three), with pending updates, vulnerabilities
+across all environments and schedules beside them; click an environment's name to open its own
+page, with all its cards and a back arrow to the overview. With a single environment, its page is
+the whole dashboard. Environments you add or remove in Dockhand appear and disappear by
+themselves.
 
-To change what it shows, open the dashboard's **⋮ → Edit dashboard**: the settings are the
-[Overview card](#dockhand-overview-card)'s, applied to the whole dashboard: which sections each
-environment's page shows and in what order, their settings, the order of environments and which
-to leave out, and per-environment overrides. Every section is on by default. Moving cards around
-freely needs **Take control**, which turns it into a normal dashboard you edit like any other (it
-then stops updating itself). In YAML it's:
+To change it, open the dashboard's **⋮ → Edit dashboard**:
+
+- **Dockhand instance** (only with more than one): one instance's environments, or all of them.
+- **Overview page** and **Environment pages**: up to four columns each; drag cards between
+  columns, or to **Not shown** to leave them out.
+- **Card settings**: each kind of card's settings, the order of environments and which to leave
+  out, and per-environment overrides, as in the [Overview card](#dockhand-overview-card).
+
+Anything beyond that needs **Take control**, which turns it into a normal dashboard you edit like
+any other (it then stops updating itself). In YAML it's:
 
 ```yaml
 strategy:
