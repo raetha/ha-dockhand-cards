@@ -103,8 +103,10 @@ and [Unreleased] is the notes of the current test build.
   its environments like the list cards, from a list at the top of its
   editor. With more than one, their findings are added up, with a row per
   environment. The Dockhand dashboard's overview uses it instead of a card
-  per environment. A card's old `device_id` keeps showing that environment
-  and becomes the new setting with the next change in the editor.
+  per environment. The Overview card and the dashboard choose its
+  environment the same way. A card's old `device_id` keeps showing that
+  environment and becomes the new setting with the next change in the
+  editor.
 - **Test builds.** Upcoming changes are now published as test builds (pre-releases such as
   `v1.5.1-dev.42`) that HACS can install once the Dockhand Cards **Pre-release** switch is turned
   on; the README's new "Test builds" section explains how, and how to go back.

@@ -134,6 +134,7 @@ describe('Dockhand environment view', () => {
     expect(sections.map((s) => types(s.cards))).toEqual([['environment'], ['vulnerability', 'updates', 'schedules'], ['stacks'], ['containers']]);
     expect(sections[0].cards[0]).toMatchObject({ mode: 'full', device_id: 'env_1' });
     expect(sections[1].cards[2]).toMatchObject({ include_global: false });
+    expect(sections[1].cards[0]).not.toHaveProperty('device_id');
     for (const c of sections.flatMap((s) => s.cards).filter((c) => 'exclude_device_ids' in c)) expect(c.exclude_device_ids).toEqual(['env_2', 'env_3', 'env_4']);
   });
 

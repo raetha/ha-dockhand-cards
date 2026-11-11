@@ -215,6 +215,8 @@ describe('Overview card generated cards', () => {
     expect(child(el, 'dockhand-containers-card')).toMatchObject({ filters: { tags: { not: ['infra'] } }, show_controls: true });
     expect(child(el, 'dockhand-schedules-card')).toMatchObject({ group_by: 'type', include_global: false, visible_badges: ['next_run'] });
     expect(child(el, 'dockhand-environment-card')).toMatchObject({ mode: 'compact', device_id: 'env_1' });
+    // The Vulnerability card picks its environment the way the list cards do.
+    expect(child(el, 'dockhand-vulnerability-card')).not.toHaveProperty('device_id');
     expect(child(el, 'dockhand-updates-card')).not.toHaveProperty('hide_when_no_updates');
     // Unset fields stay absent, so each card's own defaults hold.
     expect(child(el, 'dockhand-stacks-card')).not.toHaveProperty('visible_badges');

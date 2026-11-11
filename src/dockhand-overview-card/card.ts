@@ -277,11 +277,12 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
     const allEnvDeviceIds = getEnvironmentDevices(this._hass!).map((d) => d.deviceId);
     const others = allEnvDeviceIds.filter((id) => id !== deviceId);
     const envCfg = { mode: 'standard', ...settings('environments'), type: 'custom:dockhand-environment-card', device_id: deviceId } as DockhandEnvironmentCardConfig;
-    const vulnCfg = { ...settings('vulnerabilities'), type: 'custom:dockhand-vulnerability-card', device_id: deviceId } as DockhandVulnerabilityCardConfig;
+    
     // The list cards are solo'd to this column's environment the way their
     // own editors' "solo" action does it: every other environment excluded.
     const stacksCfg = { ...settings('stacks'), type: 'custom:dockhand-stacks-card', exclude_device_ids: others } as DockhandStacksCardConfig;
     const containersCfg = { ...settings('containers'), type: 'custom:dockhand-containers-card', exclude_device_ids: others } as DockhandContainersCardConfig;
+    const vulnCfg = { ...settings('vulnerabilities'), type: 'custom:dockhand-vulnerability-card', exclude_device_ids: others } as DockhandVulnerabilityCardConfig;
     // The Overview hides the Updates card itself (HA's visibility rule can't
     // reach a nested card, §9), so the card gets neither key.
     const updatesSettings = settings('updates');
