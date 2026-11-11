@@ -122,7 +122,7 @@ function environmentCard(hass: HomeAssistant, settings: DockhandDashboardSetting
   const others = getEnvironmentDevices(hass)
     .map((d) => d.deviceId)
     .filter((id) => id !== deviceId);
-  if (which === 'environments' || which === 'vulnerabilities') return card(CARD[which], { ...own, device_id: deviceId });
+  if (which === 'environments') return card(CARD[which], { ...own, device_id: deviceId });
   // Global schedules belong to no environment.
   const global = which === 'schedules' && !alone ? { include_global: false } : {};
   return card(CARD[which], { ...own, exclude_device_ids: others, ...global });
