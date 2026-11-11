@@ -22,6 +22,7 @@ export const sharedStyles = css`
      */
     --dockhand-accent-color: var(--primary-color);
     --dockhand-status-ok-color: var(--success-color, #43a047);
+    --dockhand-status-off-color: var(--secondary-text-color, #727272);
     --dockhand-status-warn-color: var(--warning-color, #ffa600);
     --dockhand-status-error-color: var(--error-color, #db4437);
     --dockhand-status-info-color: var(--info-color, #039be5);

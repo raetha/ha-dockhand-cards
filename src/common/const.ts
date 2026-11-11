@@ -34,6 +34,7 @@ export const ENV_TRANSLATION_KEYS = {
   activityLogging: 'activity_logging',
   metricsCollection: 'metrics_collection',
   vulnerabilityScanning: 'vulnerability_scanning',
+  vulnerabilityScanner: 'vulnerability_scanner',
   updateChecks: 'update_checks',
   autoUpdate: 'auto_update',
   vulnerabilities: 'vulnerabilities',
@@ -169,6 +170,7 @@ export const OPTIONAL_STATUS_KEYS: EnvTranslationKey[] = [
   'updateChecks',
   'autoUpdate',
   'vulnerabilityScanning',
+  'vulnerabilityScanner',
   'activityLogging',
   'metricsCollection',
   'connectionType'

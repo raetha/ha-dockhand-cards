@@ -709,10 +709,8 @@ export class DockhandEnvironmentCard extends LitElement implements LovelaceCard 
         <div class="header-right">
           ${s.autoUpdate?.state.state === 'on'
             ? this._statusIcon(s.autoUpdate, 'var(--dockhand-status-ok-color)')
-            : s.updateChecks?.state.state === 'on'
-              ? this._statusIcon(s.updateChecks, 'var(--dockhand-status-ok-color)')
-              : nothing}
-          ${this._statusIcon(s.vulnerabilityScanning, 'var(--dockhand-status-ok-color)')}
+            : this._statusIcon(s.updateChecks, 'var(--dockhand-status-ok-color)')}
+          ${this._statusIcon(s.vulnerabilityScanning, 'var(--dockhand-status-ok-color)', s.vulnerabilityScanner?.entityId)}
           ${this._statusIcon(s.activityLogging, 'var(--dockhand-status-warn-color)')}
           ${this._statusIcon(s.metricsCollection, 'var(--dockhand-status-info-color)')}
           ${renderSettingsLink({
@@ -727,26 +725,29 @@ export class DockhandEnvironmentCard extends LitElement implements LovelaceCard 
     `;
   }
 
-  /** Renders a header status icon bound to the real entity (so it reflects
-   * any icon override the user set on that entity), or nothing if that
-   * entity isn't on. Color is fixed per status type, matching Dockhand's
-   * own dashboard-header.svelte exactly (these colors don't vary by
-   * state — presence/absence of the icon is the status signal, same as
-   * Dockhand's `{#if}` gating). Only the "is this feature on" gate stays
-   * here — genuinely specific to Environment's own feature-toggle
-   * entities, not something every renderIcon() consumer needs. */
+  /** A header status icon bound to the real entity (so it reflects any
+   * icon override the user set on it): in its feature's color when on, as
+   * Dockhand's dashboard header shows it, and in the off color when off,
+   * since a click opens the switch to turn it on. `controlId` opens a
+   * different entity, for scanning: its sensor says on/off, but the
+   * scanner select is what changes it. Nothing when the entity isn't
+   * there. */
   private _statusIcon(
     entry: ResolutionResult<EnvTranslationKey>['found'][EnvTranslationKey],
-    colorVar: string
+    colorVar: string,
+    controlId?: string
   ): TemplateResult | typeof nothing {
-    if (!entry || entry.state.state !== 'on') return nothing;
+    if (!entry) return nothing;
+    const on = entry.state.state === 'on';
+    const name = entry.state.attributes.friendly_name ?? '';
+    const state = this._hass?.formatEntityState?.(entry.state) ?? entry.state.state;
     return renderIcon({
       baseClass: 'header-icon',
       hass: this._hass,
       stateObj: entry.state,
-      color: colorVar,
-      title: entry.state.attributes.friendly_name ?? '',
-      onClick: () => this._moreInfo(entry.entityId)
+      color: on ? colorVar : 'var(--dockhand-status-off-color)',
+      title: name ? `${name}: ${state}` : state,
+      onClick: () => this._moreInfo(controlId ?? entry.entityId)
     });
   }
 

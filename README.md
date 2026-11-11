@@ -122,6 +122,10 @@ Four built-in layouts, plus your own:
 - **Full** — adds a disk usage breakdown and a 15-minute CPU/memory history chart
 - **Custom** — pick exactly which of those sections to show
 
+Icons in the header show the environment's update checks (or auto-update, when on), vulnerability
+scanning, activity collection and metrics collection: colored when on, grey when off. Click one to
+change it; scanning opens the scanner choice.
+
 <p>
   <img src="docs/images/env-standard.png" alt="Environment card, standard mode, dark theme" width="420">
   <img src="docs/images/env-standard-light.png" alt="Environment card, standard mode, light theme" width="420">
