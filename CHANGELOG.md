@@ -15,8 +15,9 @@ and [Unreleased] is the notes of the current test build.
   for an overview of every environment, with updates, vulnerabilities and schedules beside them,
   and a page for each environment with all its cards (just that page when there's only one), that
   keeps up as environments come and go.
-  Its settings are the Overview card's: which sections, in what order, their settings, which
-  environments, and per-environment overrides. **Take control** turns it into a normal dashboard.
+  Its settings choose the Dockhand instance, lay out the overview and the environment pages in up
+  to four columns by dragging cards between them, and set the cards' own settings as in the
+  Overview card. **Take control** turns it into a normal dashboard.
 - **Filters on the list cards** — a **Filters** section in the Stacks, Containers, Updates and
   Schedules editors. Pick one or more values per filter, or flip it to **is not**; set several
   and a row has to pass them all. Containers: state (exited cleanly or with an error), health,
