@@ -123,7 +123,7 @@ export class DockhandDashboardStrategy extends HTMLElement {
     }
 
     // Environments across two columns, two to a row; then a column with
-    // updates and each scanned environment's vulnerabilities, and one with
+    // updates and the vulnerabilities of every environment, and one with
     // schedules. Each environment's heading opens its view.
     const environmentCards = environments.map((env) => ({
       type: 'vertical-stack',
@@ -141,8 +141,9 @@ export class DockhandDashboardStrategy extends HTMLElement {
     const scope = { environments_order: settings.environments_order, exclude_device_ids: settings.exclude_device_ids };
     const updatesColumn = [
       ...(settings.show_updates ? [card('updates', { ...sectionSettings(settings, 'updates', undefined), ...scope })] : []),
-      ...(settings.show_vulnerabilities
-        ? environments.filter((env) => scanning(hass, env.deviceId)).map((env) => environmentCard(hass, settings, env.deviceId, 'vulnerabilities'))
+      // One card adding up every scanned environment's findings.
+      ...(settings.show_vulnerabilities && environments.some((env) => scanning(hass, env.deviceId))
+        ? [card('vulnerability', { ...sectionSettings(settings, 'vulnerabilities', undefined), ...scope, device_id: 'all' })]
         : [])
     ];
     const overview = {

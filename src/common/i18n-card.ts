@@ -55,6 +55,7 @@ const en = {
   msg_no_vulnerabilities: 'No vulnerabilities found',
   msg_no_vulnerability_data: 'No vulnerability scan data right now — the last fetch from Dockhand failed, or no scan has run for this environment yet.',
   msg_vulnerability_sensor_needed: 'This card needs the “Vulnerabilities” sensor enabled for this environment (it’s off by default — enable it in Home Assistant’s entity settings, and make sure vulnerability scanning is turned on for this environment in Dockhand itself).',
+  msg_no_vulnerability_scanning: 'No environment here has vulnerability scanning set up, or its Vulnerabilities sensor is turned off.',
   msg_requires_newer_integration: 'Requires a recent ha-dockhand release.',
   msg_git_sync_failed: 'The last sync/deploy attempt failed.',
   name_container: 'Container',

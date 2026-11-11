@@ -149,6 +149,11 @@ Total findings with a critical/high/medium/low breakdown, and how many images ha
 Needs the environment's **Vulnerabilities** sensor enabled in Home Assistant (it's disabled by
 default) and vulnerability scanning turned on for that environment in Dockhand.
 
+With `device_id: all` (**All environments** in the editor) it adds up every scanned environment's
+findings and lists each environment with its total, colored by its worst severity; click one for
+its sensor. `exclude_device_ids` and `environments_order` choose and order them, as in the list
+cards. Dockhand counts per environment, so an image running in two environments counts in both.
+
 <p>
   <img src="docs/images/vulnerability.png" alt="Vulnerability card, dark theme" width="420">
   <img src="docs/images/vulnerability-light.png" alt="Vulnerability card, light theme" width="420">

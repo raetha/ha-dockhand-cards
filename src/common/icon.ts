@@ -120,7 +120,18 @@ export function renderIcon(
     return html`<span class=${classes} style=${style} title=${opts.title ?? ''}>${content}</span>`;
   }
   if (opts.disabled) {
-    return html`<span class=${classes} style=${style} title=${opts.title ?? ''} aria-busy=${opts.busy ? 'true' : nothing} @click=${(e: Event) => e.stopPropagation()}>${content}</span>`;
+    // A control that can't be used right now: announced as such, and, as
+    // an inactive control, exempt from the contrast minimum (WCAG 1.4.3).
+    return html`<span
+      class=${classes}
+      style=${style}
+      role="button"
+      aria-disabled="true"
+      title=${opts.title ?? ''}
+      aria-busy=${opts.busy ? 'true' : nothing}
+      @click=${(e: Event) => e.stopPropagation()}
+      >${content}</span
+    >`;
   }
   const onClick = opts.onClick;
   return html`<span
