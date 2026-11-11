@@ -62,6 +62,21 @@ and [Unreleased] is the notes of the current test build.
   repositories. Earlier releases keep their `v` tags.
 
 ### Removed
+- **Breaking: the Dockhand integration 2.0.0 is required.** It made its counts and sizes
+  sensors of their own instead of attributes, as Home Assistant asks, and the cards now read those
+  sensors; earlier releases of the cards show zeros and blanks against it, and these cards show
+  them against an earlier integration. Some of the new sensors are disabled by default in the
+  integration, and the card editors name the ones a card would use:
+  - **Environment card**: the Full and Custom modes' disk usage needs the four Disk usage parts
+    (Images, Containers, Volumes, Build cache), and the events row's count for today needs
+    **Activity events today**.
+  - **Vulnerability card**: the severities need **Critical**, **High**, **Medium** and **Low
+    vulnerabilities**, and the scanned count **Scanned images**; without them it shows the total
+    only.
+  - **Updates card with "Hide when no updates"**: the hiding rule it saved reads an attribute
+    the integration no longer has, so the card stays hidden. Open the card's editor and save it
+    once to rewrite the rule.
+
 - **Breaking: Home Assistant 2026.8 or later is required** (was 2026.6),
   matching the Dockhand integration 2.0. HACS and the Marketplace won't install
   this release on older versions; 1.5.1 keeps working there.
@@ -94,6 +109,7 @@ and [Unreleased] is the notes of the current test build.
   container start and stop, backups, repository prune, check and verify, and stack deploy.
 
 ### Internal
+- The screenshot harness mocks ha-dockhand 2.0's sensors; the Stack card screenshots show its tags.
 - The Overview card passes every section setting on to the cards it builds, the way its editor
   already saved them, so new card options (like Show controls) work there without changes.
 - The Environment card's section picker appears through Home Assistant's own form conditions.

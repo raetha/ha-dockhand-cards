@@ -102,7 +102,7 @@ export class DockhandStackCardEditor extends LitElement implements LovelaceCardE
     const envDeviceId = this._resolvedEnvDeviceId();
     const envDevice = envDeviceId ? this._hass.devices[envDeviceId] : undefined;
     const stackDevices = envDevice ? getStackDevicesForEnvironment(this._hass, envDevice) : [];
-    const stackOptions = getStackDropdownOptions(this._hass, stackDevices);
+    const stackOptions = getStackDropdownOptions(stackDevices);
     const noStacksFound = envDevice !== undefined && stackOptions.length === 0;
 
     return html`

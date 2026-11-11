@@ -4,13 +4,7 @@ import { state } from 'lit/decorators.js';
 import { fireEvent, type LovelaceCard, type LovelaceCardEditor } from 'custom-card-helpers';
 
 import type { HomeAssistant, LovelaceGridOptions } from '../common/ha-types';
-import {
-  getEnvironmentDevices,
-  getScheduleDevicesForEnvironment,
-  getGlobalScheduleDevices,
-  getRepresentativeEntityId,
-  type EnvironmentDeviceOption
-} from '../common/device-utils';
+import { getEnvironmentDevices, getScheduleDevicesForEnvironment, getGlobalScheduleDevices, getRepresentativeEntityId, type EnvironmentDeviceOption, getScheduleName } from '../common/device-utils';
 import { resolveCardName, multiEnvCardNameFallback } from '../common/card-name';
 import { resolveScheduleEntities } from '../common/entity-resolver';
 import { getDockhandBaseUrl, getInstanceLabel, formatRelativeTime } from '../common/format';
@@ -348,7 +342,7 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
       rows.push({
         entityId: found.lastStatus.entityId,
         deviceId: device.id,
-        name: attrs.name || device.name_by_user || device.name || device.id,
+        name: getScheduleName(device) || device.name_by_user || device.name || device.id,
         type: attrs.schedule_type || 'schedule',
         environment: attrs.environment,
         environmentDeviceId,

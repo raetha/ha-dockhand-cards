@@ -63,7 +63,7 @@ function hassWith(kind: 'container' | 'stack', attributes: Record<string, unknow
   return makeHass({
     devices: [env, device],
     entities: [makeEntity({ entity_id: `sensor.web_${key}`, device_id: 'dev-web', translation_key: key })],
-    states: [makeState({ entity_id: `sensor.web_${key}`, state: 'running', attributes: { name: 'web', ...attributes } })]
+    states: [makeState({ entity_id: `sensor.web_${key}`, state: 'running', attributes: { ...attributes } })]
   });
 }
 

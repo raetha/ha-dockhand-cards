@@ -17,14 +17,14 @@ function hassWithContainer(update: { state: string; latest?: string; newer?: str
   const env = makeDevice({ id: 'env-device', identifiers: [['dockhand', 'entry_env_1']], config_entry_id: 'entry', name: 'Nebula' });
   const container = makeDevice({ id: 'dev-postgres', identifiers: [['dockhand', 'entry_container_1_postgres']], config_entry_id: 'entry', name: 'postgres' });
   const entities = [makeEntity({ entity_id: 'sensor.postgres_state', device_id: 'dev-postgres', translation_key: 'state' })];
-  const states = [makeState({ entity_id: 'sensor.postgres_state', state: 'running', attributes: { name: 'postgres' } })];
+  const states = [makeState({ entity_id: 'sensor.postgres_state', state: 'running', attributes: {} })];
   if (update) {
     entities.push(makeEntity({ entity_id: 'update.postgres', device_id: 'dev-postgres' }));
     states.push(
       makeState({
         entity_id: 'update.postgres',
         state: update.state,
-        attributes: { name: 'postgres', installed_version: '16.3', latest_version: update.latest ?? '16.3', ...(update.newer ? { newer_version: update.newer } : {}), ...update.extra }
+        attributes: { installed_version: '16.3', latest_version: update.latest ?? '16.3', ...(update.newer ? { newer_version: update.newer } : {}), ...update.extra }
       })
     );
   }

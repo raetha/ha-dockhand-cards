@@ -4,7 +4,7 @@ import { state } from 'lit/decorators.js';
 import { fireEvent, type LovelaceCard, type LovelaceCardEditor } from 'custom-card-helpers';
 
 import type { HomeAssistant, LovelaceGridOptions, DeviceRegistryEntry } from '../common/ha-types';
-import { getAllStackDevices, getEnvIdForStackDevice, getEnvDeviceForEnvId, getContainerDevicesForEnvironment, getRepresentativeEntityId } from '../common/device-utils';
+import { getAllStackDevices, getEnvIdForStackDevice, getEnvDeviceForEnvId, getContainerDevicesForEnvironment, getRepresentativeEntityId, getContainerName } from '../common/device-utils';
 import { resolveCardName } from '../common/card-name';
 import { resolveStackEntities, resolveContainerEntities, findPrimaryEntityByDomain, type ResolutionResult } from '../common/entity-resolver';
 import { DEFAULT_STACK_ICON, STACK_STATUS_CLASS, type StackTranslationKey } from '../common/const';
@@ -166,8 +166,8 @@ export class DockhandStackCard extends LitElement implements LovelaceCard {
     }
 
     const status = s.status.state.state;
-    const containerCount = s.status.state.attributes.container_count ?? s.containersInStack?.state.state;
-    const containerNames = s.status.state.attributes.container_names as string[] | undefined;
+    const containerCount = s.containersInStack?.state.state;
+    const containerNames = s.containersInStack?.state.attributes.container_names as string[] | undefined;
     const containerInfo = containerNames && containerNames.length > 0 ? this._containerInfo(stackDevice) : new Map<string, ContainerPillInfo>();
     const visible = new Set(this._config?.visible_sections ?? DEFAULT_STACK_SECTIONS);
 
@@ -243,7 +243,7 @@ export class DockhandStackCard extends LitElement implements LovelaceCard {
 
     for (const containerDevice of getContainerDevicesForEnvironment(this._hass, envDevice)) {
       const { found } = resolveContainerEntities(this._hass, containerDevice.id, ['state']);
-      const rawName = found.state?.state.attributes.name as string | undefined;
+      const rawName = getContainerName(containerDevice);
       if (rawName && found.state) {
         const update = findPrimaryEntityByDomain(this._hass, containerDevice.id, 'update');
         map.set(rawName, {

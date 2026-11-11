@@ -127,3 +127,20 @@ describe('every editor renders', () => {
     expect(el.shadowRoot!.innerHTML.length).toBeGreaterThan(0);
   });
 });
+
+describe('Stacks card update count', () => {
+  it('comes from the stack’s Pending updates sensor', async () => {
+    const { devices, entities, states } = buildMockHass();
+    const hass = { devices, entities, states, language: 'en', locale: { language: 'en' }, themes: { darkMode: false } } as unknown as HomeAssistant;
+    const core = Object.values(hass.entities).find((e) => e.device_id === 'stack_1_core' && e.translation_key === 'stack_pending_updates')!;
+    hass.states[core.entity_id] = { ...hass.states[core.entity_id], state: '7' };
+    const el = document.createElement('dockhand-stacks-card') as HTMLElement & { hass: HomeAssistant; setConfig(c: Record<string, unknown>): void; updateComplete: Promise<boolean> };
+    el.setConfig({ type: 'custom:dockhand-stacks-card', visible_badges: ['updates'] });
+    el.hass = hass;
+    document.body.appendChild(el);
+    await el.updateComplete;
+    const badges = [...el.shadowRoot!.querySelectorAll('[title]')].map((n) => n.textContent!.trim()).filter((t) => /^\d+$/.test(t));
+    expect(badges).toContain('7');
+    el.remove();
+  });
+});

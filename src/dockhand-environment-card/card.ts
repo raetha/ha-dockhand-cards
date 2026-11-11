@@ -14,7 +14,7 @@ import {
   type TopContainerEntry
 } from '../common/entity-resolver';
 import { REQUIRED_KEYS_BY_MODE, OPTIONAL_STATUS_KEYS, type EnvTranslationKey } from '../common/const';
-import { barColorClass, formatBytes, formatPercent, formatRelativeTime, getDockhandBaseUrl, memoryParts, numericState, type LocaleSource } from '../common/format';
+import { barColorClass, bytesState, formatBytes, formatPercent, formatRelativeTime, getDockhandBaseUrl, memoryParts, numericState, type LocaleSource } from '../common/format';
 import { renderFitParts } from '../common/fit-parts';
 import { PairGridController } from '../common/pair-grid';
 import { cardLanguage, t, type CardTranslationKey } from '../common/i18n-card';
@@ -25,11 +25,17 @@ import { joinWithDividers, mergeSections } from '../common/section-join';
 import { CUSTOM_SECTION_ORDER, DEFAULT_CUSTOM_SECTIONS, type CardMode, type CustomSection, type DockhandEnvironmentCardConfig } from './types';
 import { cardStyles } from './styles';
 
-/** The environment memory sensor's state is the percentage; used/total
- * bytes are attributes, either of which may be null when Dockhand omits it. */
-function envMemoryParts(percent: number, attrs: Record<string, unknown> | undefined, source: LocaleSource): string[] {
-  const bytes = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : undefined);
-  return memoryParts(percent, bytes(attrs?.memory_used_bytes), bytes(attrs?.memory_total_bytes), source);
+type Found = ResolutionResult<EnvTranslationKey>['found'];
+
+/** The environment's memory percentage with used and total bytes beside
+ * it, each from its own sensor and left out while unavailable. */
+function envMemoryParts(percent: number, s: Found, source: LocaleSource): string[] {
+  return memoryParts(percent, bytesState(s.memoryUsed?.state), bytesState(s.memoryTotal?.state), source);
+}
+
+/** A count sensor's value, 0 while it's missing or not a number. */
+function count(entry: Found[EnvTranslationKey]): number {
+  return numericState(entry?.state.state) ?? 0;
 }
 
 const CONN_ICON: Record<string, { icon: string; color: string; title: CardTranslationKey }> = {
@@ -96,23 +102,21 @@ const EVENT_COLOR_DEFAULT = 'var(--dockhand-event-other-color)';
  * Dockhand fixes this upstream later, this still produces the same
  * result either way. */
 /** The environment's pending update count, matching the Updates card's rows
- * (one per update entity that's on). ha-dockhand 1.10.2+ reports that as
- * `pending_updates_total`; older releases' total left out newer-version-tag
- * suggestions, and releases before 1.8.2 had only `pending_updates`. The
- * tooltip breaks the total down when there's more than one kind. */
-export function pendingUpdateSummary(attrs: Record<string, unknown>, hass?: LocaleSource): { count: number; title: string } {
-  const num = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
-  const installable = num(attrs.pending_updates);
-  const system = num(attrs.pending_system_updates);
-  const versions = num(attrs.pending_version_updates);
-  const count = typeof attrs.pending_updates_total === 'number' ? num(attrs.pending_updates_total) : installable;
+ * (one per update entity that's on), with a tooltip breaking it down when
+ * there's more than one kind. Each count is its own sensor (ha-dockhand
+ * 2.0+); a missing one counts as 0. */
+export function pendingUpdateSummary(
+  counts: { total?: number; installable?: number; system?: number; versionTag?: number },
+  hass?: LocaleSource
+): { count: number; title: string } {
+  const { installable = 0, system = 0, versionTag = 0 } = counts;
   const parts = [
     installable > 0 ? t(hass, 'pending_installable', { count: installable }) : '',
     system > 0 ? t(hass, 'pending_system', { count: system }) : '',
-    versions > 0 ? t(hass, 'pending_version_tags', { count: versions }) : ''
+    versionTag > 0 ? t(hass, 'pending_version_tags', { count: versionTag }) : ''
   ].filter(Boolean);
   const title = t(hass, 'pending_updates');
-  return { count, title: parts.length > 1 ? `${title} — ${parts.join(', ')}` : title };
+  return { count: counts.total ?? 0, title: parts.length > 1 ? `${title} — ${parts.join(', ')}` : title };
 }
 
 export function eventLookupKey(action: string): string {
@@ -411,7 +415,7 @@ export class DockhandEnvironmentCard extends LitElement implements LovelaceCard 
                 <div class="row">
                   <span>${t(this._hass, 'label_memory')}</span>
                   ${memNow !== undefined
-                    ? renderFitParts(envMemoryParts(memNow, s.memoryUsage.state.attributes, this._hass), 'chart-value')
+                    ? renderFitParts(envMemoryParts(memNow, s, this._hass), 'chart-value')
                     : html`<span class="chart-value">—</span>`}
                 </div>
                 ${this._sparkline('mem', this._memHistory, 'var(--dockhand-chart-memory-color)')}
@@ -424,13 +428,13 @@ export class DockhandEnvironmentCard extends LitElement implements LovelaceCard 
 
   private _renderDiskUsage(s: ResolutionResult<EnvTranslationKey>['found']): TemplateResult | typeof nothing {
     if (!s.diskUsage) return nothing;
-    const a = s.diskUsage.state.attributes;
+    const bytes = (entry: Found[EnvTranslationKey]) => bytesState(entry?.state) ?? 0;
     // Order and default colors (styles.ts) match Dockhand's own dashboard-disk-usage.svelte.
     const items: { label: string; bytes: number; color: string }[] = [
-      { label: t(this._hass, 'label_images'), bytes: Number(a.images_size_bytes) || 0, color: 'var(--dockhand-disk-images-color)' },
-      { label: t(this._hass, 'label_containers'), bytes: Number(a.containers_size_bytes) || 0, color: 'var(--dockhand-disk-containers-color)' },
-      { label: t(this._hass, 'label_volumes'), bytes: Number(a.volumes_size_bytes) || 0, color: 'var(--dockhand-disk-volumes-color)' },
-      { label: t(this._hass, 'label_build_cache'), bytes: Number(a.build_cache_size_bytes) || 0, color: 'var(--dockhand-disk-build-cache-color)' }
+      { label: t(this._hass, 'label_images'), bytes: bytes(s.diskUsageImages), color: 'var(--dockhand-disk-images-color)' },
+      { label: t(this._hass, 'label_containers'), bytes: bytes(s.diskUsageContainers), color: 'var(--dockhand-disk-containers-color)' },
+      { label: t(this._hass, 'label_volumes'), bytes: bytes(s.diskUsageVolumes), color: 'var(--dockhand-disk-volumes-color)' },
+      { label: t(this._hass, 'label_build_cache'), bytes: bytes(s.diskUsageBuildCache), color: 'var(--dockhand-disk-build-cache-color)' }
     ].filter((i) => i.bytes > 0);
     if (items.length === 0) return nothing;
 
@@ -770,11 +774,18 @@ export class DockhandEnvironmentCard extends LitElement implements LovelaceCard 
 
   private _renderContainerSection(s: ResolutionResult<EnvTranslationKey>['found']): TemplateResult | typeof nothing {
     if (!s.containers) return nothing;
-    const c = s.containers.state.attributes;
     const total = s.containers.state.state ?? '—';
-    const unhealthy = Number(c.unhealthy ?? 0);
-    const restarting = Number(c.restarting ?? 0);
-    const updates = pendingUpdateSummary(c, this._hass);
+    const unhealthy = count(s.containersUnhealthy);
+    const restarting = count(s.containersRestarting);
+    const updates = pendingUpdateSummary(
+      {
+        total: count(s.pendingUpdates),
+        installable: count(s.installableUpdates),
+        system: count(s.systemUpdates),
+        versionTag: count(s.versionTagUpdates)
+      },
+      this._hass
+    );
     const id = s.containers.entityId;
 
     const healthClass = unhealthy > 0 ? 'warn' : restarting > 0 ? 'error' : 'ok';
@@ -794,9 +805,9 @@ export class DockhandEnvironmentCard extends LitElement implements LovelaceCard 
         @click=${() => this._moreInfo(id)}
         @keydown=${onKeydownActivate(() => this._moreInfo(id))}
       >
-        ${renderIcon({ baseClass: 'stat', icon: 'mdi:play', color: 'var(--dockhand-status-ok-color)', text: `${c.running ?? 0}`, title: t(this._hass, 'stat_running'), static: true })}
-        ${renderIcon({ baseClass: 'stat', icon: 'mdi:stop', color: 'var(--secondary-text-color)', text: `${c.stopped ?? 0}`, title: t(this._hass, 'stat_stopped'), static: true })}
-        ${renderIcon({ baseClass: 'stat', icon: 'mdi:pause', color: 'var(--dockhand-status-warn-color)', text: `${c.paused ?? 0}`, title: t(this._hass, 'stat_paused'), static: true })}
+        ${renderIcon({ baseClass: 'stat', icon: 'mdi:play', color: 'var(--dockhand-status-ok-color)', text: `${count(s.containersRunning)}`, title: t(this._hass, 'stat_running'), static: true })}
+        ${renderIcon({ baseClass: 'stat', icon: 'mdi:stop', color: 'var(--secondary-text-color)', text: `${count(s.containersStopped)}`, title: t(this._hass, 'stat_stopped'), static: true })}
+        ${renderIcon({ baseClass: 'stat', icon: 'mdi:pause', color: 'var(--dockhand-status-warn-color)', text: `${count(s.containersPaused)}`, title: t(this._hass, 'stat_paused'), static: true })}
         ${renderIcon({
           baseClass: 'stat',
           icon: 'mdi:refresh',
@@ -876,7 +887,7 @@ export class DockhandEnvironmentCard extends LitElement implements LovelaceCard 
               >
                 <div class="row">
                   ${renderIcon({ baseClass: 'row-icon', hass: this._hass, stateObj: s.memoryUsage!.state, text: t(this._hass, 'label_memory'), static: true })}
-                  ${renderFitParts(envMemoryParts(mem, s.memoryUsage!.state.attributes, this._hass))}
+                  ${renderFitParts(envMemoryParts(mem, s, this._hass))}
                 </div>
                 <div class="bar-track">
                   <div class="bar-fill ${barColorClass(mem)}" style="width:${Math.min(mem, 100)}%"></div>
@@ -903,7 +914,6 @@ export class DockhandEnvironmentCard extends LitElement implements LovelaceCard 
         ${available.map((item) => {
           const entry = item.entry!;
           const isStacks = item.key === 'stacks';
-          const stackAttrs = isStacks ? entry.state.attributes : undefined;
           return html`
             <div
               class="row clickable"
@@ -917,9 +927,9 @@ export class DockhandEnvironmentCard extends LitElement implements LovelaceCard 
                 ${entry.state.state}
                 ${isStacks && (numericState(entry.state.state) ?? 0) > 0
                   ? html`
-                      <span class="running">${stackAttrs?.running ?? 0}</span>/<span class="partial">${stackAttrs?.partial ?? 0}</span>/<span
+                      <span class="running">${count(s.stacksRunning)}</span>/<span class="partial">${count(s.stacksPartial)}</span>/<span
                         class="stopped"
-                        >${stackAttrs?.stopped ?? 0}</span
+                        >${count(s.stacksStopped)}</span
                       >
                     `
                   : nothing}
@@ -935,7 +945,7 @@ export class DockhandEnvironmentCard extends LitElement implements LovelaceCard 
     if (!s.activityEvents) return nothing;
     const eventsTotal = Number(s.activityEvents.state.state);
     if (!Number.isFinite(eventsTotal) || eventsTotal <= 0) return nothing;
-    const eventsToday = s.activityEvents.state.attributes.today ?? 0;
+    const eventsToday = count(s.activityEventsToday);
     const id = s.activityEvents.entityId;
 
     return html`

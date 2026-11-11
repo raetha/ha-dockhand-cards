@@ -4,11 +4,11 @@ import { state } from 'lit/decorators.js';
 import { fireEvent, type LovelaceCard, type LovelaceCardEditor } from 'custom-card-helpers';
 
 import type { HomeAssistant, LovelaceGridOptions } from '../common/ha-types';
-import { getEnvironmentDevices, getStackDevicesForEnvironment, getRepresentativeEntityId, type EnvironmentDeviceOption } from '../common/device-utils';
+import { getEnvironmentDevices, getStackDevicesForEnvironment, getRepresentativeEntityId, type EnvironmentDeviceOption, getStackName } from '../common/device-utils';
 import { resolveCardName, multiEnvCardNameFallback } from '../common/card-name';
 import { resolveIncludedOrdered, groupRowsByEnvironment, resolveEffectiveGroupBy } from '../common/environment-scope';
 import { resolveStackEntities, type ResolutionResult } from '../common/entity-resolver';
-import { getDockhandBaseUrl } from '../common/format';
+import { getDockhandBaseUrl, numericState } from '../common/format';
 import { t } from '../common/i18n-card';
 import { stateLabel } from '../common/state-label';
 import { renderSettingsLink, renderIcon, onKeydownActivate } from '../common/icon';
@@ -202,12 +202,12 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
       const stackDevices = envDevice ? getStackDevicesForEnvironment(this._hass!, envDevice) : [];
       return stackDevices
         .map((d) => {
-          const { found } = resolveStackEntities(this._hass!, d.id, ['status', 'containersInStack', 'updatesAvailable']);
+          const { found } = resolveStackEntities(this._hass!, d.id, ['status', 'containersInStack', 'updatesAvailable', 'pendingUpdates']);
           if (!found.status) return null;
           const attrs = found.status.state.attributes;
           return {
             deviceId: d.id,
-            name: attrs.name || d.name_by_user || d.name || d.id,
+            name: getStackName(d) || d.name_by_user || d.name || d.id,
             type: attrs.type || d.model || 'Stack',
             status: found.status.state.state,
             environment: env.name,
@@ -292,7 +292,7 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
     const containerCount = found.containersInStack?.state.state;
     const containerCountId = found.containersInStack?.entityId;
     const updatesOn = found.updatesAvailable?.state.state === 'on';
-    const updateCount = found.updatesAvailable?.state.attributes.update_count;
+    const updateCount = numericState(found.pendingUpdates?.state.state);
     const updatesId = found.updatesAvailable?.entityId;
     const id = found.status!.entityId;
     const visible = new Set(this._config?.visible_badges ?? DEFAULT_STACKS_BADGES);

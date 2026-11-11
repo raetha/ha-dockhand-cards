@@ -29,8 +29,8 @@ function setup() {
     ],
     states: [
       makeState({ entity_id: 'button.nebula_check_updates', state: 'unknown' }),
-      makeState({ entity_id: 'update.web', state: 'on', attributes: { name: 'web', installed_version: 'a', latest_version: 'b', supported_features: 1 } }),
-      makeState({ entity_id: 'update.hawser', state: 'on', attributes: { name: 'hawser', installed_version: 'a', latest_version: 'b', supported_features: 0 } })
+      makeState({ entity_id: 'update.web', state: 'on', attributes: { installed_version: 'a', latest_version: 'b', supported_features: 1 } }),
+      makeState({ entity_id: 'update.hawser', state: 'on', attributes: { installed_version: 'a', latest_version: 'b', supported_features: 0 } })
     ]
   });
   const pending: (() => void)[] = [];
@@ -139,7 +139,7 @@ describe('Updates card version-tag pill', () => {
         makeState({
           entity_id: `update.${r.name}`,
           state: r.state ?? 'on',
-          attributes: { name: r.name, installed_version: r.installed, latest_version: r.latest, ...(r.newer ? { newer_version: r.newer } : {}), ...r.extra }
+          attributes: { installed_version: r.installed, latest_version: r.latest, ...(r.newer ? { newer_version: r.newer } : {}), ...r.extra }
         })
       );
     }
@@ -225,7 +225,7 @@ describe('Updates card version-tag pill', () => {
 describe('Updates card Update all', () => {
   it('stays, disabled and saying why, when nothing listed can be installed', async () => {
     const { hass } = setup();
-    hass.states['update.web'] = makeState({ entity_id: 'update.web', state: 'on', attributes: { name: 'web', installed_version: 'a', latest_version: 'b', supported_features: 0 } });
+    hass.states['update.web'] = makeState({ entity_id: 'update.web', state: 'on', attributes: { installed_version: 'a', latest_version: 'b', supported_features: 0 } });
     const card = await mount(hass);
     const button = headerButton(card, /^Nothing listed can be installed/);
     expect(button.textContent).toContain('Update all');
@@ -239,7 +239,7 @@ describe('Updates card Update all', () => {
     const stack = makeDevice({ id: 'dev-stack', identifiers: [['dockhand', 'entry_stack_1_core']], config_entry_id: 'entry', name: 'core' });
     hass.devices['dev-stack'] = stack;
     hass.devices['dev-hawser'] = { ...hass.devices['dev-hawser'], via_device_id: 'dev-stack' };
-    hass.states['update.hawser'] = makeState({ entity_id: 'update.hawser', state: 'on', attributes: { name: 'hawser', installed_version: 'a', latest_version: 'b', supported_features: 1 } });
+    hass.states['update.hawser'] = makeState({ entity_id: 'update.hawser', state: 'on', attributes: { installed_version: 'a', latest_version: 'b', supported_features: 1 } });
     const card = document.createElement(TAG) as UpdatesCardElement;
     card.setConfig({ type: 'custom:dockhand-updates-card', filters: { stack: ['(none)'] } });
     card.hass = hass;
