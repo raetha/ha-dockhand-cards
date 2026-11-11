@@ -30,6 +30,9 @@ export interface DockhandEnvironmentViewConfig {
   type: 'custom:dockhand-environment';
   device_id: string;
   settings?: DockhandDashboardSettings;
+  /** The dashboard's only environment: its view is the dashboard, so it
+   * also shows the global schedules. */
+  alone?: boolean;
 }
 
 /** Unlike the Overview card, every section is on by default, and an
@@ -76,14 +79,14 @@ const section = (cards: Config[], extra: Config = {}): Config => ({ type: 'grid'
 /** One environment's card for a section, with the section's defaults and
  * the environment's override; the list cards solo'd to it the way their
  * editors' solo action writes it. */
-function environmentCard(hass: HomeAssistant, settings: DockhandDashboardSettings, deviceId: string, which: OverviewSection): Config {
+function environmentCard(hass: HomeAssistant, settings: DockhandDashboardSettings, deviceId: string, which: OverviewSection, alone = false): Config {
   const own = sectionSettings(settings, which, settings.environments_overrides?.[deviceId]);
   const others = getEnvironmentDevices(hass)
     .map((d) => d.deviceId)
     .filter((id) => id !== deviceId);
   if (which === 'environments' || which === 'vulnerabilities') return card(CARD[which], { ...own, device_id: deviceId });
   // Global schedules belong to no environment.
-  const global = which === 'schedules' ? { include_global: false } : {};
+  const global = which === 'schedules' && !alone ? { include_global: false } : {};
   return card(CARD[which], { ...own, exclude_device_ids: others, ...global });
 }
 
@@ -112,14 +115,19 @@ export class DockhandDashboardStrategy extends HTMLElement {
         views: [{ title: 'Dockhand', path: 'overview', cards: [{ type: 'markdown', content: t(hass, 'strategy_no_environments') }] }]
       };
     }
+    if (environments.length === 1) {
+      // Nothing to choose between: the environment's own view is the dashboard.
+      const [env] = environments;
+      const view = { type: 'custom:dockhand-environment', device_id: env.deviceId, settings: rest, alone: true } satisfies DockhandEnvironmentViewConfig;
+      return { title: 'Dockhand', views: [{ title: env.name, path: viewPath(env.deviceId), icon: 'mdi:docker', strategy: view }] };
+    }
 
     // Environments across two columns, two to a row; then a column with
     // updates and each scanned environment's vulnerabilities, and one with
     // schedules. Each environment's heading opens its view.
-    const pair = environments.length > 1;
     const environmentCards = environments.map((env) => ({
       type: 'vertical-stack',
-      grid_options: { columns: pair ? 12 : 'full' },
+      grid_options: { columns: 12 },
       cards: [
         { type: 'heading', heading: env.name, icon: 'mdi:server', tap_action: { action: 'navigate', navigation_path: viewPath(env.deviceId) } },
         card('environment', {
@@ -144,7 +152,7 @@ export class DockhandDashboardStrategy extends HTMLElement {
       type: 'sections',
       max_columns: 4,
       sections: [
-        section(environmentCards, pair ? { column_span: 2 } : {}),
+        section(environmentCards, { column_span: 2 }),
         ...(updatesColumn.length > 0 ? [section(updatesColumn)] : []),
         ...(settings.show_schedules ? [section([card('schedules', { show_stats: true, ...sectionSettings(settings, 'schedules', undefined), ...scope })])] : [])
       ]
@@ -189,7 +197,7 @@ export class DockhandEnvironmentViewStrategy extends HTMLElement {
     const columns = new Map<string, Config[]>();
     for (const which of shown) {
       const column = columns.get(COLUMN[which]) ?? [];
-      column.push(environmentCard(hass, settings, deviceId, which));
+      column.push(environmentCard(hass, settings, deviceId, which, config.alone));
       columns.set(COLUMN[which], column);
     }
     return { type: 'sections', max_columns: 4, sections: [...columns.values()].map((cards) => section(cards)) };

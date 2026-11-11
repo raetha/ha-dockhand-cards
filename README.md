@@ -439,7 +439,7 @@ A ready-made dashboard instead of building one card by card: in **Settings → D
 dashboard**, pick **Dockhand** under Community dashboards. Its overview shows every environment,
 two to a row, beside pending updates, vulnerabilities and schedules; click an environment's name
 to open its own page, with all its cards in Home Assistant's sections layout and a back arrow to
-the overview. Environments you add or remove in Dockhand appear and disappear by themselves.
+the overview. With a single environment, its page is the whole dashboard. Environments you add or remove in Dockhand appear and disappear by themselves.
 
 To change what it shows, open the dashboard's **⋮ → Edit dashboard**: the settings are the
 [Overview card](#dockhand-overview-card)'s, applied to the whole dashboard: which sections each

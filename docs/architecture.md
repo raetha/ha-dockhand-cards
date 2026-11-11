@@ -489,6 +489,8 @@ dashboard configuration each time the dashboard loads (frontend `get-strategy.ts
   Then a `subview` per environment, so the views aren't identical tabs: each has a back arrow to
   the overview (hui-root falls back to the dashboard's first view) and only names its view
   strategy, so it's built when opened.
+  With one environment (after exclusions) there's nothing to choose: its view is the only one,
+  with `alone` set so its Schedules card keeps the global schedules.
 - **`ll-strategy-view-dockhand-environment`**: one environment's cards, in columns: the
   Environment card alone, Vulnerabilities, Updates and Schedules together, then Stacks, then
   Containers, ordered by where each column's first section falls in `section_order`. List cards

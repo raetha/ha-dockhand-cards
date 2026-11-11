@@ -13,7 +13,8 @@ and [Unreleased] is the notes of the current test build.
 ### Added
 - **A Dockhand dashboard** — pick **Dockhand** under Community dashboards when adding a dashboard
   for an overview of every environment, with updates, vulnerabilities and schedules beside them,
-  and a page for each environment with all its cards, that keeps up as environments come and go.
+  and a page for each environment with all its cards (just that page when there's only one), that
+  keeps up as environments come and go.
   Its settings are the Overview card's: which sections, in what order, their settings, which
   environments, and per-environment overrides. **Take control** turns it into a normal dashboard.
 - **Filters on the list cards** — a **Filters** section in the Stacks, Containers, Updates and

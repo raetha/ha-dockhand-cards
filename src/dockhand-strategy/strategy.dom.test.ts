@@ -57,13 +57,14 @@ describe('Dockhand dashboard strategy', () => {
     expect(types(schedules.cards)).toEqual(['schedules']);
   });
 
-  it('gives a single environment the full width', async () => {
+  it('makes a single environment’s own view the dashboard, with the global schedules', async () => {
     const hass = mockHass();
     const views = await dashboard({ exclude_device_ids: ['env_2', 'env_3', 'env_4'] }, hass);
-    expect(views).toHaveLength(2);
-    const [envSection] = views[0].sections!;
-    expect(envSection.column_span).toBeUndefined();
-    expect(envSection.cards[0].grid_options).toEqual({ columns: 'full' });
+    expect(views).toHaveLength(1);
+    expect(views[0]).toMatchObject({ title: 'Nebula', strategy: { device_id: 'env_1', alone: true } });
+    expect(views[0].subview).toBeUndefined();
+    const sections = await environmentView(views[0], hass);
+    expect(sections[1].cards[2]).not.toHaveProperty('include_global');
   });
 
   it('follows its settings: order, exclusions, sections and section defaults', async () => {
