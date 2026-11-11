@@ -289,7 +289,6 @@ const editor: Record<EditorTranslationKey, string> = {
   content_section_heading: 'Inhoud',
   solo_this_environment: 'Alleen deze omgeving tonen',
   select_all_environments: 'Alles tonen',
-  option_all_environments: 'Alle omgevingen',
   dashboard_instance: 'Dockhand-instantie',
   dashboard_all_instances: 'Alle instanties',
   dashboard_overview_page: 'Overzichtspagina',

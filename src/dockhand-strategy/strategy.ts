@@ -186,7 +186,7 @@ export class DockhandDashboardStrategy extends HTMLElement {
         case 'vulnerabilities':
           // One card adding up every scanned environment's findings.
           return environments.some((env) => scanning(hass, env.deviceId))
-            ? [card('vulnerability', { ...sectionSettings(settings, 'vulnerabilities', undefined), ...scope, device_id: 'all' })]
+            ? [card('vulnerability', { ...sectionSettings(settings, 'vulnerabilities', undefined), ...scope })]
             : [];
         case 'schedules':
           return [card('schedules', { show_stats: true, ...sectionSettings(settings, 'schedules', undefined), ...scope })];

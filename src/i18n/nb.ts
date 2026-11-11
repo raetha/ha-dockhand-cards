@@ -289,7 +289,6 @@ const editor: Record<EditorTranslationKey, string> = {
   content_section_heading: 'Innhold',
   solo_this_environment: 'Vis bare dette miljøet',
   select_all_environments: 'Vis alle',
-  option_all_environments: 'Alle miljøer',
   dashboard_instance: 'Dockhand-instans',
   dashboard_all_instances: 'Alle instanser',
   dashboard_overview_page: 'Oversiktsside',

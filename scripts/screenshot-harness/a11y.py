@@ -37,7 +37,7 @@ EXTRA_CARDS = [
     ('dockhand-schedules-card', {'group_by': 'status', 'show_stats': True, 'show_controls': True}),
     ('dockhand-environment-card', {'device_id': 'env_3', 'mode': 'standard'}),
     ('dockhand-environment-card', {'device_id': 'env_1', 'mode': 'detailed'}),
-    ('dockhand-vulnerability-card', {'device_id': 'all'}),
+    ('dockhand-vulnerability-card', {}),
 ]
 
 EDITORS = sorted({tag for tag, *_ in CARDS} | {tag for tag, _ in EXTRA_CARDS})

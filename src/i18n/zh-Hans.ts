@@ -289,7 +289,6 @@ const editor: Record<EditorTranslationKey, string> = {
   content_section_heading: '内容',
   solo_this_environment: '仅显示此环境',
   select_all_environments: '显示全部',
-  option_all_environments: '所有环境',
   dashboard_instance: 'Dockhand 实例',
   dashboard_all_instances: '所有实例',
   dashboard_overview_page: '概览页面',

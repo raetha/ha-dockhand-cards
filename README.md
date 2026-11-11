@@ -140,19 +140,22 @@ Four built-in layouts, plus your own:
 
 ```yaml
 type: custom:dockhand-vulnerability-card
-device_id: <environment device>
-name: null # optional — Composed or Custom, same as the Environment card's own Name field
+exclude_device_ids: [] # environments left out (all shown by default)
+environments_order: [] # order of the environments' rows
+name: null # optional — Composed (one environment) or Custom, same as the Environment card's own Name field
 show_settings_link: true # link to view vulnerabilities in Dockhand
 ```
 
-Total findings with a critical/high/medium/low breakdown, and how many images have been scanned.
-Needs the environment's **Vulnerabilities** sensor enabled in Home Assistant (it's disabled by
-default) and vulnerability scanning turned on for that environment in Dockhand.
+With one environment shown: its total findings with a critical/high/medium/low breakdown, and how
+many images have been scanned. With more: their findings added up, and a row per environment with
+its total, colored by its worst severity (click one for its sensor). Dockhand counts per
+environment, so an image running in two environments counts in both. Choose the environments at
+the top of the editor, as in the list cards. Needs each environment's **Vulnerabilities** sensor
+enabled in Home Assistant (it's disabled by default) and vulnerability scanning turned on for that
+environment in Dockhand.
 
-With `device_id: all` (**All environments** in the editor) it adds up every scanned environment's
-findings and lists each environment with its total, colored by its worst severity; click one for
-its sensor. `exclude_device_ids` and `environments_order` choose and order them, as in the list
-cards. Dockhand counts per environment, so an image running in two environments counts in both.
+A card from before 2.0.0 with `device_id` keeps showing just that environment; the editor turns it
+into `exclude_device_ids` with your next change.
 
 <p>
   <img src="docs/images/vulnerability.png" alt="Vulnerability card, dark theme" width="420">
