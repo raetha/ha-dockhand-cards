@@ -22,16 +22,9 @@ credentials of their own and never contact Dockhand directly.
 ## Requirements
 
 - Home Assistant 2026.8 or later
-- The [Dockhand integration](https://github.com/raetha/ha-dockhand) 1.8.0 or later. A few features
-  need a newer release; on an older one they're simply left out:
-
-  | Feature | ha-dockhand |
-  |---|---|
-  | Schedules grouped by environment | 1.9.0 |
-  | "Hide when no updates" counting a system container's own update | 1.8.2 |
-  | Update counts including new version tags | 1.10.2 |
-  | Newer version tags, moved pinned digests and held updates | 1.11.0 |
-  | Dockhand tags, schedule and row controls | 2.0.0 |
+- The [Dockhand integration](https://github.com/raetha/ha-dockhand) 2.0.0 or later, whose counts
+  and sizes are sensors of their own (earlier releases kept them as attributes, which these cards
+  no longer read)
 
 ---
 
@@ -119,7 +112,8 @@ Four built-in layouts, plus your own:
 - **Compact** — name, online status and container counts
 - **Standard** — adds CPU/memory, health, resource counts and events (Dockhand's own dashboard tile)
 - **Detailed** — adds the top containers by CPU and recent events
-- **Full** — adds a disk usage breakdown and a 15-minute CPU/memory history chart
+- **Full** — adds a disk usage breakdown (the integration's Disk usage sensors, disabled by
+  default) and a 15-minute CPU/memory history chart
 - **Custom** — pick exactly which of those sections to show
 
 Icons in the header show the environment's update checks (or auto-update, when on), vulnerability
@@ -155,8 +149,9 @@ many images have been scanned. With more: their findings added up, and a row per
 its total, colored by its worst severity (click one for its sensor). Dockhand counts per
 environment, so an image running in two environments counts in both. Choose the environments at
 the top of the editor, as in the list cards. Needs each environment's **Vulnerabilities** sensor
-enabled in Home Assistant (it's disabled by default) and vulnerability scanning turned on for that
-environment in Dockhand.
+enabled in Home Assistant (it's disabled by default; so are **Critical**, **High**, **Medium** and
+**Low vulnerabilities** and **Scanned images**, which the card shows when they're on) and
+vulnerability scanning turned on for that environment in Dockhand.
 
 A card from before 2.0.0 with `device_id` keeps showing just that environment; the editor turns it
 into `exclude_device_ids` with your next change.

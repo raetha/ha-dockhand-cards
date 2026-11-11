@@ -26,11 +26,28 @@ export const ENV_TRANSLATION_KEYS = {
   cpuUsage: 'cpu_usage',
   memoryUsage: 'memory_usage',
   containers: 'containers',
+  // ha-dockhand 2.0+: what were the containers and stacks sensors'
+  // attributes, each its own sensor.
+  containersRunning: 'containers_running',
+  containersStopped: 'containers_stopped',
+  containersPaused: 'containers_paused',
+  containersRestarting: 'containers_restarting',
+  containersUnhealthy: 'containers_unhealthy',
+  pendingUpdates: 'pending_updates',
+  installableUpdates: 'installable_updates',
+  systemUpdates: 'system_updates',
+  versionTagUpdates: 'version_tag_updates',
   stacks: 'stacks',
+  stacksRunning: 'stacks_running',
+  stacksPartial: 'stacks_partial',
+  stacksStopped: 'stacks_stopped',
+  memoryUsed: 'memory_used',
+  memoryTotal: 'memory_total',
   imageCount: 'image_count',
   volumeCount: 'volume_count',
   networkCount: 'network_count',
   activityEvents: 'activity_events',
+  activityEventsToday: 'activity_events_today',
   activityLogging: 'activity_logging',
   metricsCollection: 'metrics_collection',
   vulnerabilityScanning: 'vulnerability_scanning',
@@ -38,8 +55,17 @@ export const ENV_TRANSLATION_KEYS = {
   updateChecks: 'update_checks',
   autoUpdate: 'auto_update',
   vulnerabilities: 'vulnerabilities',
+  vulnerabilitiesCritical: 'vulnerabilities_critical',
+  vulnerabilitiesHigh: 'vulnerabilities_high',
+  vulnerabilitiesMedium: 'vulnerabilities_medium',
+  vulnerabilitiesLow: 'vulnerabilities_low',
+  imagesScanned: 'images_scanned',
   connectionType: 'connection_type',
   diskUsage: 'disk_usage',
+  diskUsageImages: 'disk_usage_images',
+  diskUsageContainers: 'disk_usage_containers',
+  diskUsageVolumes: 'disk_usage_volumes',
+  diskUsageBuildCache: 'disk_usage_build_cache',
   checkUpdates: 'check_updates'
 } as const;
 
@@ -53,6 +79,7 @@ export const CONTAINER_TRANSLATION_KEYS = {
   health: 'health',
   cpuPercent: 'container_cpu_percent',
   memoryUsage: 'container_memory_usage',
+  memoryCache: 'container_memory_cache',
   memoryPercent: 'container_memory_percent',
   memoryLimit: 'container_memory_limit',
   networkRx: 'container_network_rx',
@@ -71,6 +98,7 @@ export const STACK_TRANSLATION_KEYS = {
   status: 'status',
   containersInStack: 'containers_in_stack',
   updatesAvailable: 'stack_updates_available',
+  pendingUpdates: 'stack_pending_updates',
   gitSyncStatus: 'git_stack_sync_status',
   gitLastSync: 'git_stack_last_sync',
   gitSyncError: 'git_stack_sync_error',
@@ -83,7 +111,8 @@ export const STACK_TRANSLATION_KEYS = {
   networkRx: 'stack_network_rx',
   networkTx: 'stack_network_tx',
   blockRead: 'stack_block_read',
-  blockWrite: 'stack_block_write'
+  blockWrite: 'stack_block_write',
+  runningContainers: 'stack_running_containers'
 } as const;
 
 export type StackTranslationKey = keyof typeof STACK_TRANSLATION_KEYS;
@@ -107,59 +136,53 @@ export type ScheduleTranslationKey = keyof typeof SCHEDULE_TRANSLATION_KEYS;
 // "standard", which is a strict subset of "detailed" (detailed additionally
 // needs per-container cpu/memory sensors on the Containers group device,
 // resolved separately, and — once available — a recent_events attribute).
+const CONTAINER_SECTION_KEYS: EnvTranslationKey[] = [
+  'containers',
+  'containersRunning',
+  'containersStopped',
+  'containersPaused',
+  'containersRestarting',
+  'containersUnhealthy',
+  'pendingUpdates',
+  'installableUpdates',
+  'systemUpdates',
+  'versionTagUpdates'
+];
+const STANDARD_KEYS: EnvTranslationKey[] = [
+  'online',
+  'cpuUsage',
+  'memoryUsage',
+  'memoryUsed',
+  'memoryTotal',
+  ...CONTAINER_SECTION_KEYS,
+  'stacks',
+  'stacksRunning',
+  'stacksPartial',
+  'stacksStopped',
+  'imageCount',
+  'volumeCount',
+  'networkCount',
+  'activityEvents',
+  'activityEventsToday'
+];
+const FULL_KEYS: EnvTranslationKey[] = [
+  ...STANDARD_KEYS,
+  'diskUsage',
+  'diskUsageImages',
+  'diskUsageContainers',
+  'diskUsageVolumes',
+  'diskUsageBuildCache'
+];
+
+// Entities each display mode draws from. "compact" is a strict subset of
+// "standard", which is a strict subset of "full". Custom could show any
+// section, so it resolves everything full does.
 export const REQUIRED_KEYS_BY_MODE: Record<'compact' | 'standard' | 'detailed' | 'full' | 'custom', EnvTranslationKey[]> = {
-  compact: ['online', 'containers'],
-  standard: [
-    'online',
-    'cpuUsage',
-    'memoryUsage',
-    'containers',
-    'stacks',
-    'imageCount',
-    'volumeCount',
-    'networkCount',
-    'activityEvents'
-  ],
-  detailed: [
-    'online',
-    'cpuUsage',
-    'memoryUsage',
-    'containers',
-    'stacks',
-    'imageCount',
-    'volumeCount',
-    'networkCount',
-    'activityEvents'
-  ],
-  full: [
-    'online',
-    'cpuUsage',
-    'memoryUsage',
-    'containers',
-    'stacks',
-    'imageCount',
-    'volumeCount',
-    'networkCount',
-    'activityEvents',
-    'diskUsage'
-  ],
-  // Could show any combination of sections depending on custom_sections,
-  // so resolves everything full mode does rather than trying to compute
-  // a narrower set from the config — same reasoning as full: better to
-  // resolve one unused entity than to add conditional resolution logic
-  // for a case that's cheap to just always cover.
-  custom: [
-    'online',
-    'cpuUsage',
-    'memoryUsage',
-    'containers',
-    'stacks',
-    'imageCount',
-    'volumeCount',
-    'networkCount',
-    'activityEvents',
-    'diskUsage'
-  ]
+  compact: ['online', ...CONTAINER_SECTION_KEYS],
+  standard: STANDARD_KEYS,
+  detailed: STANDARD_KEYS,
+  full: FULL_KEYS,
+  custom: FULL_KEYS
 };
 
 // Optional keys: enhance the header's own feature-icon row when present, but
@@ -186,7 +209,31 @@ export const ENV_FRIENDLY_LABEL: Partial<Record<EnvTranslationKey, EditorTransla
   cpuUsage: 'entity_cpu_usage',
   memoryUsage: 'entity_memory_usage',
   containers: 'entity_container_counts',
+  containersRunning: 'entity_containers_running',
+  containersStopped: 'entity_containers_stopped',
+  containersPaused: 'entity_containers_paused',
+  containersRestarting: 'entity_containers_restarting',
+  containersUnhealthy: 'entity_containers_unhealthy',
+  pendingUpdates: 'entity_pending_updates',
+  installableUpdates: 'entity_installable_updates',
+  systemUpdates: 'entity_system_updates',
+  versionTagUpdates: 'entity_version_tag_updates',
+  memoryUsed: 'entity_memory_used',
+  memoryTotal: 'entity_memory_total',
   stacks: 'entity_stack_counts',
+  stacksRunning: 'entity_stacks_running',
+  stacksPartial: 'entity_stacks_partial',
+  stacksStopped: 'entity_stacks_stopped',
+  activityEventsToday: 'entity_activity_events_today',
+  diskUsageImages: 'entity_disk_usage_images',
+  diskUsageContainers: 'entity_disk_usage_containers',
+  diskUsageVolumes: 'entity_disk_usage_volumes',
+  diskUsageBuildCache: 'entity_disk_usage_build_cache',
+  vulnerabilitiesCritical: 'entity_vulnerabilities_critical',
+  vulnerabilitiesHigh: 'entity_vulnerabilities_high',
+  vulnerabilitiesMedium: 'entity_vulnerabilities_medium',
+  vulnerabilitiesLow: 'entity_vulnerabilities_low',
+  imagesScanned: 'entity_images_scanned',
   imageCount: 'entity_image_count',
   volumeCount: 'entity_volume_count',
   networkCount: 'entity_network_count',

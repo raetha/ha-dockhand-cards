@@ -80,7 +80,7 @@ function buildEnvironment(addDevice, addEntity, opts) {
     })
   );
 
-  const onlineAttrs = { name, icon: ONLINE_ICON[online] };
+  const onlineAttrs = { icon: ONLINE_ICON[online] };
   if (hostPort) {
     onlineAttrs.connection_host = hostPort.host;
     onlineAttrs.connection_port = hostPort.port;
@@ -93,10 +93,11 @@ function buildEnvironment(addDevice, addEntity, opts) {
   // with scanning a sensor plus the scanner select.
   const setting = (domain, key, on) =>
     addEntity(entity(`${domain}.${slug}_${key}`, envDeviceId, key, on ? 'on' : 'off', { friendly_name: `${name} ${key.replace(/_/g, ' ')}`, icon: STATUS_ICON[key] }, { entity_category: 'config' }));
+  // showStatusIcons turns every setting on, so each header icon shows in color.
   setting('switch', 'auto_update', autoUpdate);
-  setting('switch', 'update_checks', updateChecks || autoUpdate);
-  setting('switch', 'activity_logging', online);
-  setting('switch', 'metrics_collection', online && !autoUpdate);
+  setting('switch', 'update_checks', showStatusIcons || updateChecks || autoUpdate);
+  setting('switch', 'activity_logging', showStatusIcons || online);
+  setting('switch', 'metrics_collection', showStatusIcons || (online && !autoUpdate));
   setting('binary_sensor', 'vulnerability_scanning', true);
   addEntity(entity(`select.${slug}_vulnerability_scanner`, envDeviceId, 'vulnerability_scanner', 'grype', {}, { entity_category: 'config' }));
   addEntity(
@@ -109,13 +110,6 @@ function buildEnvironment(addDevice, addEntity, opts) {
       { entity_category: 'diagnostic' }
     )
   );
-
-  if (showStatusIcons) {
-    for (const [key, iconName] of Object.entries(STATUS_ICON)) {
-      const label = `${name} ${key.replace(/_/g, ' ')}`;
-      addEntity(entity(`binary_sensor.${slug}_${key}`, envDeviceId, key, 'on', { name: label, icon: iconName }, { friendly_name: label }));
-    }
-  }
 
   addEntity(
     entity(`sensor.${slug}_cpu_usage`, envDeviceId, 'cpu_usage', online ? '3.8' : '0', {
@@ -136,27 +130,29 @@ function buildEnvironment(addDevice, addEntity, opts) {
   addEntity(
     entity(`sensor.${slug}_memory_usage`, envDeviceId, 'memory_usage', online ? '41.2' : '0', {
       unit_of_measurement: '%',
-      icon: 'mdi:memory',
-      memory_used_bytes: online ? 6618980352 : 0,
-      memory_total_bytes: 16072835072
+      icon: 'mdi:memory'
     })
   );
+  // ha-dockhand's counts and sizes are each their own sensor; sizes are
+  // native bytes shown in MiB, as Home Assistant reports them.
+  const valueSensor = (key, value, attributes = {}) => addEntity(entity(`sensor.${slug}_${key}`, envDeviceId, key, String(value), attributes));
+  const mibSensor = (key, bytes) => valueSensor(key, bytes / 1024 ** 2, { unit_of_measurement: 'MiB' });
+  mibSensor('memory_used', online ? 6618980352 : 0);
+  mibSensor('memory_total', 16072835072);
   addEntity(
     entity(`sensor.${slug}_stacks`, envDeviceId, 'stacks', online ? '4' : '0', {
-      icon: 'mdi:layers-outline',
-      running: online ? 3 : 0,
-      partial: online ? 1 : 0,
-      stopped: online ? 0 : 4
+      icon: 'mdi:layers-outline'
     })
   );
+  valueSensor('stacks_running', online ? 3 : 0);
+  valueSensor('stacks_partial', online ? 1 : 0);
+  valueSensor('stacks_stopped', online ? 0 : 4);
   addEntity(entity(`sensor.${slug}_image_count`, envDeviceId, 'image_count', '31', { icon: 'mdi:package-variant-closed' }));
   addEntity(entity(`sensor.${slug}_volume_count`, envDeviceId, 'volume_count', '9', { icon: 'mdi:database-outline' }));
   addEntity(entity(`sensor.${slug}_network_count`, envDeviceId, 'network_count', '6', { icon: 'mdi:lan' }));
   addEntity(
     entity(`sensor.${slug}_activity_events`, envDeviceId, 'activity_events', online ? '3' : '0', {
       icon: 'mdi:pulse',
-      today: online ? 3 : 0,
-      total: 512,
       recent_events: online
         ? [
             { container_name: 'web', action: 'health_status: healthy', timestamp: new Date(Date.now() - 3600e3).toISOString() },
@@ -168,23 +164,17 @@ function buildEnvironment(addDevice, addEntity, opts) {
   );
   addEntity(
     entity(`sensor.${slug}_disk_usage`, envDeviceId, 'disk_usage', '20480', {
-      unit_of_measurement: 'MiB',
-      images_size_bytes: 12884901888,
-      containers_size_bytes: 419430400,
-      volumes_size_bytes: 6979321856,
-      build_cache_size_bytes: 1191182336
+      unit_of_measurement: 'MiB'
     })
   );
-  addEntity(
-    entity(`sensor.${slug}_vulnerabilities`, envDeviceId, 'vulnerabilities', '7', {
-      critical: 0,
-      high: 2,
-      medium: 4,
-      low: 1,
-      images_scanned: 24,
-      total_images: 31
-    })
-  );
+  valueSensor('activity_events_today', online ? 3 : 0);
+  mibSensor('disk_usage_images', 12884901888);
+  mibSensor('disk_usage_containers', 419430400);
+  mibSensor('disk_usage_volumes', 6979321856);
+  mibSensor('disk_usage_build_cache', 1191182336);
+  addEntity(entity(`sensor.${slug}_vulnerabilities`, envDeviceId, 'vulnerabilities', '7'));
+  for (const [key, value] of Object.entries({ critical: 0, high: 2, medium: 4, low: 1 })) valueSensor(`vulnerabilities_${key}`, value);
+  valueSensor('images_scanned', 24);
   addEntity(entity(`button.${slug}_env_bulk_update`, envDeviceId, 'env_bulk_update', 'unknown'));
   addEntity(entity(`button.${slug}_check_updates`, envDeviceId, 'check_updates', 'unknown'));
 
@@ -242,20 +232,22 @@ function buildEnvironment(addDevice, addEntity, opts) {
   const systemContainers = containers.filter((c) => c.systemContainer);
   const pendingSystemUpdateCount = systemContainers.filter((c) => onKinds.includes(c.update)).length;
   addEntity(
-    entity(`sensor.${slug}_containers`, envDeviceId, 'containers', online ? '14' : '0', {
-      running: online ? 12 : 0,
-      stopped: online ? 1 : 14,
-      paused: 0,
-      restarting: 0,
-      unhealthy: online ? 1 : 0,
-      pending_updates: online ? pendingUpdateCount - pendingSystemUpdateCount - pendingVersionUpdateCount - pendingPinnedDigestCount - heldCount : 0,
-      pending_system_updates: online ? pendingSystemUpdateCount : 0,
-      pending_version_updates: online ? pendingVersionUpdateCount : 0,
-      pending_pinned_digest_updates: online ? pendingPinnedDigestCount : 0,
-      pending_held_updates: online ? heldCount : 0,
-      pending_updates_total: online ? pendingUpdateCount : 0
-    })
+    entity(`sensor.${slug}_containers`, envDeviceId, 'containers', online ? '14' : '0')
   );
+  for (const [key, value] of Object.entries({
+    containers_running: online ? 12 : 0,
+    containers_stopped: online ? 1 : 14,
+    containers_paused: 0,
+    containers_restarting: 0,
+    containers_unhealthy: online ? 1 : 0,
+    pending_updates: online ? pendingUpdateCount : 0,
+    installable_updates: online ? pendingUpdateCount - pendingSystemUpdateCount - pendingVersionUpdateCount - pendingPinnedDigestCount - heldCount : 0,
+    system_updates: online ? pendingSystemUpdateCount : 0,
+    version_tag_updates: online ? pendingVersionUpdateCount : 0,
+    pinned_digest_updates: online ? pendingPinnedDigestCount : 0,
+    held_updates: online ? heldCount : 0
+  }))
+    valueSensor(key, value);
 
   // ── Stacks ─────────────────────────────────────────────────────────
   const stacks = [
@@ -275,7 +267,7 @@ function buildEnvironment(addDevice, addEntity, opts) {
       })
     );
     addEntity(
-      entity(`sensor.${slug}_${c.name}_state`, devId, 'state', c.state, { name: c.name, type: 'Compose', image: c.image, exit_code: c.state === 'exited' ? (c.exitCode ?? 0) : null, system_container: null, ...mockTags(c.name) }, { friendly_name: c.name })
+      entity(`sensor.${slug}_${c.name}_state`, devId, 'state', c.state, { type: 'Compose', image: c.image, exit_code: c.state === 'exited' ? (c.exitCode ?? 0) : null, system_container: null, ...mockTags(c.name) }, { friendly_name: c.name })
     );
     if (c.health) {
       addEntity(entity(`sensor.${slug}_${c.name}_health`, devId, 'health', c.health));
@@ -310,7 +302,6 @@ function buildEnvironment(addDevice, addEntity, opts) {
     if (c.update === 'hash') {
       addEntity(
         entity(`update.${slug}_${c.name}_update`, devId, null, 'on', {
-          name: c.name,
           installed_version: 'a3f29e1',
           latest_version: 'b82d4f0',
           ...(c.newer ? { newer_version: c.newer, newer_version_bump: c.newerBump, newer_versions_count: c.newerCount } : {})
@@ -319,7 +310,6 @@ function buildEnvironment(addDevice, addEntity, opts) {
     } else if (c.update === 'generic') {
       addEntity(
         entity(`update.${slug}_${c.name}_update`, devId, null, 'on', {
-          name: c.name,
           installed_version: 'latest',
           latest_version: 'update-pending',
           ...(c.newer ? { newer_version: c.newer, newer_version_bump: c.newerBump, newer_versions_count: c.newerCount } : {})
@@ -330,7 +320,6 @@ function buildEnvironment(addDevice, addEntity, opts) {
       // latest_version too, and withholds Install.
       addEntity(
         entity(`update.${slug}_${c.name}_update`, devId, null, 'on', {
-          name: c.name,
           installed_version: c.image.split(':')[1],
           latest_version: c.newer,
           newer_version: c.newer,
@@ -341,7 +330,6 @@ function buildEnvironment(addDevice, addEntity, opts) {
     } else if (c.update === 'pinned') {
       addEntity(
         entity(`update.${slug}_${c.name}_update`, devId, null, 'on', {
-          name: c.name,
           installed_version: 'latest',
           latest_version: 'update-pending',
           pinned_digest_moved: true
@@ -350,14 +338,13 @@ function buildEnvironment(addDevice, addEntity, opts) {
     } else if (c.update === 'held') {
       addEntity(
         entity(`update.${slug}_${c.name}_update`, devId, null, 'on', {
-          name: c.name,
           installed_version: c.image.split(':')[1],
           latest_version: 'update-pending',
           update_held_hours: c.heldHours
         })
       );
     } else {
-      addEntity(entity(`update.${slug}_${c.name}_update`, devId, null, 'off', { name: c.name }));
+      addEntity(entity(`update.${slug}_${c.name}_update`, devId, null, 'off'));
     }
   }
 
@@ -376,10 +363,7 @@ function buildEnvironment(addDevice, addEntity, opts) {
     );
     addEntity(
       entity(`sensor.${slug}_${s.name}_status`, devId, 'status', s.status, {
-        name: s.name,
         type: s.type,
-        container_count: s.containerCount,
-        container_names: s.containerNames,
         ...mockTags(s.name)
       })
     );
@@ -404,20 +388,21 @@ function buildEnvironment(addDevice, addEntity, opts) {
         ['network_rx', mibOf(sum((c) => c.netRx)), 'MiB'],
         ['network_tx', mibOf(sum((c) => c.netTx)), 'MiB'],
         ['block_read', mibOf(sum((c) => c.blkRead)), 'MiB'],
-        ['block_write', mibOf(sum((c) => c.blkWrite)), 'MiB']
+        ['block_write', mibOf(sum((c) => c.blkWrite)), 'MiB'],
+        ['running_containers', String(running.length), undefined]
       ];
       for (const [key, value, unit] of totals) {
         addEntity(
           entity(`sensor.${slug}_${s.name}_${key}`, devId, `stack_${key}`, value, {
-            unit_of_measurement: unit,
-            running_containers: running.length,
+            ...(unit ? { unit_of_measurement: unit } : {}),
             ...(key === 'cpu_percent' ? { icon: 'mdi:cpu-64-bit' } : key === 'memory_usage' ? { icon: 'mdi:memory' } : {})
           })
         );
       }
     }
+    addEntity(entity(`sensor.${slug}_${s.name}_pending_updates`, devId, 'stack_pending_updates', String(s.updateCount ?? 0)));
     if (s.updateCount) {
-      addEntity(entity(`binary_sensor.${slug}_${s.name}_updates_available`, devId, 'stack_updates_available', 'on', { update_count: s.updateCount }));
+      addEntity(entity(`binary_sensor.${slug}_${s.name}_updates_available`, devId, 'stack_updates_available', 'on'));
     } else {
       addEntity(entity(`binary_sensor.${slug}_${s.name}_updates_available`, devId, 'stack_updates_available', 'off'));
     }
@@ -450,10 +435,10 @@ function buildEnvironment(addDevice, addEntity, opts) {
  * _sched_device()/_schedule_group_device() for the real thing this
  * mirrors. Each schedule device carries next_run (translation_key
  * 'next_run', state = an ISO timestamp) and last_status (translation_key
- * 'last_status', state = a status string, attributes carry name/
+ * 'last_status', state = a status string, attributes carry
  * description/is_system/cron_expression/enabled/environment/
  * schedule_type) — last_status is the comprehensive/primary entity, per
- * that repo's own CHANGELOG on why. */
+ * that repo's own CHANGELOG on why. The name is the device's. */
 function buildSchedules(addDevice, addEntity) {
   const inHours = (h) => new Date(Date.now() + h * 3600e3).toISOString();
 
@@ -490,7 +475,6 @@ function buildSchedules(addDevice, addEntity) {
     );
     addEntity(
       entity(`sensor.${devId}_last_status`, devId, 'last_status', status, {
-        name,
         description,
         is_system: isSystem,
         cron_expression: '0 */4 * * *',

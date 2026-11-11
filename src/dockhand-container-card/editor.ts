@@ -100,7 +100,7 @@ export class DockhandContainerCardEditor extends LitElement implements LovelaceC
     const envDeviceId = this._resolvedEnvDeviceId();
     const envDevice = envDeviceId ? this._hass.devices[envDeviceId] : undefined;
     const containerDevices = envDevice ? getContainerDevicesForEnvironment(this._hass, envDevice) : [];
-    const containerOptions = getContainerDropdownOptions(this._hass, containerDevices);
+    const containerOptions = getContainerDropdownOptions(containerDevices);
     const noContainersFound = envDevice !== undefined && containerDevices.length === 0;
 
     return html`

@@ -1,22 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  getEnvironmentDevices,
-  isEnvironmentDevice,
-  getEnvId,
-  getContainerDevicesForEnvironment,
-  getStackDevicesForEnvironment,
-  getEnvIdForContainerDevice,
-  getEnvIdForStackDevice,
-  getEnvDeviceForEnvId,
-  getEnvDeviceIdForEnvId,
-  isScheduleDevice,
-  getAllScheduleDevices,
-  getScheduleHubDevices,
-  getScheduleGroupDeviceForEnvironment,
-  getScheduleDevicesForEnvironment,
-  getGlobalScheduleDevices,
-  getEnvIdForScheduleDevice
-} from './device-utils';
+import { getEnvironmentDevices, isEnvironmentDevice, getEnvId, getContainerDevicesForEnvironment, getStackDevicesForEnvironment, getEnvIdForContainerDevice, getEnvIdForStackDevice, getEnvDeviceForEnvId, getEnvDeviceIdForEnvId, isScheduleDevice, getAllScheduleDevices, getScheduleHubDevices, getScheduleGroupDeviceForEnvironment, getScheduleDevicesForEnvironment, getGlobalScheduleDevices, getEnvIdForScheduleDevice, getContainerName, getScheduleName } from './device-utils';
 import { makeDevice, makeHass } from './test-fixtures';
 
 describe('isEnvironmentDevice / getEnvironmentDevices', () => {
@@ -282,5 +265,18 @@ describe('devices that are not what a lookup expects', () => {
     const hass = makeHass({ devices: [orphan, foreign, env] });
     expect(getEnvIdForScheduleDevice(hass, orphan)).toBeNull();
     expect(getEnvIdForScheduleDevice(hass, { ...orphan, via_device_id: 'foreign' })).toBeNull();
+  });
+});
+
+describe('names from the device', () => {
+  it('reads a container’s name from its identifier, with or without the entry prefix', () => {
+    expect(getContainerName(makeDevice({ id: 'd', identifiers: [['dockhand', 'abc_container_2_my_app']] }))).toBe('my_app');
+    expect(getContainerName(makeDevice({ id: 'd', identifiers: [['dockhand', 'container_1_web']] }))).toBe('web');
+    expect(getContainerName(makeDevice({ id: 'd', identifiers: [['other', 'container_1_web']] }))).toBeNull();
+  });
+
+  it('reads a schedule’s name from the device name ha-dockhand gives it', () => {
+    expect(getScheduleName(makeDevice({ id: 'd', name: 'Nebula – Schedules – Prune images: Nebula' }))).toBe('Prune images: Nebula');
+    expect(getScheduleName(makeDevice({ id: 'd', name: 'Something else' }))).toBeNull();
   });
 });

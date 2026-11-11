@@ -18,6 +18,16 @@ since a device can carry other same-domain entities that have one (a container's
 `container_auto_update` switch beside its running switch). ha-dockhand guarantees one untranslated
 entity per domain per device for these. Don't use it for anything that has a `translation_key`.
 
+**Values come from entity states, names from devices.** ha-dockhand 2.0 makes every count and size
+that changes its own sensor, as Home Assistant's guidance asks, so the cards read states, not
+attributes: the Environment card's container, stack, update, memory, disk and today's-event
+counts, the Vulnerability card's severities and scanned images, a stack's update count and running
+containers. Several are disabled by default in ha-dockhand; the editors name the ones a card would
+use (`availability_hint`). Attributes the cards still read describe a state (recent events, top
+containers, an image, tags, a schedule's type). A container's or stack's name comes from its
+device identifier (`getContainerName()`, `getStackName()`), a schedule's from its device name
+(`getScheduleName()`), an environment's from its device.
+
 ## 2. Editors are `<ha-form>` schemas
 
 Every editor builds its fields as a schema for HA's own `<ha-form>`: one `_valueChanged` handler,
@@ -193,17 +203,16 @@ also works inside the Overview's columns.
 - **Neither reaches a card nested in another card's template.** The Overview checks
   `hasPendingUpdates()` itself and leaves the Updates card out of its column.
 
-**Hiding and counting read one aggregate per environment:** the `pending_updates_total` attribute of
-ha-dockhand's containers sensor, not each container's update entity. A `visibility:` condition is
-saved in YAML, so it has to reference something stable; per-container entities churn as containers
-are recreated, and an environment can have dozens. ha-dockhand keeps three attributes apart:
-`pending_updates` (eligible for bulk update, no system containers), `pending_system_updates`, and
-`pending_updates_total` (both, plus newer-version-tag suggestions: the number of update entities
-that are on). The cards want the total, since their rows show system containers. The Updates
-card's header count reads the same total (`getTotalPendingUpdates()`); its rows and its "everything
-up to date" state come from the rows themselves, so if the two ever disagree a mismatch shows
-instead of rows hiding. A disagreement means ha-dockhand's aggregate and its update entities have
-drifted: fix it there.
+**Hiding and counting read one sensor per environment:** ha-dockhand's Pending updates sensor
+(`pending_updates`), not each container's update entity. A `visibility:` condition is saved in
+YAML, so it has to reference something stable; per-container entities churn as containers are
+recreated, and an environment can have dozens. ha-dockhand counts updates by kind, each its own
+sensor: Installable (eligible for bulk update, no system containers), System container, Newer
+version tags, and Pending, every update entity that's on. The cards want Pending, since their rows
+show system containers. The Updates card's header count reads the same sensors
+(`getTotalPendingUpdates()`); its rows and its "everything up to date" state come from the rows
+themselves, so if the two ever disagree a mismatch shows instead of rows hiding. A disagreement
+means ha-dockhand's counts and its update entities have drifted: fix it there.
 
 ## 10. CSS design tokens
 

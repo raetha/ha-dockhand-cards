@@ -29,7 +29,7 @@ function hassWithDevice(kind: 'container' | 'stack', running: boolean, opts: { s
   const device = makeDevice({ id: 'dev-web', identifiers: [['dockhand', `entry_${kind}_1_web`]], config_entry_id: 'entry', name: 'web' });
   const statusKey = kind === 'container' ? 'state' : 'status';
   const entities = [makeEntity({ entity_id: `sensor.web_${statusKey}`, device_id: 'dev-web', translation_key: statusKey })];
-  const states = [makeState({ entity_id: `sensor.web_${statusKey}`, state: running ? 'running' : 'exited', attributes: { name: 'web' } })];
+  const states = [makeState({ entity_id: `sensor.web_${statusKey}`, state: running ? 'running' : 'exited', attributes: {} })];
   if (!opts.system) {
     entities.push(makeEntity({ entity_id: 'switch.web', device_id: 'dev-web' }), makeEntity({ entity_id: 'button.web_restart', device_id: 'dev-web', translation_key: 'restart' }));
     states.push(makeState({ entity_id: 'switch.web', state: running ? 'on' : 'off' }), makeState({ entity_id: 'button.web_restart', state: 'unknown' }));
@@ -115,7 +115,7 @@ function hassWithSchedule(opts: { run?: string; enabled?: string }): HomeAssista
   const group = makeDevice({ id: 'sched-group', identifiers: [['dockhand', 'entry_env_1_Schedules']], config_entry_id: 'entry', name: 'Nebula – Schedules' });
   const schedule = makeDevice({ id: 'sched', identifiers: [['dockhand', 'entry_schedule_7_image_prune']], config_entry_id: 'entry', name: 'Prune', via_device_id: 'sched-group' });
   const entities = [makeEntity({ entity_id: 'sensor.prune_last_status', device_id: 'sched', translation_key: 'last_status' })];
-  const states = [makeState({ entity_id: 'sensor.prune_last_status', state: 'success', attributes: { name: 'Prune', enabled: opts.enabled !== 'off' } })];
+  const states = [makeState({ entity_id: 'sensor.prune_last_status', state: 'success', attributes: { enabled: opts.enabled !== 'off' } })];
   if (opts.run) {
     entities.push(makeEntity({ entity_id: 'button.prune_run', device_id: 'sched', translation_key: 'schedule_run' }));
     states.push(makeState({ entity_id: 'button.prune_run', state: opts.run }));

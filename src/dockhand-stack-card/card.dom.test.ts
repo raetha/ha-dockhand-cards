@@ -98,9 +98,13 @@ describe('Stack card container pills', () => {
     const env = makeDevice({ id: 'env-dev', identifiers: [['dockhand', 'entry_env_1']], config_entry_id: 'entry', name: 'Nebula' });
     const stack = makeDevice({ id: 'stack-dev', identifiers: [['dockhand', 'entry_stack_1_core']], config_entry_id: 'entry', name: 'core' });
     const devices = [env, stack];
-    const entities = [makeEntity({ entity_id: 'sensor.core_status', device_id: 'stack-dev', translation_key: 'status' })];
+    const entities = [
+      makeEntity({ entity_id: 'sensor.core_status', device_id: 'stack-dev', translation_key: 'status' }),
+      makeEntity({ entity_id: 'sensor.core_containers', device_id: 'stack-dev', translation_key: 'containers_in_stack' })
+    ];
     const states = [
-      makeState({ entity_id: 'sensor.core_status', state: 'running', attributes: { type: 'internal', container_names: ['web', 'db', 'proxy', 'cache', 'idle'] } })
+      makeState({ entity_id: 'sensor.core_status', state: 'running', attributes: { type: 'internal' } }),
+      makeState({ entity_id: 'sensor.core_containers', state: '5', attributes: { container_names: ['web', 'db', 'proxy', 'cache', 'idle'] } })
     ];
     const updates: Record<string, Record<string, unknown>> = {
       web: { installed_version: 'a', latest_version: 'update-pending' },
@@ -113,9 +117,9 @@ describe('Stack card container pills', () => {
       devices.push(makeDevice({ id: `dev-${name}`, identifiers: [['dockhand', `entry_container_1_${name}`]], config_entry_id: 'entry', name }));
       entities.push(makeEntity({ entity_id: `sensor.${name}_state`, device_id: `dev-${name}`, translation_key: 'state' }));
       entities.push(makeEntity({ entity_id: `update.${name}`, device_id: `dev-${name}` }));
-      states.push(makeState({ entity_id: `sensor.${name}_state`, state: 'running', attributes: { name } }));
+      states.push(makeState({ entity_id: `sensor.${name}_state`, state: 'running' }));
       const { off, ...rest } = attrs;
-      states.push(makeState({ entity_id: `update.${name}`, state: off ? 'off' : 'on', attributes: { name, ...rest } }));
+      states.push(makeState({ entity_id: `update.${name}`, state: off ? 'off' : 'on', attributes: rest }));
     }
     return makeHass({ devices, entities, states });
   }

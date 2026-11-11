@@ -152,6 +152,29 @@ export function getStackName(device: DeviceRegistryEntry): string | null {
   return null;
 }
 
+/** A container device's container name, from ha-dockhand's identifier
+ * (`{entry_id}_container_{env_id}_{name}`, or `container_{env_id}_{name}`
+ * before 1.9.0). */
+export function getContainerName(device: DeviceRegistryEntry): string | null {
+  for (const [domain, id] of device.identifiers ?? []) {
+    if (domain !== DOCKHAND_DOMAIN) continue;
+    const match = /^(?:[^_]+_)?container_\d+_(.+)$/.exec(id);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+const SCHEDULE_NAME_SEPARATOR = ' – Schedules – ';
+
+/** A schedule's own name: ha-dockhand names its device "{environment or
+ * Dockhand} – Schedules – {name}", and the device's own name (not one the
+ * user gave it) keeps that form. */
+export function getScheduleName(device: DeviceRegistryEntry): string | null {
+  const name = device.name ?? '';
+  const at = name.indexOf(SCHEDULE_NAME_SEPARATOR);
+  return at >= 0 ? name.slice(at + SCHEDULE_NAME_SEPARATOR.length) : null;
+}
+
 /** The stack a container device belongs to (its parent device in
  * ha-dockhand), or null when it runs on its own. */
 export function getStackNameForContainerDevice(hass: HomeAssistant, device: DeviceRegistryEntry): string | null {

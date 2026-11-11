@@ -9,6 +9,7 @@ import {
   type StackTranslationKey,
   type ScheduleTranslationKey
 } from './const';
+import { getContainerName, getStackName } from './device-utils';
 import type { HomeAssistant, EntityRegistryEntry, DeviceRegistryEntry } from './ha-types';
 import type { HassEntity } from 'home-assistant-js-websocket';
 
@@ -156,26 +157,19 @@ export interface DeviceDropdownOption {
 }
 
 /** Editor dropdown options for a list of container/stack devices, using
- * the raw Docker/stack name (ha-dockhand 1.8.0+'s `name` attribute on the
- * state/status sensor — e.g. "traefik1") rather than the full device
- * display name (e.g. "Forseti – Containers – traefik1"), sorted
- * alphabetically by that same displayed label. Falls back to the device's
- * own name/id on an older ha-dockhand that doesn't expose the attribute
- * yet, so the dropdown still works, just without the shorter name. */
-export function getContainerDropdownOptions(hass: HomeAssistant, devices: DeviceRegistryEntry[]): DeviceDropdownOption[] {
+ * the raw Docker/stack name from the device identifier (e.g. "traefik1")
+ * rather than the full device display name (e.g. "Forseti – Containers –
+ * traefik1"), sorted alphabetically by that label. */
+export function getContainerDropdownOptions(devices: DeviceRegistryEntry[]): DeviceDropdownOption[] {
   const options = devices.map((d) => {
-    const { found } = resolveContainerEntities(hass, d.id, ['state']);
-    const rawName = found.state?.state.attributes.name as string | undefined;
-    return { value: d.id, label: rawName || d.name_by_user || d.name || d.id };
+    return { value: d.id, label: getContainerName(d) || d.name_by_user || d.name || d.id };
   });
   return options.sort((a, b) => a.label.localeCompare(b.label));
 }
 
-export function getStackDropdownOptions(hass: HomeAssistant, devices: DeviceRegistryEntry[]): DeviceDropdownOption[] {
+export function getStackDropdownOptions(devices: DeviceRegistryEntry[]): DeviceDropdownOption[] {
   const options = devices.map((d) => {
-    const { found } = resolveStackEntities(hass, d.id, ['status']);
-    const rawName = found.status?.state.attributes.name as string | undefined;
-    return { value: d.id, label: rawName || d.name_by_user || d.name || d.id };
+    return { value: d.id, label: getStackName(d) || d.name_by_user || d.name || d.id };
   });
   return options.sort((a, b) => a.label.localeCompare(b.label));
 }

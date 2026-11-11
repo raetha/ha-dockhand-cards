@@ -4,7 +4,7 @@ import { state } from 'lit/decorators.js';
 import { fireEvent, type LovelaceCard, type LovelaceCardEditor } from 'custom-card-helpers';
 
 import type { HomeAssistant, LovelaceGridOptions } from '../common/ha-types';
-import { getContainerDevicesForEnvironment, getEnvironmentDevices, getRepresentativeEntityId, type EnvironmentDeviceOption } from '../common/device-utils';
+import { getContainerDevicesForEnvironment, getEnvironmentDevices, getRepresentativeEntityId, type EnvironmentDeviceOption, getContainerName } from '../common/device-utils';
 import { resolveIncludedOrdered, resolveEffectiveGroupBy } from '../common/environment-scope';
 import { resolveCardName, multiEnvCardNameFallback } from '../common/card-name';
 import { resolveEnvironmentEntities, findPrimaryEntityByDomain } from '../common/entity-resolver';
@@ -143,7 +143,7 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
         updates.push({
           entityId: entry.entityId,
           deviceId: c.id,
-          name: entry.state.attributes.name || c.name_by_user || c.name || c.id,
+          name: getContainerName(c) || c.name_by_user || c.name || c.id,
           installedVersion: entry.state.attributes.installed_version,
           latestVersion: entry.state.attributes.latest_version,
           newerVersion: status.newerVersion,
