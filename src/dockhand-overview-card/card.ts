@@ -231,9 +231,6 @@ export class DockhandOverviewCard extends LitElement implements LovelaceCard {
   protected render(): TemplateResult {
     if (!this._config || !this._hass) return html``;
 
-    // Always "selected" in the shared resolver's terms (an opt-out subset
-    // in a custom order); Overview never had a legacy scope field, so it
-    // needs none of the other cards' legacy handling.
     const devices = resolveIncludedOrdered(getEnvironmentDevices(this._hass), this._config?.environments_order, this._config.exclude_device_ids);
 
     const alignColumns = this._config?.align_columns !== false;

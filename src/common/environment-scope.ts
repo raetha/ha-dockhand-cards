@@ -1,17 +1,5 @@
 import type { EnvironmentDeviceOption } from './device-utils';
 
-/**
- * Three ways a card *used to* relate to "which environments" — real,
- * released legacy shapes for Updates specifically (`scope: 'all'` and
- * `scope: 'environment'` + `device_id`, both shipped in 1.1.0), kept only
- * as the `legacyScope` parameter type for resolveIncludedOrderedWithLegacy
- * below. Every card's own *current* config just uses environments_order/
- * exclude_device_ids directly — nothing new should introduce a `scope`
- * field, this type exists to describe what's already shipped, not as a
- * pattern to extend.
- */
-export type EnvironmentScope = 'all' | 'selected' | 'environment';
-
 /** Every known environment, in environments_order's configured order
  * first, then any not listed (a newly-added environment, or before this
  * has ever been touched) appended alphabetically after — same "unlisted
@@ -29,9 +17,7 @@ export function resolveEnvironmentOrder(all: EnvironmentDeviceOption[], order: s
 }
 
 /** "Every known environment, ordered, minus whatever's excluded" — the
- * function every current card's own row-building calls (directly, or via
- * resolveIncludedOrderedWithLegacy below for the few with a real legacy
- * shape to fall back to first). */
+ * function every multi-environment card's row-building calls. */
 export function resolveIncludedOrdered(all: EnvironmentDeviceOption[], order: string[] | undefined, excluded: string[] | undefined): EnvironmentDeviceOption[] {
   const excludedSet = new Set(excluded ?? []);
   return resolveEnvironmentOrder(all, order).filter((e) => !excludedSet.has(e.deviceId));
@@ -50,7 +36,7 @@ export function resolveIncludedOrdered(all: EnvironmentDeviceOption[], order: st
  * that same approach for any card whose rows carry a device id.
  *
  * `envDevices` must already be in the desired display order (call
- * resolveIncludedOrdered/resolveIncludedOrderedWithLegacy first, the
+ * resolveIncludedOrdered first, the
  * same way every card already does before this) — this function only
  * groups and filters, it doesn't re-derive order from anything.
  * `sortWithinGroup` runs on each bucket's own rows afterward (whatever
@@ -91,54 +77,5 @@ export function resolveEffectiveGroupBy<T extends string>(groupBy: T | 'environm
   return resolved === 'environment' && envDevices.length <= 1 ? 'none' : resolved;
 }
 
-/**
- * Single shared resolver for every card migrating from a legacy single-
- * environment (or, for Updates specifically, scope + single-environment)
- * shape to this shared `environments_order`/`exclude_device_ids` pair —
- * Stacks, Containers, and Updates as of this writing, all real, released
- * config shapes (`device_id` alone since 1.0.0 for the first two;
- * `scope: 'all' | 'environment'` + `device_id` since 1.1.0 for Updates;
- * `scope: 'selected'` was added later in this same still-unreleased
- * cycle and never shipped, so it needs no migration path of its own — an
- * already-`environments_order`/`exclude_device_ids` config from that
- * in-between state is handled by the normal resolveIncludedOrdered
- * branch below, same as a fully-migrated one).
- *
- * Deliberately does *not* migrate anything in the stored config, in
- * setConfig() or anywhere else: an existing legacy config keeps working
- * exactly as saved, indefinitely, computed fresh each time from
- * whichever fields are actually present, rather than being rewritten on
- * first load. Once the person actually interacts with the Environments
- * section (drag, exclude, solo — any of it), the editor's own
- * onMoved/onToggleExcluded callbacks write real environments_order/
- * exclude_device_ids values, which take over from the legacy fields from
- * that point on.
- *
- * `legacyScope` is what distinguishes the two real shapes this covers:
- * omitted entirely (Stacks/Containers, which never had a scope concept
- * at all) — solos `legacyDeviceId` whenever it's present, no scope check
- * needed. Passed explicitly (Updates) — only solos when scope is
- * specifically `'environment'`, so a `device_id` left over from some
- * hand-edited YAML doesn't accidentally solo an environment while scope
- * is `'all'`. A future card with a legacy shape extends this function
- * rather than adding a near-copy.
- */
-export function resolveIncludedOrderedWithLegacy(
-  all: EnvironmentDeviceOption[],
-  order: string[] | undefined,
-  excluded: string[] | undefined,
-  legacyDeviceId: string | undefined,
-  legacyScope?: EnvironmentScope
-): EnvironmentDeviceOption[] {
-  if (order !== undefined || excluded !== undefined) {
-    return resolveIncludedOrdered(all, order, excluded);
-  }
-  const shouldSolo = legacyScope !== undefined ? legacyScope === 'environment' : Boolean(legacyDeviceId);
-  if (shouldSolo) {
-    return legacyDeviceId ? all.filter((d) => d.deviceId === legacyDeviceId) : [];
-  }
-  return resolveIncludedOrdered(all, order, excluded);
-}
-
-// effectiveExcludeDeviceIds and renderEnvironmentOrderSection have moved to
-// environment-scope-editor.ts — they depend on i18n and are editor-only.
+// renderEnvironmentOrderSection is in environment-scope-editor.ts: it depends
+// on i18n and is editor-only.

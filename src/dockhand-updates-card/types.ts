@@ -1,21 +1,11 @@
 import type { LovelaceCardConfig } from 'custom-card-helpers';
 import type { EntityNameItem } from '../common/ha-types';
 import type { FiltersConfig } from '../common/filters';
-import type { EnvironmentScope } from '../common/environment-scope';
 
 export type UpdatesGroupBy = 'none' | 'environment';
 
 export interface DockhandUpdatesCardConfig extends LovelaceCardConfig {
   type: 'custom:dockhand-updates-card';
-  /** Legacy fields — real, released since 1.1.0 (`scope: 'all' |
-   * 'environment'`; `scope: 'selected'` was added later in this same
-   * still-unreleased cycle and never shipped). Never written by this
-   * card's own editor anymore once environments_order/exclude_device_ids
-   * exist; kept purely so an already-saved config keeps working exactly
-   * as before, computed fresh each render rather than migrated in place.
-   * See resolveIncludedOrderedForUpdates in environment-scope.ts. */
-  scope?: EnvironmentScope;
-  device_id?: string;
   /** Device ids, in display order — which environments are included
    * (paired with exclude_device_ids) and what order groups display in.
    * Environments not listed sort after, alphabetically — same

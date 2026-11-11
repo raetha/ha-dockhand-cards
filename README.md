@@ -246,8 +246,6 @@ in the editor. Choosing environments works the same way on every multi-environme
 stopping or restarting. It's off by default so a stray tap on a list can't stop anything. System
 stacks get none, as on the Stack card; redeploying stays on the Stack card.
 
-Older configs using a single `device_id` keep working as before.
-
 <p>
   <img src="docs/images/stacks-list.png" alt="Stacks card, dark theme" width="420">
   <img src="docs/images/stacks-list-light.png" alt="Stacks card, light theme" width="420">
@@ -271,7 +269,7 @@ show_filtered_count: true # a "Hidden by filters" line under a filtered list
 
 Every container in one environment, several, or all of them, one compact row each: state, health,
 pending updates and CPU/memory (when container stats are enabled). Works like the Stacks card
-above, including **Row details**, **Show controls** and older `device_id` configs.
+above, including **Row details** and **Show controls**.
 
 With ha-dockhand 1.11.0 or later, a newer version tag Dockhand has found shows as a tag pill, like
 Dockhand's own containers list: next to the update icon when there's also an update to install, or
@@ -316,8 +314,7 @@ hours left, so you can see it coming ("At next check" once the wait is over, unt
 update check offers it). Both count in the header, and keep the card showing when **Hide when no
 updates** is on. Needs ha-dockhand 1.11.0 or later.
 
-Updates are grouped by environment by default; `group_by: none` shows one combined list. Older
-configs using `scope`/`device_id` keep working as before.
+Updates are grouped by environment by default; `group_by: none` shows one combined list.
 
 With filters set, the header counts the updates listed, and while filters hide some updates the
 button reads **Update listed** and installs only those shown. **Hide when no updates** still goes

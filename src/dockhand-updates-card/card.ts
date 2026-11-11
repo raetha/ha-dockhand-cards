@@ -5,8 +5,8 @@ import { fireEvent, type LovelaceCard, type LovelaceCardEditor } from 'custom-ca
 
 import type { HomeAssistant, LovelaceGridOptions } from '../common/ha-types';
 import { getContainerDevicesForEnvironment, getEnvironmentDevices, getRepresentativeEntityId, type EnvironmentDeviceOption } from '../common/device-utils';
-import { resolveIncludedOrderedWithLegacy, resolveEffectiveGroupBy } from '../common/environment-scope';
-import { resolveCardName, migrateTitleToName, multiEnvCardNameFallback } from '../common/card-name';
+import { resolveIncludedOrdered, resolveEffectiveGroupBy } from '../common/environment-scope';
+import { resolveCardName, multiEnvCardNameFallback } from '../common/card-name';
 import { resolveEnvironmentEntities, findPrimaryEntityByDomain } from '../common/entity-resolver';
 import { getTotalPendingUpdates } from '../common/updates-visibility';
 import { activeFilterCount, applyFilters, type FilterExtractor } from '../common/filters';
@@ -98,7 +98,7 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
   }
 
   setConfig(config: DockhandUpdatesCardConfig): void {
-    this._config = migrateTitleToName(config as Record<string, unknown>) as DockhandUpdatesCardConfig;
+    this._config = config;
   }
 
   set config(config: DockhandUpdatesCardConfig) {
@@ -121,13 +121,7 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
   private _buildGroups(): { groups: EnvGroup[]; checkUpdatesEntityIds: string[]; envDevices: EnvironmentDeviceOption[]; hidden: number } {
     if (!this._hass || !this._config) return { groups: [], checkUpdatesEntityIds: [], envDevices: [], hidden: 0 };
 
-    const envDevices: EnvironmentDeviceOption[] = resolveIncludedOrderedWithLegacy(
-      getEnvironmentDevices(this._hass),
-      this._config.environments_order,
-      this._config.exclude_device_ids,
-      this._config.device_id,
-      this._config.scope
-    );
+    const envDevices: EnvironmentDeviceOption[] = resolveIncludedOrdered(getEnvironmentDevices(this._hass), this._config.environments_order, this._config.exclude_device_ids);
 
     const groups: EnvGroup[] = [];
     const checkUpdatesEntityIds: string[] = [];
@@ -204,11 +198,9 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
     const updateAllLabel = t(this._hass, hidden > 0 ? 'update_listed' : 'update_all');
     const representativeEntityId = getRepresentativeEntityId(this._hass, envDeviceIds[0]);
     const name = resolveCardName(this._hass, representativeEntityId, this._config.name, multiEnvCardNameFallback(envDevices, t(this._hass, 'name_updates')));
-    // Based on how many environments are actually included, not the
-    // card's old scope field — a single included environment (whether
-    // that's because only one exists, or because everything else was
-    // explicitly excluded) makes the group header redundant the same
-    // way scope: 'environment' always did; more than one still needs it
+    // Based on how many environments are actually included: a single
+    // one (whether only one exists or everything else is excluded) makes
+    // the group header redundant; more than one still needs it
     // even if, at this exact moment, only one happens to have anything
     // pending, since the header is what says *where* the update lives.
     // Same shared suppression Stacks/Containers/Schedules now all use

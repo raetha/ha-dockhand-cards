@@ -5,12 +5,12 @@ import type { HaFormSchema } from '../common/ha-form-types';
 
 import type { HomeAssistant } from '../common/ha-types';
 import { getEnvironmentDevices, getRepresentativeEntityId } from '../common/device-utils';
-import { cardNameFieldSchema, migrateTitleToName } from '../common/card-name';
+import { cardNameFieldSchema } from '../common/card-name';
 import { stripUndefinedKeys } from '../common/config-utils';
 import { t } from '../common/i18n-editor';
 import { editorFormStyles, sortableRowStyles } from '../common/editor-styles';
-import { resolveIncludedOrderedWithLegacy } from '../common/environment-scope';
-import { renderEnvironmentOrderSection, effectiveExcludeDeviceIds } from '../common/environment-scope-editor';
+import { resolveIncludedOrdered } from '../common/environment-scope';
+import { renderEnvironmentOrderSection } from '../common/environment-scope-editor';
 import { DEFAULT_STACKS_BADGES, type DockhandStacksCardConfig } from './types';
 import { STACKS_FILTER_FIELDS, renderFiltersForm } from '../common/filters-editor';
 
@@ -32,12 +32,11 @@ export class DockhandStacksCardEditor extends LitElement implements LovelaceCard
   }
 
   setConfig(config: DockhandStacksCardConfig): void {
-    this._config = { sort_by: 'name', ...(migrateTitleToName(config as Record<string, unknown>) as DockhandStacksCardConfig) };
+    this._config = { sort_by: 'name', ...config };
   }
 
-  /** A patch key explicitly set to `undefined` (every caller clearing the
-   * legacy `device_id` field does this) means "remove this key" — see
-   * common/config-utils.ts's stripUndefinedKeys for the full reasoning. */
+  /** A patch key set to `undefined` means "remove this key": see
+   * common/config-utils.ts's stripUndefinedKeys. */
   private _updateConfig(patch: Partial<DockhandStacksCardConfig>): void {
     if (!this._config) return;
     this._config = stripUndefinedKeys({ ...this._config, ...patch }) as DockhandStacksCardConfig;
@@ -113,7 +112,7 @@ export class DockhandStacksCardEditor extends LitElement implements LovelaceCard
       return html`<div class="row">${t(this._hass, 'no_environments_found')}</div>`;
     }
 
-    const includedEnvDevices = resolveIncludedOrderedWithLegacy(devices, this._config.environments_order, this._config.exclude_device_ids, this._config.device_id);
+    const includedEnvDevices = resolveIncludedOrdered(devices, this._config.environments_order, this._config.exclude_device_ids);
     const representativeEntityId = includedEnvDevices[0] ? getRepresentativeEntityId(this._hass, includedEnvDevices[0].deviceId) : undefined;
 
     return html`
@@ -125,17 +124,6 @@ export class DockhandStacksCardEditor extends LitElement implements LovelaceCard
         @value-changed=${this._valueChanged}
       ></ha-form>
 
-      <!--
-        Legacy single-environment configs (device_id, real and released
-        since 1.0.0) are never rewritten here — this section shows "just
-        that one environment" as the effective selection (via
-        effectiveExcludeDeviceIds) without touching stored config at all,
-        until the person actually interacts with it. The first drag,
-        exclude, or solo action writes real environments_order/
-        exclude_device_ids from that point on — see
-        resolveIncludedOrderedWithLegacy's own comment in
-        environment-scope.ts for the full reasoning.
-      -->
       ${renderEnvironmentOrderSection({
         hass: this._hass,
         headingKey: 'label_environments',
@@ -143,7 +131,7 @@ export class DockhandStacksCardEditor extends LitElement implements LovelaceCard
         icon: 'mdi:web',
         hidden: this.cardIsEmbedded,
         order: this._config.environments_order,
-        excluded: effectiveExcludeDeviceIds(devices, this._config.exclude_device_ids, this._config.device_id),
+        excluded: this._config.exclude_device_ids,
         showExcludeToggle: true,
         // Drag order only actually affects anything when grouped by
         // environment (groupStackRows sorts *other* groupings by status
@@ -151,17 +139,17 @@ export class DockhandStacksCardEditor extends LitElement implements LovelaceCard
         // the handle stays visible but disabled otherwise, rather than
         // functional but silently inert.
         allowReorder: (this._config.group_by ?? (this.cardIsEmbedded ? 'none' : 'environment')) === 'environment',
-        onMoved: (order) => this._updateConfig({ environments_order: order, device_id: undefined }),
+        onMoved: (order) => this._updateConfig({ environments_order: order }),
         onToggleExcluded: (deviceId, nowExcluded) => {
-          const current = effectiveExcludeDeviceIds(devices, this._config?.exclude_device_ids, this._config?.device_id) ?? [];
+          const current = this._config?.exclude_device_ids ?? [];
           const next = nowExcluded ? [...current, deviceId] : current.filter((id) => id !== deviceId);
-          this._updateConfig({ exclude_device_ids: next, device_id: undefined });
+          this._updateConfig({ exclude_device_ids: next });
         },
         onSolo: (deviceId) => {
-          this._updateConfig({ exclude_device_ids: devices.filter((d) => d.deviceId !== deviceId).map((d) => d.deviceId), device_id: undefined });
+          this._updateConfig({ exclude_device_ids: devices.filter((d) => d.deviceId !== deviceId).map((d) => d.deviceId) });
         },
-        onSelectAll: () => this._updateConfig({ exclude_device_ids: [], device_id: undefined }),
-        onClearAll: () => this._updateConfig({ exclude_device_ids: devices.map((d) => d.deviceId), device_id: undefined })
+        onSelectAll: () => this._updateConfig({ exclude_device_ids: [] }),
+        onClearAll: () => this._updateConfig({ exclude_device_ids: devices.map((d) => d.deviceId) })
       })}
 
       ${renderFiltersForm(this._hass, STACKS_FILTER_FIELDS, this._config, (patch) => this._updateConfig(patch))}

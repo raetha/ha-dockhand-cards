@@ -4,8 +4,7 @@ import type { EntityNameItem, HomeAssistant } from './ha-types';
 /**
  * This repo's shared card-name field — every card's own Content section
  * uses this instead of a plain `{ name: 'title', selector: { text: {} } }`
- * field, and it always stores into a `name` config key (`title` is the
- * legacy name, migrated by migrateTitleToName).
+ * field, and it always stores into a `name` config key.
  *
  * Named around what this actually *is* for this repo — a card's name/
  * title — not around "entity," even though the field it's built from is
@@ -46,39 +45,6 @@ import type { EntityNameItem, HomeAssistant } from './ha-types';
  * a confusing mismatch between what the editor previews and what
  * actually renders, not a difference in the real default itself.
  */
-/**
- * Migrates a config carrying the old `title: string` field (real,
- * released in 1.1.0 for six of this repo's cards) to the new `name`
- * field this file's own cardNameFieldSchema/resolveCardName use. A
- * plain string is already a valid `name` value (Custom mode is exactly
- * that), so this is a straight move, not a conversion — but it has to
- * happen somewhere, or an existing user's real, already-saved
- * `title: "My Custom Title"` would be silently ignored the moment this
- * repo stops reading `title` at all, with no error and no visible
- * explanation for where their title went. Idempotent and safe to call
- * unconditionally in every affected card's own setConfig(): a config
- * that never had `title` (new, or already migrated) passes through
- * unchanged. `title` is always stripped once present, even in the one
- * case its value doesn't get used — a config with both `title` and
- * `name` already set (shouldn't normally happen, but a person
- * hand-editing YAML could produce it) keeps whichever `name` was
- * already there rather than silently overwriting it with the stale
- * `title`, but still drops the now-meaningless `title` key rather than
- * leaving it to linger in every future save.
- *
- * Takes/returns `Record<string, unknown>` rather than each card's own
- * config type — a config arriving via setConfig() is only ever
- * type-asserted, never actually validated at that boundary (it's
- * whatever the person's YAML happened to contain), so this reflects
- * what's really being handled here more honestly than threading a
- * generic through call sites would.
- */
-export function migrateTitleToName(config: Record<string, unknown>): Record<string, unknown> {
-  if (config.title === undefined) return config;
-  const { title, ...rest } = config;
-  return config.name !== undefined ? rest : { ...rest, name: title };
-}
-
 export function cardNameFieldSchema(entityId: string | undefined, defaultName: string | EntityNameItem | EntityNameItem[]): HaFormSchema {
   return {
     name: 'name',

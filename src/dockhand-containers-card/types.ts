@@ -26,13 +26,6 @@ export type ContainersSortBy = 'name' | 'status';
 
 export interface DockhandContainersCardConfig extends LovelaceCardConfig {
   type: 'custom:dockhand-containers-card';
-  /** Legacy single-environment field — real, released since 1.0.0.
-   * Never written by this card's own editor anymore once
-   * environments_order/exclude_device_ids exist; kept purely so an
-   * already-saved config with only this field keeps working exactly as
-   * before, computed fresh each render rather than migrated in place.
-   * See resolveIncludedOrderedWithLegacy in environment-scope.ts. */
-  device_id?: string;
   environments_order?: string[];
   exclude_device_ids?: string[];
   /** Composed (Area/Device/Entity/Floor) or Custom (a plain string) —

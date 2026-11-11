@@ -32,8 +32,8 @@ VERBOSE = '--verbose' in sys.argv
 EXTRA_CARDS = [
     ('dockhand-container-card', {'device_id': 'container_1_backup'}),
     ('dockhand-stack-card', {'device_id': 'stack_1_monitoring'}),
-    ('dockhand-stacks-card', {'device_id': 'env_1', 'group_by': 'status', 'show_controls': True}),
-    ('dockhand-containers-card', {'device_id': 'env_1', 'group_by': 'status', 'show_controls': True}),
+    ('dockhand-stacks-card', {'exclude_device_ids': ['env_2', 'env_3', 'env_4'], 'group_by': 'status', 'show_controls': True}),
+    ('dockhand-containers-card', {'exclude_device_ids': ['env_2', 'env_3', 'env_4'], 'group_by': 'status', 'show_controls': True}),
     ('dockhand-schedules-card', {'group_by': 'status', 'show_stats': True, 'show_controls': True}),
     ('dockhand-environment-card', {'device_id': 'env_3', 'mode': 'standard'}),
     ('dockhand-environment-card', {'device_id': 'env_1', 'mode': 'detailed'}),

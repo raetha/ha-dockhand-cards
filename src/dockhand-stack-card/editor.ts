@@ -5,7 +5,7 @@ import type { HaFormSchema } from '../common/ha-form-types';
 
 import type { HomeAssistant } from '../common/ha-types';
 import { getEnvironmentDevices, getStackDevicesForEnvironment, getEnvIdForStackDevice, getEnvDeviceIdForEnvId, getRepresentativeEntityId } from '../common/device-utils';
-import { cardNameFieldSchema, migrateTitleToName } from '../common/card-name';
+import { cardNameFieldSchema } from '../common/card-name';
 import { resolveStackEntities, getStackDropdownOptions } from '../common/entity-resolver';
 import { t } from '../common/i18n-editor';
 import { editorFormStyles } from '../common/editor-styles';
@@ -32,7 +32,7 @@ export class DockhandStackCardEditor extends LitElement implements LovelaceCardE
   }
 
   setConfig(config: DockhandStackCardConfig): void {
-    this._config = migrateTitleToName(config as Record<string, unknown>) as DockhandStackCardConfig;
+    this._config = config;
   }
 
   /** Falls back to deriving the environment from the currently configured

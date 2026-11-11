@@ -4,37 +4,14 @@
  * does not pull in the full editor translation table.
  *
  * Exports:
- *   effectiveExcludeDeviceIds — editor reflection of the legacy-field state
  *   renderEnvironmentOrderSection — shared drag-to-reorder environment list
  */
 
 import { html, nothing, type TemplateResult } from 'lit';
 import type { HomeAssistant } from './ha-types';
-import { getEnvironmentDevices, type EnvironmentDeviceOption } from './device-utils';
+import { getEnvironmentDevices } from './device-utils';
 import { t, type EditorTranslationKey } from './i18n-editor';
-import { resolveEnvironmentOrder, type EnvironmentScope } from './environment-scope';
-
-export type { EnvironmentScope };
-
-/** Editor-side counterpart to resolveIncludedOrderedWithLegacy — what
- * renderEnvironmentOrderSection's own `excluded` option should show when
- * only legacy fields are present, so the editor accurately reflects
- * "just this one environment" (everything else shown as excluded) rather
- * than looking like nothing's been chosen at all. Never written back
- * into config on its own — only actually interacting with the section
- * writes real exclude_device_ids, same reasoning as
- * resolveIncludedOrderedWithLegacy's own comment. */
-export function effectiveExcludeDeviceIds(
-  all: EnvironmentDeviceOption[],
-  excluded: string[] | undefined,
-  legacyDeviceId: string | undefined,
-  legacyScope?: EnvironmentScope
-): string[] | undefined {
-  if (excluded !== undefined || !legacyDeviceId) return excluded;
-  const shouldSolo = legacyScope !== undefined ? legacyScope === 'environment' : true;
-  if (!shouldSolo) return excluded;
-  return all.filter((d) => d.deviceId !== legacyDeviceId).map((d) => d.deviceId);
-}
+import { resolveEnvironmentOrder } from './environment-scope';
 
 /**
  * The shared "selected environments" editor section — a drag-to-reorder

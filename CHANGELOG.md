@@ -68,6 +68,15 @@ and [Unreleased] is the notes of the current test build.
   before 1.1.0 and never edited since is affected: rename the two keys in its YAML (add the
   missing "s"), or open and save it in the editor before updating.
 
+- **Breaking: settings replaced in 1.2.0 are no longer read** (1.2.0 replaced them; the editors
+  have written the new ones since). Check cards configured before 1.2.0 and not changed in the
+  editor since:
+  - **Stacks, Containers and Updates cards limited to one environment** with `device_id` (and on
+    Updates, `scope`) now show every environment. In the card's editor, click the target icon next
+    to the environment it should show, or in YAML list the others under `exclude_device_ids`.
+  - **A card's `title`** is no longer its name; the card shows its default name. Set **Name** in
+    the editor, or rename `title:` to `name:` in YAML.
+
 ### Fixed
 - **Header buttons that can't be used** (such as an unavailable Dockhand
   link) are announced as unavailable by screen readers.

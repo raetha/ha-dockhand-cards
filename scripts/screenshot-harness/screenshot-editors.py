@@ -12,7 +12,7 @@ OUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "out")
 # way screenshot.py's CARDS list does for the README.
 EDITORS = [
     ("dockhand-schedules-card", {"group_by": "environment"}, "editor-schedules.png", 480, 750),
-    ("dockhand-updates-card", {"scope": "selected"}, "editor-updates.png", 480, 550),
+    ("dockhand-updates-card", {}, "editor-updates.png", 480, 550),
     ("dockhand-overview-card", {"show_environments": True, "show_stacks": True}, "editor-overview.png", 480, 900),
 ]
 

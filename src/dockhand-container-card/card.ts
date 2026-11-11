@@ -5,7 +5,7 @@ import { fireEvent, type LovelaceCard, type LovelaceCardEditor } from 'custom-ca
 
 import type { HomeAssistant, LovelaceGridOptions } from '../common/ha-types';
 import { getAllContainerDevices, getRepresentativeEntityId } from '../common/device-utils';
-import { resolveCardName, migrateTitleToName } from '../common/card-name';
+import { resolveCardName } from '../common/card-name';
 import { resolveContainerEntities, findPrimaryEntityByDomain, type ResolutionResult } from '../common/entity-resolver';
 import { renderResourceIo, renderResourceMetrics } from '../common/resource-sections';
 import { joinWithDividers, mergeSections } from '../common/section-join';
@@ -61,7 +61,7 @@ export class DockhandContainerCard extends LitElement implements LovelaceCard {
   }
 
   setConfig(config: DockhandContainerCardConfig): void {
-    this._config = { show_settings_link: true, ...(migrateTitleToName(config as Record<string, unknown>) as DockhandContainerCardConfig) };
+    this._config = { show_settings_link: true, ...config };
   }
 
   set config(config: DockhandContainerCardConfig) {
