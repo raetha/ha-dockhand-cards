@@ -93,6 +93,7 @@ const en = {
   content_section_heading: 'Content',
   solo_this_environment: 'Show only this environment',
   select_all_environments: 'Show all',
+  option_all_environments: 'All environments',
   clear_all_environments: 'Clear',
   icon: 'Icon (optional)',
   show_controls: 'Show controls (start / stop / restart)',

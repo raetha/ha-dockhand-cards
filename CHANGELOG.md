@@ -68,6 +68,8 @@ and [Unreleased] is the notes of the current test build.
   missing "s"), or open and save it in the editor before updating.
 
 ### Fixed
+- **Header buttons that can't be used** (such as an unavailable Dockhand
+  link) are announced as unavailable by screen readers.
 - **The Containers, Stacks and Environment cards' "nothing found yet" messages are translated**;
   they showed in English whatever the dashboard's language.
 - **Stacks: a restarting stack** shows as restarting, with its own icon, instead of an unknown
@@ -96,6 +98,10 @@ and [Unreleased] is the notes of the current test build.
 
 ### Added
 
+- **Vulnerabilities across all environments** — the Vulnerability card's
+  environment picker has **All environments**: every scanned environment's
+  findings added up, with a row per environment. The Dockhand dashboard's
+  overview uses it instead of a card per environment.
 - **Test builds.** Upcoming changes are now published as test builds (pre-releases such as
   `v1.5.1-dev.42`) that HACS can install once the Dockhand Cards **Pre-release** switch is turned
   on; the README's new "Test builds" section explains how, and how to go back.

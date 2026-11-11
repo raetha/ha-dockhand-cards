@@ -485,7 +485,7 @@ dashboard configuration each time the dashboard loads (frontend `get-strategy.ts
   `window.customStrategies` (`index.ts`), so it's offered under Add dashboard → Community
   dashboards. The overview view: a `column_span: 2` section of environments, two to a row (each a
   vertical stack of a heading that navigates to its view and a standard Environment card), a
-  section with Updates and each scanned environment's Vulnerability card, and one with Schedules.
+  section with Updates and an all-environments Vulnerability card, and one with Schedules.
   Then a `subview` per environment, so the views aren't identical tabs: each has a back arrow to
   the overview (hui-root falls back to the dashboard's first view) and only names its view
   strategy, so it's built when opened.
