@@ -89,12 +89,16 @@ function buildEnvironment(addDevice, addEntity, opts) {
     onlineAttrs.labels = labels;
   }
   addEntity(entity(`binary_sensor.${slug}_online`, envDeviceId, 'online', online ? 'on' : 'off', onlineAttrs));
-  if (autoUpdate) {
-    addEntity(entity(`binary_sensor.${slug}_auto_update`, envDeviceId, 'auto_update', 'on', { name: `${name} auto-update`, icon: STATUS_ICON.auto_update }, { friendly_name: `${name} auto-update` }));
-  }
-  if (updateChecks) {
-    addEntity(entity(`binary_sensor.${slug}_update_checks`, envDeviceId, 'update_checks', 'on', { name: `${name} update checks`, icon: STATUS_ICON.update_checks }, { friendly_name: `${name} update checks` }));
-  }
+  // The environment's settings, as ha-dockhand 2.0 has them: switches,
+  // with scanning a sensor plus the scanner select.
+  const setting = (domain, key, on) =>
+    addEntity(entity(`${domain}.${slug}_${key}`, envDeviceId, key, on ? 'on' : 'off', { friendly_name: `${name} ${key.replace(/_/g, ' ')}`, icon: STATUS_ICON[key] }, { entity_category: 'config' }));
+  setting('switch', 'auto_update', autoUpdate);
+  setting('switch', 'update_checks', updateChecks || autoUpdate);
+  setting('switch', 'activity_logging', online);
+  setting('switch', 'metrics_collection', online && !autoUpdate);
+  setting('binary_sensor', 'vulnerability_scanning', true);
+  addEntity(entity(`select.${slug}_vulnerability_scanner`, envDeviceId, 'vulnerability_scanner', 'grype', {}, { entity_category: 'config' }));
   addEntity(
     entity(
       `sensor.${slug}_connection_type`,

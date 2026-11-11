@@ -36,6 +36,10 @@ and [Unreleased] is the notes of the current test build.
   Schedule controls need ha-dockhand 2.0.0 or later.
 
 ### Changed
+- **The Environment card's header icons stay when a feature is off** —
+  update checks, scanning, activity and metrics show grey instead of
+  disappearing, and a click opens the control to turn them on or off
+  (with ha-dockhand 2.0.0's switches; scanning opens the scanner choice).
 - **Updates card: Update all installs exactly the updates the card lists**, in one go (ha-dockhand
   runs them as one Dockhand job per environment). With filters set it becomes **Update listed**
   and leaves hidden updates alone. When nothing listed can be installed from Home Assistant (newer

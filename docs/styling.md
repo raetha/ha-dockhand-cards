@@ -47,6 +47,7 @@ dockhand-specific is needed:
 | `--dockhand-status-warn-color` | `var(--warning-color, #ffa600)` | Paused/partial/pending-update states, including the newer version tag pill (its icon, and a 10% tint behind it — 20% on hover) |
 | `--dockhand-status-error-color` | `var(--error-color, #db4437)` | Stopped/unhealthy/restarting/sync-error states |
 | `--dockhand-status-info-color` | `var(--info-color, #039be5)` | In-progress states (currently just git "syncing") |
+| `--dockhand-status-off-color` | `var(--secondary-text-color, #727272)` | A feature that's off: the Environment card's header icons for update checks, scanning, activity and metrics |
 | `--dockhand-severity-critical-color` | `var(--dockhand-status-error-color)` | Vulnerability card — critical findings |
 | `--dockhand-severity-high-color` | error and warn colors mixed evenly | Vulnerability card — high findings (HA has no color between error and warning) |
 | `--dockhand-severity-medium-color` | `var(--dockhand-status-warn-color)` | Vulnerability card — medium findings |
