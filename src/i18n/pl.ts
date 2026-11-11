@@ -289,7 +289,6 @@ const editor: Record<EditorTranslationKey, string> = {
   content_section_heading: 'Zawartość',
   solo_this_environment: 'Pokaż tylko to środowisko',
   select_all_environments: 'Pokaż wszystko',
-  option_all_environments: 'Wszystkie środowiska',
   dashboard_instance: 'Instancja Dockhand',
   dashboard_all_instances: 'Wszystkie instancje',
   dashboard_overview_page: 'Strona przeglądu',

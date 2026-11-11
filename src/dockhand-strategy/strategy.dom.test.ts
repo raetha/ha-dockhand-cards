@@ -55,7 +55,7 @@ describe('Dockhand dashboard strategy', () => {
     expect(headings.map((h) => (h.tap_action as { navigation_path: string }).navigation_path)).toEqual(environments.map((v) => v.path));
     expect(envSection.cards.map((stack) => stack.cards![1].mode)).toEqual(['standard', 'standard', 'standard', 'standard']);
     expect(types(updates.cards)).toEqual(['updates', 'vulnerability']);
-    expect(updates.cards[1].device_id).toBe('all');
+    expect(updates.cards[1]).not.toHaveProperty('device_id');
     expect(types(schedules.cards)).toEqual(['schedules']);
   });
 

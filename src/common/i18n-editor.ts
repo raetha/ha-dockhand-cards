@@ -93,7 +93,6 @@ const en = {
   content_section_heading: 'Content',
   solo_this_environment: 'Show only this environment',
   select_all_environments: 'Show all',
-  option_all_environments: 'All environments',
   dashboard_instance: 'Dockhand instance',
   dashboard_all_instances: 'All instances',
   dashboard_overview_page: 'Overview page',
