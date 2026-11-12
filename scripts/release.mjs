@@ -47,13 +47,22 @@ export function sections(changelog) {
 
 /** Problems that should fail CI. On `dev`, package.json holds the expected next version, which
  * has no section until the release pull request dates it; `release` (pull requests into and
- * pushes to main) requires that dated section, so an undated release can't merge. */
-export function check(changelog, version, release = false) {
+ * pushes to main) requires that dated section, so an undated release can't merge.
+ * `releasedFrom` (main's CHANGELOG.md) keeps every released section unchanged: an entry meant
+ * for Unreleased that lands under the release below it would otherwise go unnoticed. */
+export function check(changelog, version, release = false, releasedFrom = undefined) {
   const found = sections(changelog);
   const problems = [];
   if (!found.has('Unreleased')) problems.push('CHANGELOG.md has no "## [Unreleased]" section');
   if (release && !found.has(version)) {
     problems.push(`CHANGELOG.md has no dated section for version ${version}: date it in the release pull request`);
+  }
+  if (releasedFrom !== undefined) {
+    for (const [name, text] of sections(releasedFrom)) {
+      if (name !== 'Unreleased' && found.get(name) !== text) {
+        problems.push(`CHANGELOG.md changes the released [${name}] section: new entries go under [Unreleased]`);
+      }
+    }
   }
   return problems;
 }
@@ -91,7 +100,9 @@ function main(argv) {
   const [cmd, ...args] = argv;
   switch (cmd) {
     case 'check': {
-      const problems = check(changelog, version, args.includes('--release'));
+      const from = args.indexOf('--released-from');
+      const released = from >= 0 ? readFileSync(args[from + 1], 'utf8') : undefined;
+      const problems = check(changelog, version, args.includes('--release'), released);
       for (const p of problems) console.error(`::error file=CHANGELOG.md::${p}`);
       if (problems.length) process.exit(1);
       console.log(`CHANGELOG.md OK for ${version}`);
@@ -109,7 +120,7 @@ function main(argv) {
       break;
     }
     default:
-      console.error('usage: release.mjs check [--release] | version | dev-version <run> <tagged> | notes <version> [--test-build <run>]');
+      console.error('usage: release.mjs check [--release] [--released-from <changelog>] | version | dev-version <run> <tagged> | notes <version> [--test-build <run>]');
       process.exit(2);
   }
 }

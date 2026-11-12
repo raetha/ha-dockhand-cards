@@ -155,8 +155,12 @@ under `## [Unreleased]`, written for people installing the cards:
   fixed within the same unreleased cycle gets no entry.
 - Changes with no user-facing effect (dependency updates, test or build tooling, the screenshot
   harness) get a short line under `### Internal` saying what changed and why.
-- Released sections are frozen: never rewrite them. (Older ones use an em dash before the date;
-  the tooling reads both.)
+- Open with a summary: a few sentences under the version heading, before the first `###`
+  section, saying why the release matters (its aims or highlights) and what to do before
+  upgrading if anything is breaking. Rewrite it as the release takes shape; a small release may
+  need only a sentence.
+- Released sections are frozen: never rewrite them; CI compares them with `main`'s. (Older ones
+  use an em dash before the date; the tooling reads both.)
 - A reusable technical gotcha belongs in [architecture.md](architecture.md), not the changelog;
   [backlog.md](backlog.md) is only for what isn't done.
 
