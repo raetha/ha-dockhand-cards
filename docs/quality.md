@@ -1,35 +1,21 @@
 # Quality checklist
 
-Home Assistant's [integration quality scale](https://www.home-assistant.io/docs/quality_scale/)
-has no equivalent for Lovelace cards or HACS "Plugin" repos — confirmed against HACS's own docs
-(hacs.xyz) and the HA developer docs for custom cards. What HACS itself actually validates for a
-plugin repository (via the `hacs/action` GitHub Action, and separately for inclusion in the
-default store) is narrower:
+Home Assistant's [integration quality scale](https://www.home-assistant.io/docs/quality_scale/) has no equivalent for Lovelace cards or HACS "Plugin" repos — confirmed against HACS's own docs (hacs.xyz) and the HA developer docs for custom cards. What HACS itself actually validates for a plugin repository (via the `hacs/action` GitHub Action, and separately for inclusion in the default store) is narrower:
 
 - `hacs.json` exists and contains at least `name`
 - Repository is public, not archived, and has at least one GitHub **release** (not just a tag)
 - Has a description and topics set on GitHub (used for search, not shown in HACS)
 - Has a README
-- *(Default-store inclusion only, not needed for a custom repository)*: submitter is the owner or
-  a major contributor; README contains images
+- *(Default-store inclusion only, not needed for a custom repository)*: submitter is the owner or a major contributor; README contains images
 
-That's the actual bar. Everything below this line is a self-imposed checklist built from that
-baseline plus the community reference implementation (`custom-cards/boilerplate-card`) and general
-Lovelace card best practices — not an official standard, but a concrete target for what "as high
-quality as possible" means for this repo. Check it before every release.
+That's the actual bar. Everything below this line is a self-imposed checklist built from that baseline plus the community reference implementation (`custom-cards/boilerplate-card`) and general Lovelace card best practices — not an official standard, but a concrete target for what "as high quality as possible" means for this repo. Check it before every release.
 
 ## Repository / HACS
 
-- [x] `hacs.json` with `name` and `filename` (no `content_in_root` override — matches
-      `custom-cards/boilerplate-card` exactly, since the bundle isn't in the repo tree at all,
-      only ever delivered as a release asset; see `docs/development.md` → "Branches and releases" for how
-      that's confirmed to be how HACS actually resolves it)
+- [x] `hacs.json` with `name` and `filename` (no `content_in_root` override — matches `custom-cards/boilerplate-card` exactly, since the bundle isn't in the repo tree at all, only ever delivered as a release asset; see `docs/development.md` → "Branches and releases" for how that's confirmed to be how HACS actually resolves it)
 - [x] Public GitHub repo, MIT `LICENSE`
-- [x] README with install instructions, a config reference, and screenshots for every card (via
-      `scripts/screenshot-harness/` — real rendered output against fictional mock data, not a live
-      instance)
-- [ ] GitHub repo description + topics set (`home-assistant`, `hacs`, `lovelace`,
-      `home-assistant-card`, `dockhand`) — set on GitHub itself, not in this repo
+- [x] README with install instructions, a config reference, and screenshots for every card (via `scripts/screenshot-harness/` — real rendered output against fictional mock data, not a live instance)
+- [ ] GitHub repo description + topics set (`home-assistant`, `hacs`, `lovelace`, `home-assistant-card`, `dockhand`) — set on GitHub itself, not in this repo
 - [x] Tagged GitHub releases with the bundle attached as a release asset (not committed to `main`)
 - [x] A `my.home-assistant.io` "Add to HACS" badge in the README
 
@@ -37,49 +23,28 @@ quality as possible" means for this repo. Check it before every release.
 
 - [x] TypeScript, `strict: true`, `noUnusedLocals`/`noUnusedParameters`
 - [x] ESLint clean (`npm run lint`)
-- [x] `npm run verify` (typecheck + lint + test + build) passes locally before every commit, and
-      CI runs the identical script on every push/PR
-- [x] Unit tests for all pure logic — entity resolution, device matching, formatting
-      (`src/common/*.ts`) and card-specific logic; every card and editor rendered and every
-      control driven in jsdom against the screenshot harness's mock data (`src/*.dom.test.ts`),
-      with a coverage floor in `vitest.config.ts`
-- [x] No hardcoded API calls or credentials — reads only `hass.states`/`hass.entities`/
-      `hass.devices`, same trust boundary as any other Lovelace card
+- [x] `npm run verify` (typecheck + lint + test + build) passes locally before every commit, and CI runs the identical script on every push/PR
+- [x] Unit tests for all pure logic — entity resolution, device matching, formatting (`src/common/*.ts`) and card-specific logic; every card and editor rendered and every control driven in jsdom against the screenshot harness's mock data (`src/*.dom.test.ts`), with a coverage floor in `vitest.config.ts`
+- [x] No hardcoded API calls or credentials — reads only `hass.states`/`hass.entities`/ `hass.devices`, same trust boundary as any other Lovelace card
 - [x] No `localStorage`/`sessionStorage` usage
-- [x] Editors built on HA's own `<ha-form>` schema system for their core fields (three —
-      Schedules, Updates, Overview — also interleave a shared hand-built sortable
-      environment-order/exclude section `<ha-form>` has no model for; see
-      `docs/architecture.md` §2), verified against present-day
-      HA source rather than assumed from older examples (`docs/architecture.md` §2 and §7)
+- [x] Editors built on HA's own `<ha-form>` schema system for their core fields (three — Schedules, Updates, Overview — also interleave a shared hand-built sortable environment-order/exclude section `<ha-form>` has no model for; see `docs/architecture.md` §2), verified against present-day HA source rather than assumed from older examples (`docs/architecture.md` §2 and §7)
 
 ## Card behavior
 
-- [x] A card with nothing chosen yet shows a message asking for it (with a warning icon) rather
-      than throwing, so the card picker's preview and a half-configured card still render
+- [x] A card with nothing chosen yet shows a message asking for it (with a warning icon) rather than throwing, so the card picker's preview and a half-configured card still render
 - [x] `getStubConfig` pre-fills a working default so "Add Card" isn't a blank slate
-- [x] `getCardSize` and `getGridOptions` implemented (masonry layout, and the newer "sections"
-      dashboard view's resizable grid respectively)
+- [x] `getCardSize` and `getGridOptions` implemented (masonry layout, and the newer "sections" dashboard view's resizable grid respectively)
 - [x] Visual editor — no YAML required for basic use
 - [x] `getEntitySuggestion` (HA's entity-first card picker)
-- [x] Every displayed value that maps to a real entity opens that entity's more-info dialog on
-      click/Enter/Space
-- [x] Icons pulled from the entity (`<ha-state-icon>`) rather than hardcoded, wherever a 1:1
-      entity exists, so a user's icon customization is reflected automatically
-- [x] Graceful degradation: disabled/missing entities never throw or render a broken layout —
-      either the specific value shows a neutral placeholder, or (for whole sections with no
-      backing data, like detailed mode's top-containers/recent-events) the section is omitted
-      entirely rather than shown empty. The one exception — a card with genuinely nothing else to
-      show (device not found, core sensor missing) — always pairs its message with a warning icon
-      (`.core-message` in shared-styles.ts) rather than showing unstyled text
+- [x] Every displayed value that maps to a real entity opens that entity's more-info dialog on click/Enter/Space
+- [x] Icons pulled from the entity (`<ha-state-icon>`) rather than hardcoded, wherever a 1:1 entity exists, so a user's icon customization is reflected automatically
+- [x] Graceful degradation: disabled/missing entities never throw or render a broken layout — either the specific value shows a neutral placeholder, or (for whole sections with no backing data, like detailed mode's top-containers/recent-events) the section is omitted entirely rather than shown empty. The one exception — a card with genuinely nothing else to show (device not found, core sensor missing) — always pairs its message with a warning icon (`.core-message` in shared-styles.ts) rather than showing unstyled text
 - [x] Respects HA theme variables — no hardcoded light/dark assumptions in `ha-card` chrome
-- [x] Theme-overridable status/severity colors via documented CSS custom properties, and a stable
-      class-name structure for card_mod — see `docs/styling.md`
-- [ ] Keyboard navigation manually tested in a real browser (implemented via `tabindex`/`role`/
-      `@keydown`, not yet verified against a screen reader)
+- [x] Theme-overridable status/severity colors via documented CSS custom properties, and a stable class-name structure for card_mod — see `docs/styling.md`
+- [ ] Keyboard navigation manually tested in a real browser (implemented via `tabindex`/`role`/ `@keydown`, not yet verified against a screen reader)
 - [ ] Tested against both light and dark default HA themes on a live instance
 - [ ] Tested at narrow (mobile) card widths
 
 ## Known gaps (tracked, not blocking)
 
-See `backlog.md` in this same folder for what's not done yet, `architecture.md` for how this
-repo's pieces fit together and why.
+See `backlog.md` in this same folder for what's not done yet, `architecture.md` for how this repo's pieces fit together and why.

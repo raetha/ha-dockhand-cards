@@ -10,137 +10,59 @@ and [Unreleased] is the notes of the current test build.
 
 ## [Unreleased]
 
-Dockhand Cards 2.0 goes with the Dockhand integration 2.0: the cards now read its new count and
-size sensors instead of attributes, and use the controls it adds. There's a **Dockhand dashboard**
-that lays out every environment for you, **filters** and **controls** on the list cards, Dockhand's
-**tags**, and an Updates card that installs exactly what it lists. The cards also download faster,
-each language now being its own file.
+Dockhand Cards 2.0 goes with the Dockhand integration 2.0: the cards now read its new count and size sensors instead of attributes, and use the controls it adds. There's a **Dockhand dashboard** that lays out every environment for you, **filters** and **controls** on the list cards, Dockhand's **tags**, and an Updates card that installs exactly what it lists. The cards also download faster, each language now being its own file.
 
-Some changes are breaking: update the Dockhand integration to 2.0.0 at the same time, read
-**Removed**, and re-save an Updates card that hides itself when there's nothing to update.
+Some changes are breaking: update the Dockhand integration to 2.0.0 at the same time, read **Removed**, and re-save an Updates card that hides itself when there's nothing to update.
 
 ### Added
-- **A Dockhand dashboard** — pick **Dockhand** under Community dashboards when adding a dashboard
-  for an overview of every environment, with updates, vulnerabilities and schedules beside them,
-  and a page for each environment with all its cards (just that page when there's only one), that
-  keeps up as environments come and go.
-  Its settings choose the Dockhand instance, lay out the overview and the environment pages in up
-  to four columns by dragging cards between them, and set the cards' own settings as in the
-  Overview card. **Take control** turns it into a normal dashboard.
-- **Vulnerabilities across environments** — the Vulnerability card chooses
-  its environments like the list cards, from a list at the top of its
-  editor. With more than one, their findings are added up, with a row per
-  environment. The Dockhand dashboard's overview uses it instead of a card
-  per environment. The Overview card and the dashboard choose its
-  environment the same way. A card's old `device_id` keeps showing that
-  environment and becomes the new setting with the next change in the
-  editor.
-- **Filters on the list cards** — a **Filters** section in the Stacks, Containers, Updates and
-  Schedules editors. Pick one or more values per filter, or flip it to **is not**; set several
-  and a row has to pass them all. Containers: state (exited cleanly or with an error), health,
-  stack (or not in one), update kind and tags. Stacks: status, type, updates, Git sync and tags.
-  Updates: update kind, stack and tags. Schedules: type, last result, enabled, Dockhand's own or
-  yours, and where (an environment or global). A filtered card says when nothing matches and how
-  many rows its filters hide. Works in the Overview card's sections too.
+- **A Dockhand dashboard** — pick **Dockhand** under Community dashboards when adding a dashboard for an overview of every environment, with updates, vulnerabilities and schedules beside them, and a page for each environment with all its cards (just that page when there's only one), that keeps up as environments come and go. Its settings choose the Dockhand instance, lay out the overview and the environment pages in up to four columns by dragging cards between them, and set the cards' own settings as in the Overview card. **Take control** turns it into a normal dashboard.
+- **Vulnerabilities across environments** — the Vulnerability card chooses its environments like the list cards, from a list at the top of its editor. With more than one, their findings are added up, with a row per environment. The Dockhand dashboard's overview uses it instead of a card per environment. The Overview card and the dashboard choose its environment the same way. A card's old `device_id` keeps showing that environment and becomes the new setting with the next change in the editor.
+- **Filters on the list cards** — a **Filters** section in the Stacks, Containers, Updates and Schedules editors. Pick one or more values per filter, or flip it to **is not**; set several and a row has to pass them all. Containers: state (exited cleanly or with an error), health, stack (or not in one), update kind and tags. Stacks: status, type, updates, Git sync and tags. Updates: update kind, stack and tags. Schedules: type, last result, enabled, Dockhand's own or yours, and where (an environment or global). A filtered card says when nothing matches and how many rows its filters hide. Works in the Overview card's sections too.
 
-- **Dockhand tags** as coloured pills, as in Dockhand's own lists: on Stacks and Containers card
-  rows (a new **Tags** detail, on by default) and under the Stack and Container cards' headers.
-  Needs ha-dockhand 2.0.0 or later; earlier releases simply show none.
-- **Controls on list rows** — a **Show controls** option, off by default, on the Stacks and
-  Containers cards (start or stop, and restart while running, asking before stopping or
-  restarting) and the Schedules card (**Run now**, which asks first, and enable/disable). They sit
-  in their own column at the end of each row, so controls and values line up down the card.
-  Schedule controls need ha-dockhand 2.0.0 or later.
+- **Dockhand tags** as coloured pills, as in Dockhand's own lists: on Stacks and Containers card rows (a new **Tags** detail, on by default) and under the Stack and Container cards' headers. Needs ha-dockhand 2.0.0 or later; earlier releases simply show none.
+- **Controls on list rows** — a **Show controls** option, off by default, on the Stacks and Containers cards (start or stop, and restart while running, asking before stopping or restarting) and the Schedules card (**Run now**, which asks first, and enable/disable). They sit in their own column at the end of each row, so controls and values line up down the card. Schedule controls need ha-dockhand 2.0.0 or later.
 
 ### Changed
-- **The Environment card's header icons stay when a feature is off** —
-  update checks, scanning, activity and metrics show grey instead of
-  disappearing, and a click opens the control to turn them on or off
-  (with ha-dockhand 2.0.0's switches; scanning opens the scanner choice).
-- **Updates card: Update all installs exactly the updates the card lists**, in one go (ha-dockhand
-  runs them as one Dockhand job per environment). With filters set it becomes **Update listed**
-  and leaves hidden updates alone. When nothing listed can be installed from Home Assistant (newer
-  tags, pinned digests, held updates, system containers), the button stays but is disabled, and
-  its tooltip says why. An environment with nothing pending no longer shows as an empty group.
-- **Schedules card: Include global schedules is now the Where filter**, which can also show only
-  global schedules. Configs with `include_global: false` keep leaving them out, and the editor
-  rewrites them as that filter.
+- **The Environment card's header icons stay when a feature is off** — update checks, scanning, activity and metrics show grey instead of disappearing, and a click opens the control to turn them on or off (with ha-dockhand 2.0.0's switches; scanning opens the scanner choice).
+- **Updates card: Update all installs exactly the updates the card lists**, in one go (ha-dockhand runs them as one Dockhand job per environment). With filters set it becomes **Update listed** and leaves hidden updates alone. When nothing listed can be installed from Home Assistant (newer tags, pinned digests, held updates, system containers), the button stays but is disabled, and its tooltip says why. An environment with nothing pending no longer shows as an empty group.
+- **Schedules card: Include global schedules is now the Where filter**, which can also show only global schedules. Configs with `include_global: false` keep leaving them out, and the editor rewrites them as that filter.
 
-- **Smaller downloads: each language is its own file.** The cards and their editors now carry
-  only English and load the dashboard's language from a small file beside them, so the card file
-  is about 40% smaller (about 140 KB instead of 220 KB) and the editors' 75 KB instead of 130 KB.
-  Marketplace and HACS installs get the language files automatically. **A manual install must copy
-  every `.js` file from the release**, not just the two it used to; without them the cards show
-  English.
-- README: installing through Home Assistant's Marketplace (2026.11+), with its install link and
-  HACS for older versions, and the Marketplace's resource path for YAML-managed dashboards.
-- Versions show without a leading "v": HACS shows release tags, which from this release are plain
-  version numbers (`2.0.0`, test builds such as `2.0.1-dev.42`), like most other HACS
-  repositories. Earlier releases keep their `v` tags.
+- **Smaller downloads: each language is its own file.** The cards and their editors now carry only English and load the dashboard's language from a small file beside them, so the card file is about 40% smaller (about 140 KB instead of 220 KB) and the editors' 75 KB instead of 130 KB. Marketplace and HACS installs get the language files automatically. **A manual install must copy every `.js` file from the release**, not just the two it used to; without them the cards show English.
+- README: installing through Home Assistant's Marketplace (2026.11+), with its install link and HACS for older versions, and the Marketplace's resource path for YAML-managed dashboards.
+- Versions show without a leading "v": HACS shows release tags, which from this release are plain version numbers (`2.0.0`, test builds such as `2.0.1-dev.42`), like most other HACS repositories. Earlier releases keep their `v` tags.
 
 ### Removed
-- **Breaking: the Dockhand integration 2.0.0 is required.** It made its counts and sizes
-  sensors of their own instead of attributes, as Home Assistant asks, and the cards now read those
-  sensors; earlier releases of the cards show zeros and blanks against it, and these cards show
-  them against an earlier integration. Some of the new sensors are disabled by default in the
-  integration, and the card editors name the ones a card would use:
-  - **Environment card**: the Full and Custom modes' disk usage needs the four Disk usage parts
-    (Images, Containers, Volumes, Build cache), and the events row's count for today needs
-    **Activity events today**.
-  - **Vulnerability card**: the severities need **Critical**, **High**, **Medium** and **Low
-    vulnerabilities**, and the scanned count **Scanned images**; without them it shows the total
-    only.
-  - **Updates card with "Hide when no updates"**: the hiding rule it saved reads an attribute
-    the integration no longer has, so the card stays hidden. Open the card's editor and save it
-    once to rewrite the rule.
+- **Breaking: the Dockhand integration 2.0.0 is required.** It made its counts and sizes sensors of their own instead of attributes, as Home Assistant asks, and the cards now read those sensors; earlier releases of the cards show zeros and blanks against it, and these cards show them against an earlier integration. Some of the new sensors are disabled by default in the integration, and the card editors name the ones a card would use:
+  - **Environment card**: the Full and Custom modes' disk usage needs the four Disk usage parts (Images, Containers, Volumes, Build cache), and the events row's count for today needs **Activity events today**.
+  - **Vulnerability card**: the severities need **Critical**, **High**, **Medium** and **Low vulnerabilities**, and the scanned count **Scanned images**; without them it shows the total only.
+  - **Updates card with "Hide when no updates"**: the hiding rule it saved reads an attribute the integration no longer has, so the card stays hidden. Open the card's editor and save it once to rewrite the rule.
 
-- **Breaking: Home Assistant 2026.8 or later is required** (was 2026.6),
-  matching the Dockhand integration 2.0. HACS and the Marketplace won't install
-  this release on older versions; 1.5.1 keeps working there.
+- **Breaking: Home Assistant 2026.8 or later is required** (was 2026.6), matching the Dockhand integration 2.0. HACS and the Marketplace won't install this release on older versions; 1.5.1 keeps working there.
 
-- **Breaking: the Overview card's old `environment_overrides` and `environment_order` keys** are
-  no longer read. They were renamed `environments_overrides` and `environments_order` in 1.1.0,
-  and the editor has rewritten them on every save since, so only an Overview card configured
-  before 1.1.0 and never edited since is affected: rename the two keys in its YAML (add the
-  missing "s"), or open and save it in the editor before updating.
+- **Breaking: the Overview card's old `environment_overrides` and `environment_order` keys** are no longer read. They were renamed `environments_overrides` and `environments_order` in 1.1.0, and the editor has rewritten them on every save since, so only an Overview card configured before 1.1.0 and never edited since is affected: rename the two keys in its YAML (add the missing "s"), or open and save it in the editor before updating.
 
-- **Breaking: settings replaced in 1.2.0 are no longer read** (1.2.0 replaced them; the editors
-  have written the new ones since). Check cards configured before 1.2.0 and not changed in the
-  editor since:
-  - **Stacks, Containers and Updates cards limited to one environment** with `device_id` (and on
-    Updates, `scope`) now show every environment. In the card's editor, click the target icon next
-    to the environment it should show, or in YAML list the others under `exclude_device_ids`.
-  - **A card's `title`** is no longer its name; the card shows its default name. Set **Name** in
-    the editor, or rename `title:` to `name:` in YAML.
+- **Breaking: settings replaced in 1.2.0 are no longer read** (1.2.0 replaced them; the editors have written the new ones since). Check cards configured before 1.2.0 and not changed in the editor since:
+  - **Stacks, Containers and Updates cards limited to one environment** with `device_id` (and on Updates, `scope`) now show every environment. In the card's editor, click the target icon next to the environment it should show, or in YAML list the others under `exclude_device_ids`.
+  - **A card's `title`** is no longer its name; the card shows its default name. Set **Name** in the editor, or rename `title:` to `name:` in YAML.
 
 ### Fixed
-- **Header buttons that can't be used** (such as an unavailable Dockhand
-  link) are announced as unavailable by screen readers.
-- **The Containers, Stacks and Environment cards' "nothing found yet" messages are translated**;
-  they showed in English whatever the dashboard's language.
-- **Stacks: a restarting stack** shows as restarting, with its own icon, instead of an unknown
-  status.
-- **Schedules card: the environment pill showed on every row by default**, though rows are
-  grouped by environment and the editor showed the pill as off.
-- **Schedules card: every Dockhand schedule type has a name in every language**, including
-  container start and stop, backups, repository prune, check and verify, and stack deploy.
+- **Header buttons that can't be used** (such as an unavailable Dockhand link) are announced as unavailable by screen readers.
+- **The Containers, Stacks and Environment cards' "nothing found yet" messages are translated**; they showed in English whatever the dashboard's language.
+- **Stacks: a restarting stack** shows as restarting, with its own icon, instead of an unknown status.
+- **Schedules card: the environment pill showed on every row by default**, though rows are grouped by environment and the editor showed the pill as off.
+- **Schedules card: every Dockhand schedule type has a name in every language**, including container start and stop, backups, repository prune, check and verify, and stack deploy.
 
 ### Internal
-- CI checks that released changelog sections are unchanged from `main`: a 2.0.0 entry had
-  landed in 1.5.1's section on `dev`, and is back under Unreleased.
+- Markdown is written one line per paragraph or list item, so GitHub's release pages and other renderers wrap it instead of breaking lines where the source did; CI checks it.
+- CI checks that released changelog sections are unchanged from `main`: a 2.0.0 entry had landed in 1.5.1's section on `dev`, and is back under Unreleased.
 - The screenshot harness mocks ha-dockhand 2.0's sensors; the Stack card screenshots show its tags.
-- The Overview card passes every section setting on to the cards it builds, the way its editor
-  already saved them, so new card options (like Show controls) work there without changes.
+- The Overview card passes every section setting on to the cards it builds, the way its editor already saved them, so new card options (like Show controls) work there without changes.
 - The Environment card's section picker appears through Home Assistant's own form conditions.
 
-- Dependencies: d3-shape 3.2.1; build and test tools rollup 4.67.5, @rollup/plugin-terser 1.0.2,
-  jsdom 31.
-- Tests render every card and editor against the screenshot harness's mock data and drive every
-  control, and `npm test` checks a coverage floor (about 98% of lines, up from about 45%) that can
-  only rise.
+- Dependencies: d3-shape 3.2.1; build and test tools rollup 4.67.5, @rollup/plugin-terser 1.0.2, jsdom 31.
+- Tests render every card and editor against the screenshot harness's mock data and drive every control, and `npm test` checks a coverage floor (about 98% of lines, up from about 45%) that can only rise.
 - Devices are matched to their Dockhand instance by `config_entry_id` alone (HA 2026.8+).
-- Code comments and docs trimmed of development history (`docs/architecture.md` rewritten);
-  `docs/quality.md` brought up to date.
+- Code comments and docs trimmed of development history (`docs/architecture.md` rewritten); `docs/quality.md` brought up to date.
 
 
 ## [1.5.1] - 2026-11-03
