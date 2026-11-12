@@ -55,6 +55,10 @@ jobs:
             node scripts/release.mjs check --released-from "$RUNNER_TEMP/main-changelog.md"
           fi
 
+      # One line per paragraph or list item, so renderers wrap them (scripts/markdown.py).
+      - name: Check Markdown line breaks
+        run: python3 scripts/markdown.py --check $(git ls-files '*.md')
+
       - name: Typecheck, lint, test, build, audit what ships
         run: npm run verify
 
