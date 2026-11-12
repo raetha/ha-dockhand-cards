@@ -10,6 +10,15 @@ and [Unreleased] is the notes of the current test build.
 
 ## [Unreleased]
 
+Dockhand Cards 2.0 goes with the Dockhand integration 2.0: the cards now read its new count and
+size sensors instead of attributes, and use the controls it adds. There's a **Dockhand dashboard**
+that lays out every environment for you, **filters** and **controls** on the list cards, Dockhand's
+**tags**, and an Updates card that installs exactly what it lists. The cards also download faster,
+each language now being its own file.
+
+Some changes are breaking: update the Dockhand integration to 2.0.0 at the same time, read
+**Removed**, and re-save an Updates card that hides itself when there's nothing to update.
+
 ### Added
 - **A Dockhand dashboard** — pick **Dockhand** under Community dashboards when adding a dashboard
   for an overview of every environment, with updates, vulnerabilities and schedules beside them,
@@ -18,6 +27,14 @@ and [Unreleased] is the notes of the current test build.
   Its settings choose the Dockhand instance, lay out the overview and the environment pages in up
   to four columns by dragging cards between them, and set the cards' own settings as in the
   Overview card. **Take control** turns it into a normal dashboard.
+- **Vulnerabilities across environments** — the Vulnerability card chooses
+  its environments like the list cards, from a list at the top of its
+  editor. With more than one, their findings are added up, with a row per
+  environment. The Dockhand dashboard's overview uses it instead of a card
+  per environment. The Overview card and the dashboard choose its
+  environment the same way. A card's old `device_id` keeps showing that
+  environment and becomes the new setting with the next change in the
+  editor.
 - **Filters on the list cards** — a **Filters** section in the Stacks, Containers, Updates and
   Schedules editors. Pick one or more values per filter, or flip it to **is not**; set several
   and a row has to pass them all. Containers: state (exited cleanly or with an error), health,
@@ -55,8 +72,8 @@ and [Unreleased] is the notes of the current test build.
   Marketplace and HACS installs get the language files automatically. **A manual install must copy
   every `.js` file from the release**, not just the two it used to; without them the cards show
   English.
-- README: installing through Home Assistant's Marketplace (2026.11+), with HACS for older
-  versions, and the Marketplace's resource path for YAML-managed dashboards.
+- README: installing through Home Assistant's Marketplace (2026.11+), with its install link and
+  HACS for older versions, and the Marketplace's resource path for YAML-managed dashboards.
 - Versions show without a leading "v": HACS shows release tags, which from this release are plain
   version numbers (`2.0.0`, test builds such as `2.0.1-dev.42`), like most other HACS
   repositories. Earlier releases keep their `v` tags.
@@ -109,6 +126,8 @@ and [Unreleased] is the notes of the current test build.
   container start and stop, backups, repository prune, check and verify, and stack deploy.
 
 ### Internal
+- CI checks that released changelog sections are unchanged from `main`: a 2.0.0 entry had
+  landed in 1.5.1's section on `dev`, and is back under Unreleased.
 - The screenshot harness mocks ha-dockhand 2.0's sensors; the Stack card screenshots show its tags.
 - The Overview card passes every section setting on to the cards it builds, the way its editor
   already saved them, so new card options (like Show controls) work there without changes.
@@ -128,14 +147,6 @@ and [Unreleased] is the notes of the current test build.
 
 ### Added
 
-- **Vulnerabilities across environments** — the Vulnerability card chooses
-  its environments like the list cards, from a list at the top of its
-  editor. With more than one, their findings are added up, with a row per
-  environment. The Dockhand dashboard's overview uses it instead of a card
-  per environment. The Overview card and the dashboard choose its
-  environment the same way. A card's old `device_id` keeps showing that
-  environment and becomes the new setting with the next change in the
-  editor.
 - **Test builds.** Upcoming changes are now published as test builds (pre-releases such as
   `v1.5.1-dev.42`) that HACS can install once the Dockhand Cards **Pre-release** switch is turned
   on; the README's new "Test builds" section explains how, and how to go back.

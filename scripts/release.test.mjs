@@ -30,6 +30,15 @@ describe('release tool', () => {
     expect(s.get('1.0.0')).toBe('- First.');
   });
 
+  it('keeps released sections frozen', () => {
+    const dev = CHANGELOG.replace('- New thing.', '- New thing.\n- Another.');
+    expect(check(dev, '1.2.0', false, CHANGELOG)).toEqual([]);
+    const edited = CHANGELOG.replace('- First.', '- First.\n- Slipped in.');
+    const problems = check(edited, '1.2.0', false, CHANGELOG);
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain('[1.0.0]');
+  });
+
   it('requires [Unreleased], and a dated section only for a release', () => {
     expect(check(CHANGELOG, '1.1.0')).toEqual([]);
     expect(check(CHANGELOG, '1.2.0')).toEqual([]); // expected next version on dev
