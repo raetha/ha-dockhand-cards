@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sortScheduleRows, groupScheduleRows, resolveGlobalInstanceLabels, type ScheduleRow } from './card';
+import { sortScheduleRows, groupScheduleRows, resolveGlobalInstanceLabels, isProblem, type ScheduleRow } from './card';
 
 function row(overrides: Partial<ScheduleRow> & { name: string }): ScheduleRow {
   return {
@@ -226,5 +226,14 @@ describe('resolveGlobalInstanceLabels', () => {
     expect(labels.get('sched_1')).toBe('192.168.1.50:3000');
     expect(labels.has('sched_2')).toBe(false);
     expect(labels.has('orphan')).toBe(false);
+  });
+});
+
+describe('isProblem', () => {
+  it('is a schedule whose last run failed', () => {
+    expect(isProblem(row({ name: 'a', status: 'failed' }))).toBe(true);
+    expect(isProblem(row({ name: 'b', status: 'error' }))).toBe(true);
+    expect(['success', 'running', 'skipped', 'cancelled'].some((status) => isProblem(row({ name: 'c', status })))).toBe(false);
+    expect(isProblem(row({ name: 'd', status: undefined }))).toBe(false);
   });
 });

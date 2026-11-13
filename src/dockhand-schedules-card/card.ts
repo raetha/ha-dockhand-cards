@@ -74,6 +74,12 @@ export interface ScheduleRow {
   nextRunIso: string | null;
 }
 
+/** What Always show problems keeps in view: a schedule whose last run
+ * failed (the editor's helper text says the same). */
+export function isProblem(row: ScheduleRow): boolean {
+  return row.status === 'failed' || row.status === 'error';
+}
+
 const FILTERS: Record<string, FilterExtractor<ScheduleRow>> = {
   type: (row) => [row.type],
   last_result: (row) => [row.status ?? NONE],
@@ -372,7 +378,7 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
     // envDevices (already ordered — see _buildRows) is the only order:
     // groupScheduleRows groups by iterating it, so no second order array
     // can drift from it.
-    const { rows: shown, hidden } = applyFilters(rows, this._hass, FILTERS, this._config.filters);
+    const { rows: shown, hidden } = applyFilters(rows, this._hass, FILTERS, this._config.filters, this._config.always_show_problems ? isProblem : undefined);
     const groups = groupScheduleRows(shown, resolveEffectiveGroupBy(this._config.group_by, envDevices, 'environment'), this._config.sort_by ?? 'status', envDevices, {
       type: (type) => stateLabel(this._hass, 'schedule_type', type),
       status: (status) => stateLabel(this._hass, 'schedule_status', status),

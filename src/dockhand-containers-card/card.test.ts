@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sortContainerRows, groupContainerRows } from './card';
+import { sortContainerRows, groupContainerRows, isProblem } from './card';
 import type { EnvironmentDeviceOption } from '../common/device-utils';
 
 function row(overrides: Partial<Parameters<typeof sortContainerRows>[0][number]> = {}) {
@@ -81,5 +81,20 @@ describe('groupContainerRows', () => {
     const rows = [row({ status: 'running' }), row({ status: 'dead' }), row({ status: 'paused' })];
     const groups = groupContainerRows(rows, 'status', 'name');
     expect(groups.map((g) => g.label)).toEqual(['Dead', 'Paused', 'Running']);
+  });
+});
+
+describe('isProblem', () => {
+  it('is an exited, dead or restarting container, or an unhealthy one', () => {
+    const found = (state: string, exitCode?: number, health = 'healthy') =>
+      ({ state: { state: { state, attributes: exitCode === undefined ? {} : { exit_code: exitCode } } }, health: { state: { state: health } } }) as never;
+    expect(isProblem(row({ found: found('exited', 137) }))).toBe(true);
+    expect(isProblem(row({ found: found('dead') }))).toBe(true);
+    expect(isProblem(row({ found: found('restarting') }))).toBe(true);
+    expect(isProblem(row({ found: found('running', undefined, 'unhealthy') }))).toBe(true);
+    // A clean exit, or one without an exit code, isn't a problem.
+    expect(isProblem(row({ found: found('exited', 0) }))).toBe(false);
+    expect(isProblem(row({ found: found('exited') }))).toBe(false);
+    expect(['running', 'paused', 'created'].some((state) => isProblem(row({ found: found(state) })))).toBe(false);
   });
 });

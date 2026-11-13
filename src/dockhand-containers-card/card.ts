@@ -19,7 +19,7 @@ import { updateKindIcon, updateStatus, type UpdateStatus } from '../common/updat
 import { DEFAULT_CONTAINERS_BADGES, type DockhandContainersCardConfig, type ContainersGroupBy, type ContainersSortBy } from './types';
 import { renderRowControls, renderActionsColumn, resolveDeviceControls } from '../common/device-controls';
 import { applyFilters } from '../common/filters';
-import { containerFilters, renderFilteredNote } from '../common/list-filters';
+import { containerFilters, containerStateValues, renderFilteredNote } from '../common/list-filters';
 import { renderTagPills } from '../common/tag-pills';
 import { cardStyles } from './styles';
 import { RowFitController } from '../common/row-fit';
@@ -64,6 +64,15 @@ interface ContainerRow {
 }
 
 const FILTERS = containerFilters<ContainerRow>((row) => row.deviceId);
+
+const PROBLEM_STATES = new Set(['exited_error', 'dead', 'restarting']);
+
+/** What Always show problems keeps in view: a container that exited with an
+ * error, died or keeps restarting, or is unhealthy (the editor's helper
+ * text says the same). A clean exit (code 0) isn't a problem. */
+export function isProblem(row: ContainerRow): boolean {
+  return containerStateValues(row.found.state?.state).some((value) => PROBLEM_STATES.has(value)) || row.found.health?.state.state === 'unhealthy';
+}
 
 function byNameThenEnvironment(a: ContainerRow, b: ContainerRow): number {
   const byName = a.name.localeCompare(b.name);
@@ -166,7 +175,7 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
 
   getCardSize(): number {
     if (!this._hass || !this._config) return 3;
-    const { rows } = applyFilters(this._buildRows().rows, this._hass, FILTERS, this._config.filters);
+    const { rows } = applyFilters(this._buildRows().rows, this._hass, FILTERS, this._config.filters, this._config.always_show_problems ? isProblem : undefined);
     return Math.max(2, Math.ceil(rows.length / 2) + 1);
   }
 
@@ -250,7 +259,7 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
     const representativeEntityId = getRepresentativeEntityId(this._hass, envDevices[0].deviceId);
     const name = resolveCardName(this._hass, representativeEntityId, this._config.name, multiEnvCardNameFallback(envDevices, t(this._hass, 'name_containers')));
     const base = this._resolveBaseUrl(envDevices);
-    const { rows: shown, hidden } = applyFilters(rows, this._hass, FILTERS, this._config.filters);
+    const { rows: shown, hidden } = applyFilters(rows, this._hass, FILTERS, this._config.filters, this._config.always_show_problems ? isProblem : undefined);
     const groups = groupContainerRows(shown, resolveEffectiveGroupBy(this._config.group_by, envDevices, 'environment'), this._config.sort_by ?? 'name', envDevices, (status) =>
       stateLabel(this._hass, 'container_state', status)
     );

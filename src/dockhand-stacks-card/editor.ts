@@ -153,7 +153,7 @@ export class DockhandStacksCardEditor extends LitElement implements LovelaceCard
         onClearAll: () => this._updateConfig({ exclude_device_ids: devices.map((d) => d.deviceId) })
       })}
 
-      ${renderFiltersForm(this._hass, STACKS_FILTER_FIELDS, this._config, (patch) => this._updateConfig(patch))}
+      ${renderFiltersForm(this._hass, STACKS_FILTER_FIELDS, this._config, (patch) => this._updateConfig(patch), 'always_show_problems_stacks')}
 
       <ha-form
         .hass=${this._hass}

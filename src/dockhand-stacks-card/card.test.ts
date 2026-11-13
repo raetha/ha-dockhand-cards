@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { sortStackRows, groupStackRows } from './card';
+import { sortStackRows, groupStackRows, isProblem } from './card';
+import type { HomeAssistant } from '../common/ha-types';
 import type { EnvironmentDeviceOption } from '../common/device-utils';
 
 function row(overrides: Partial<Parameters<typeof sortStackRows>[0][number]> = {}) {
@@ -86,5 +87,19 @@ describe('groupStackRows', () => {
     const rows = [row({ type: 'git' }), row({ type: 'compose' })];
     const groups = groupStackRows(rows, 'type', 'name');
     expect(groups.map((g) => g.label).sort()).toEqual(['Compose', 'Git']);
+  });
+});
+
+describe('isProblem', () => {
+  it('is a stopped, partial or restarting stack, or one whose Git sync failed', () => {
+    const hass = (sync?: string) =>
+      ({
+        entities: sync ? { 'sensor.git': { entity_id: 'sensor.git', device_id: 'stack_device', platform: 'dockhand', translation_key: 'git_stack_sync_status' } } : {},
+        states: sync ? { 'sensor.git': { entity_id: 'sensor.git', state: sync, attributes: {} } } : {}
+      }) as unknown as HomeAssistant;
+    expect(['stopped', 'partial', 'restarting'].every((status) => isProblem(row({ status }), hass()))).toBe(true);
+    expect(isProblem(row({ status: 'running' }), hass())).toBe(false);
+    expect(isProblem(row({ status: 'running' }), hass('error'))).toBe(true);
+    expect(isProblem(row({ status: 'running' }), hass('synced'))).toBe(false);
   });
 });

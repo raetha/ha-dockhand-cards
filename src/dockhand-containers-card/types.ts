@@ -42,4 +42,7 @@ export interface DockhandContainersCardConfig extends LovelaceCardConfig {
   filters?: FiltersConfig;
   /** The "Hidden by filters" line; on unless false. */
   show_filtered_count?: boolean;
+  /** Rows with a problem (see isProblem in card.ts) show whatever the
+   * filters say; off unless set. */
+  always_show_problems?: boolean;
 }

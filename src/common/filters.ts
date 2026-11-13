@@ -48,16 +48,19 @@ export function passes(rowValues: string[], rule: FilterRule): boolean {
 }
 
 /** The rows that pass every filter the card offers, and how many didn't.
- * Filters the card doesn't offer (a newer release's, a typo) are ignored. */
+ * Filters the card doesn't offer (a newer release's, a typo) are ignored.
+ * With `alwaysShow` (the card's Always show problems), a row it picks out
+ * shows whatever the filters say. */
 export function applyFilters<Row>(
   rows: Row[],
   hass: HomeAssistant,
   extractors: Record<string, FilterExtractor<Row>>,
-  filters: FiltersConfig | undefined
+  filters: FiltersConfig | undefined,
+  alwaysShow?: (row: Row) => boolean
 ): { rows: Row[]; hidden: number } {
   const rules = activeRules(extractors, filters);
   if (rules.length === 0) return { rows, hidden: 0 };
-  const kept = rows.filter((row) => rules.every(([extract, rule]) => passes(extract(row, hass), rule)));
+  const kept = rows.filter((row) => alwaysShow?.(row) || rules.every(([extract, rule]) => passes(extract(row, hass), rule)));
   return { rows: kept, hidden: rows.length - kept.length };
 }
 
