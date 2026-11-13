@@ -169,8 +169,9 @@ export function schedulesFilterFields(embedded: boolean): FilterField[] {
 const valuesField = (key: string) => `filter_${key}`;
 const matchField = (key: string) => `filter_${key}_match`;
 
-/** The Filters section: collapsed, its title counting the filters in use. */
-export function filtersSchema(hass: HomeAssistant | undefined, fields: FilterField[], filters: FiltersConfig | undefined): HaFormSchema[] {
+/** The Filters section: collapsed, its title counting the filters in use.
+ * With `problems`, it also offers Always show problems. */
+export function filtersSchema(hass: HomeAssistant | undefined, fields: FilterField[], filters: FiltersConfig | undefined, problems = false): HaFormSchema[] {
   const count = activeFilterCount(
     fields.map((f) => f.key),
     filters
@@ -207,6 +208,7 @@ export function filtersSchema(hass: HomeAssistant | undefined, fields: FilterFie
             }
           ]
         })),
+        ...(problems ? [{ name: 'always_show_problems', default: false, selector: { boolean: {} } }] : []),
         { name: 'show_filtered_count', default: true, selector: { boolean: {} } }
       ]
     }
@@ -242,32 +244,46 @@ export function filtersFromForm(fields: FilterField[], data: Record<string, unkn
 /** The label for a filter field in the form. */
 export function filterFieldLabel(hass: HomeAssistant | undefined, fields: FilterField[], name: string): string | undefined {
   if (name === 'show_filtered_count') return t(hass, 'show_filtered_count');
+  if (name === 'always_show_problems') return t(hass, 'always_show_problems');
   const field = fields.find((f) => valuesField(f.key) === name || matchField(f.key) === name);
   if (!field) return undefined;
   return name === valuesField(field.key) ? t(hass, field.label) : t(hass, 'filter_match');
 }
 
 /** The Filters form for a list card's editor. `onChange` gets the card's new
- * `filters` and `show_filtered_count`. */
+ * `filters`, `show_filtered_count` and `always_show_problems`. `problems`,
+ * the helper text saying what this card counts as a problem, offers Always
+ * show problems. */
 export function renderFiltersForm(
   hass: HomeAssistant,
   fields: FilterField[],
-  config: { filters?: FiltersConfig; show_filtered_count?: boolean },
-  onChange: (patch: { filters: FiltersConfig | undefined; show_filtered_count: boolean | undefined }) => void
+  config: { filters?: FiltersConfig; show_filtered_count?: boolean; always_show_problems?: boolean },
+  onChange: (patch: { filters: FiltersConfig | undefined; show_filtered_count: boolean | undefined; always_show_problems?: boolean | undefined }) => void,
+  problems?: EditorTranslationKey
 ): TemplateResult {
   const computeLabel = (schema: HaFormSchema): string => filterFieldLabel(hass, fields, schema.name) ?? schema.name;
+  const computeHelper = (schema: HaFormSchema): string | undefined => (schema.name === 'always_show_problems' && problems ? t(hass, problems) : undefined);
   const changed = (ev: CustomEvent<{ value: Record<string, unknown> }>): void => {
     ev.stopPropagation();
     const value = ev.detail.value;
     const show = value.show_filtered_count;
-    onChange({ filters: filtersFromForm(fields, value, config.filters), show_filtered_count: show === false ? false : undefined });
+    onChange({
+      filters: filtersFromForm(fields, value, config.filters),
+      show_filtered_count: show === false ? false : undefined,
+      ...(problems ? { always_show_problems: value.always_show_problems === true ? true : undefined } : {})
+    });
   };
   return html`
     <ha-form
       .hass=${hass}
-      .data=${{ ...filtersFormData(fields, config.filters), show_filtered_count: config.show_filtered_count ?? true }}
-      .schema=${filtersSchema(hass, fields, config.filters)}
+      .data=${{
+        ...filtersFormData(fields, config.filters),
+        show_filtered_count: config.show_filtered_count ?? true,
+        ...(problems ? { always_show_problems: config.always_show_problems ?? false } : {})
+      }}
+      .schema=${filtersSchema(hass, fields, config.filters, Boolean(problems))}
       .computeLabel=${computeLabel}
+      .computeHelper=${computeHelper}
       @value-changed=${changed}
     ></ha-form>
   `;

@@ -71,6 +71,15 @@ const FILTERS: Record<string, FilterExtractor<StackRow>> = {
   tags: (row) => tagValues(row.found.status?.state)
 };
 
+const PROBLEM_STATUSES = new Set(['stopped', 'partial', 'restarting']);
+
+/** What Always show problems keeps in view: a stack that's stopped, only
+ * partly running or restarting, or whose Git sync failed (the editor's
+ * helper text says the same). */
+export function isProblem(row: StackRow, hass: HomeAssistant): boolean {
+  return PROBLEM_STATUSES.has(row.status) || resolveStackEntities(hass, row.deviceId, ['gitSyncStatus']).found.gitSyncStatus?.state.state === 'error';
+}
+
 function byNameThenEnvironment(a: StackRow, b: StackRow): number {
   const byName = a.name.localeCompare(b.name);
   return byName !== 0 ? byName : a.environment.localeCompare(b.environment);
@@ -183,9 +192,14 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
     this.setConfig(config);
   }
 
+  private _problems(): ((row: StackRow) => boolean) | undefined {
+    const hass = this._hass;
+    return this._config?.always_show_problems && hass ? (row) => isProblem(row, hass) : undefined;
+  }
+
   getCardSize(): number {
     if (!this._hass || !this._config) return 3;
-    const { rows } = applyFilters(this._buildRows().rows, this._hass, FILTERS, this._config.filters);
+    const { rows } = applyFilters(this._buildRows().rows, this._hass, FILTERS, this._config.filters, this._problems());
     return Math.max(2, Math.ceil(rows.length / 2) + 1);
   }
 
@@ -252,7 +266,7 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
     const representativeEntityId = getRepresentativeEntityId(this._hass, envDevices[0].deviceId);
     const name = resolveCardName(this._hass, representativeEntityId, this._config.name, multiEnvCardNameFallback(envDevices, t(this._hass, 'name_stacks')));
     const base = this._resolveBaseUrl(envDevices);
-    const { rows: shown, hidden } = applyFilters(rows, this._hass, FILTERS, this._config.filters);
+    const { rows: shown, hidden } = applyFilters(rows, this._hass, FILTERS, this._config.filters, this._problems());
     const groups = groupStackRows(shown, resolveEffectiveGroupBy(this._config.group_by, envDevices, 'environment'), this._config.sort_by ?? 'name', envDevices, (by, value) =>
       stateLabel(this._hass, by === 'status' ? 'stack_status' : 'stack_type', value)
     );

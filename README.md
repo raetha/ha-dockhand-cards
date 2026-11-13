@@ -295,6 +295,12 @@ filters:
   tags: { not: [infra] } # "is not"
 ```
 
+**Always show problems**, under the filters on the Containers, Stacks and Schedules cards, keeps a row in view whatever the filters say when something's wrong with it, so you can filter out the routine rows without missing a failure. For example, hiding Git sync schedules except when one fails is **Type** is not Git sync, with **Always show problems** on. What counts as a problem:
+
+- **Containers** (`always_show_problems: true`): exited with an error (a non-zero exit code; ha-dockhand 2.0.0), dead, restarting, or unhealthy.
+- **Stacks**: stopped, partly running, restarting, or its Git sync failed.
+- **Schedules**: its last run failed.
+
 | Card | Filter | Values |
 | --- | --- | --- |
 | Containers | `state` | `running`, `paused`, `restarting`, `created`, `exited_ok`, `exited_error`, `dead` (the exited ones need ha-dockhand 2.0.0's `exit_code`) |

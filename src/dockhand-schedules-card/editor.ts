@@ -259,7 +259,7 @@ export class DockhandSchedulesCardEditor extends LitElement implements LovelaceC
         onClearAll: () => this._updateConfig({ exclude_device_ids: getEnvironmentDevices(this._hass!).map((d) => d.deviceId) })
       })}
 
-      ${renderFiltersForm(this._hass, schedulesFilterFields(this.cardIsEmbedded), this._config, (patch) => this._updateConfig(patch))}
+      ${renderFiltersForm(this._hass, schedulesFilterFields(this.cardIsEmbedded), this._config, (patch) => this._updateConfig(patch), 'always_show_problems_schedules')}
 
       <ha-form
         .hass=${this._hass}

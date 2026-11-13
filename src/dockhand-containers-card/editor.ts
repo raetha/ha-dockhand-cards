@@ -154,7 +154,7 @@ export class DockhandContainersCardEditor extends LitElement implements Lovelace
         onClearAll: () => this._updateConfig({ exclude_device_ids: devices.map((d) => d.deviceId) })
       })}
 
-      ${renderFiltersForm(this._hass, CONTAINERS_FILTER_FIELDS, this._config, (patch) => this._updateConfig(patch))}
+      ${renderFiltersForm(this._hass, CONTAINERS_FILTER_FIELDS, this._config, (patch) => this._updateConfig(patch), 'always_show_problems_containers')}
 
       <ha-form
         .hass=${this._hass}

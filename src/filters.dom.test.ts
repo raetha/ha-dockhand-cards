@@ -72,6 +72,13 @@ describe('Containers card filters', () => {
     expect(names(await mount('containers', { ...nebula, filters: { update: ['up_to_date', 'pinned'] } }))).toEqual(['backup', 'worker']);
   });
 
+  it('keeps problems in view with Always show problems', async () => {
+    const filters = { tags: ['critical'] };
+    expect(names(await mount('containers', { ...nebula, filters }))).toEqual(['postgres']);
+    // backup exited with an error, worker is unhealthy.
+    expect(names(await mount('containers', { ...nebula, filters, always_show_problems: true }))).toEqual(['backup', 'postgres', 'worker']);
+  });
+
   it('says when nothing matches, and can leave out the count', async () => {
     const el = await mount('containers', { ...nebula, filters: { state: ['dead'] }, show_filtered_count: false });
     expect(message(el)).toBe('Nothing matches this card’s filters.');
@@ -162,6 +169,28 @@ describe('Filters section in the editors', () => {
     // "is / is not" shows once values are picked, through ha-form's condition.
     const [values, match] = form.schema[0].schema![0].schema!;
     expect(match.visible).toEqual({ field: values.name, operator: 'exists' });
+  });
+
+  it.each([
+    ['containers', 'exited with an error'],
+    ['stacks', 'Git sync failed'],
+    ['schedules', 'last run failed']
+  ])('%s: offers Always show problems, saying what counts', async (card, says) => {
+    const el = await mount(card, {}, true);
+    const form = filterForm(el) as Form & { computeHelper: (s: { name: string }) => string | undefined };
+    expect(form.data.always_show_problems).toBe(false);
+    expect(form.computeHelper({ name: 'always_show_problems' })).toContain(says);
+    const seen: Record<string, unknown>[] = [];
+    el.addEventListener('config-changed', (ev) => seen.push((ev as CustomEvent).detail.config));
+    form.dispatchEvent(new CustomEvent('value-changed', { detail: { value: { ...form.data, always_show_problems: true } } }));
+    expect(seen.pop()).toMatchObject({ always_show_problems: true });
+    form.dispatchEvent(new CustomEvent('value-changed', { detail: { value: { ...form.data, always_show_problems: false } } }));
+    expect(seen.pop()).not.toHaveProperty('always_show_problems');
+  });
+
+  it('doesn’t offer Always show problems on the Updates card', async () => {
+    const el = await mount('updates', {}, true);
+    expect(filterForm(el).data).not.toHaveProperty('always_show_problems');
   });
 
   it('offers Dockhand’s tags, not image tags', async () => {

@@ -41,6 +41,12 @@ describe('applyFilters', () => {
     tags: (r: (typeof rows)[number]) => (r.tags.length ? r.tags : [NONE])
   };
 
+  it('shows the rows Always show problems picks out, whatever the filters say', () => {
+    const result = applyFilters(rows, hass, extractors, { state: ['running'], tags: { not: ['infra'] } }, (r) => r.state === 'exited');
+    expect(result.rows.map((r) => r.name)).toEqual(['a', 'b']);
+    expect(result.hidden).toBe(1);
+  });
+
   it('keeps rows passing every filter, counting the rest', () => {
     const result = applyFilters(rows, hass, extractors, { state: ['running'], tags: { not: ['infra'] } });
     expect(result.rows.map((r) => r.name)).toEqual(['a']);
