@@ -13,6 +13,7 @@ import { stateLabel, type StateKind } from './state-label';
 import { NONE, readFilter, activeFilterCount, type FiltersConfig } from './filters';
 import { getAllStackDevices, getStackName } from './device-utils';
 import { entityTags } from './tag-pills';
+import { CONTAINER_TRANSLATION_KEYS, STACK_TRANSLATION_KEYS } from './const';
 
 export interface FilterOption {
   value: string;
@@ -40,10 +41,15 @@ function stackOptions(hass: HomeAssistant | undefined): FilterOption[] {
   return [{ value: NONE, label: t(hass, 'filter_option_no_stack') }, ...[...names].sort().map((value) => ({ value, label: value }))];
 }
 
+const TAGGED: ReadonlySet<string> = new Set([CONTAINER_TRANSLATION_KEYS.state, STACK_TRANSLATION_KEYS.status]);
+
+/** Every Dockhand tag on a container or stack, sorted. Only their State and
+ * Status sensors carry Dockhand's tags: an image sensor's `tags` are its
+ * image tags (`nginx:latest`), which no row has. */
 function tagOptions(hass: HomeAssistant | undefined): FilterOption[] {
   const names = new Map<string, string>();
   for (const [entityId, entry] of Object.entries(hass?.entities ?? {})) {
-    if (entry.platform !== 'dockhand') continue;
+    if (entry.platform !== 'dockhand' || !TAGGED.has(entry.translation_key ?? '')) continue;
     for (const tag of entityTags(hass?.states[entityId])) names.set(tag.name.toLowerCase(), tag.name);
   }
   const sorted = [...names.values()].sort((a, b) => a.localeCompare(b));

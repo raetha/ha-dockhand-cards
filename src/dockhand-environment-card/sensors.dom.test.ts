@@ -77,3 +77,24 @@ describe('Environment card counts', () => {
     expect(warning).toContain('Images disk usage');
   });
 });
+
+describe('Environment card links', () => {
+  it('opens each count’s own sensor, and the total the Containers sensor', async () => {
+    const hass = mockHass();
+    set(hass, 'containers_unhealthy', '2');
+    const el = await mount('dockhand-environment-card', { mode: 'compact' }, hass);
+    const opened: string[] = [];
+    el.addEventListener('hass-more-info', (ev) => opened.push((ev as CustomEvent).detail.entityId));
+    const stats = el.shadowRoot!.querySelectorAll<HTMLElement>('.stats-row .stat');
+    stats[0].click();
+    stats[5].dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    stats[6].click();
+    el.shadowRoot!.querySelector<HTMLElement>('.status-banner')!.click();
+    expect(opened).toEqual([
+      entityOf(hass, 'containers_running'),
+      entityOf(hass, 'pending_updates'),
+      entityOf(hass, 'containers'),
+      entityOf(hass, 'containers_unhealthy')
+    ]);
+  });
+});

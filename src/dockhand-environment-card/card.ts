@@ -797,24 +797,22 @@ export class DockhandEnvironmentCard extends LitElement implements LovelaceCard 
           ? t(this._hass, 'containers_restarting', { count: restarting })
           : t(this._hass, 'containers_all_healthy');
 
+    // Each count opens its own sensor (ha-dockhand 2.0+), the total the
+    // Containers sensor; one that's missing opens the total.
+    const open = (entry: Found[EnvTranslationKey]) => () => this._moreInfo(entry?.entityId ?? id);
+    const banner = open(unhealthy > 0 ? s.containersUnhealthy : restarting > 0 ? s.containersRestarting : s.containers);
     return html`
-      <div
-        class="row stats-row clickable"
-        tabindex="0"
-        role="button"
-        @click=${() => this._moreInfo(id)}
-        @keydown=${onKeydownActivate(() => this._moreInfo(id))}
-      >
-        ${renderIcon({ baseClass: 'stat', icon: 'mdi:play', color: 'var(--dockhand-status-ok-color)', text: `${count(s.containersRunning)}`, title: t(this._hass, 'stat_running'), static: true })}
-        ${renderIcon({ baseClass: 'stat', icon: 'mdi:stop', color: 'var(--secondary-text-color)', text: `${count(s.containersStopped)}`, title: t(this._hass, 'stat_stopped'), static: true })}
-        ${renderIcon({ baseClass: 'stat', icon: 'mdi:pause', color: 'var(--dockhand-status-warn-color)', text: `${count(s.containersPaused)}`, title: t(this._hass, 'stat_paused'), static: true })}
+      <div class="row stats-row">
+        ${renderIcon({ baseClass: 'stat', icon: 'mdi:play', color: 'var(--dockhand-status-ok-color)', text: `${count(s.containersRunning)}`, title: t(this._hass, 'stat_running'), onClick: open(s.containersRunning) })}
+        ${renderIcon({ baseClass: 'stat', icon: 'mdi:stop', color: 'var(--secondary-text-color)', text: `${count(s.containersStopped)}`, title: t(this._hass, 'stat_stopped'), onClick: open(s.containersStopped) })}
+        ${renderIcon({ baseClass: 'stat', icon: 'mdi:pause', color: 'var(--dockhand-status-warn-color)', text: `${count(s.containersPaused)}`, title: t(this._hass, 'stat_paused'), onClick: open(s.containersPaused) })}
         ${renderIcon({
           baseClass: 'stat',
           icon: 'mdi:refresh',
           color: restarting > 0 ? 'var(--dockhand-status-error-color)' : 'var(--dockhand-status-ok-color)',
           text: `${restarting}`,
           title: t(this._hass, 'stat_restarting'),
-          static: true
+          onClick: open(s.containersRestarting)
         })}
         ${renderIcon({
           baseClass: 'stat',
@@ -822,7 +820,7 @@ export class DockhandEnvironmentCard extends LitElement implements LovelaceCard 
           color: unhealthy > 0 ? 'var(--dockhand-status-error-color)' : 'var(--dockhand-status-ok-color)',
           text: `${unhealthy}`,
           title: t(this._hass, 'stat_unhealthy'),
-          static: true
+          onClick: open(s.containersUnhealthy)
         })}
         ${renderIcon({
           baseClass: 'stat',
@@ -830,17 +828,19 @@ export class DockhandEnvironmentCard extends LitElement implements LovelaceCard 
           color: updates.count > 0 ? 'var(--dockhand-status-warn-color)' : 'var(--secondary-text-color)',
           text: `${updates.count}`,
           title: updates.title,
-          static: true
+          onClick: open(s.pendingUpdates)
         })}
-        <span class="stat">${t(this._hass, 'label_total', { count: total })}</span>
+        <span class="stat clickable" tabindex="0" role="button" @click=${open(s.containers)} @keydown=${onKeydownActivate(open(s.containers))}
+          >${t(this._hass, 'label_total', { count: total })}</span
+        >
       </div>
 
       <div
         class="status-banner ${healthClass} clickable"
         tabindex="0"
         role="button"
-        @click=${() => this._moreInfo(id)}
-        @keydown=${onKeydownActivate(() => this._moreInfo(id))}
+        @click=${banner}
+        @keydown=${onKeydownActivate(banner)}
       >
         <ha-icon icon=${healthIcon}></ha-icon>
         <span>${healthText}</span>
