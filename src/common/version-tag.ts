@@ -56,7 +56,8 @@ export function versionTagTooltip(hass: HassLanguage, newer: NewerVersionTag): s
  * same thing. */
 export function renderVersionTagPill(hass: HassLanguage, newer: NewerVersionTag, onClick?: () => void): TemplateResult {
   const title = versionTagTooltip(hass, newer);
-  const content = html`<ha-icon icon="mdi:tag-outline"></ha-icon>${newer.tag}`;
+  // The text goes on a narrow row (RowFitController); the tooltip keeps it.
+  const content = html`<ha-icon icon="mdi:tag-outline"></ha-icon><span class="pill-text">${newer.tag}</span>`;
   if (!onClick) return html`<span class="label-pill version-tag-pill" title=${title}>${content}</span>`;
   return html`<span
     class="label-pill version-tag-pill clickable"

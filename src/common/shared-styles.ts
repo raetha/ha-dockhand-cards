@@ -794,6 +794,26 @@ export const sharedStyles = css`
     min-width: 0;
     overflow: hidden;
   }
+  /* RowFitController (row-fit.ts): on a row too narrow for them, the tags
+   * fold into one pill with their count, and a newer-version pill keeps
+   * only its icon, before the name gets cut. */
+  .tag-summary {
+    display: none;
+    flex-shrink: 0;
+  }
+  .row.compact-tags .tag-pills,
+  .row.no-tags .tag-pills {
+    display: none;
+  }
+  .row.compact-tags .tag-summary {
+    display: inline-flex;
+  }
+  .row.compact-version .version-tag-pill {
+    gap: 0;
+  }
+  .row.compact-version .version-tag-pill .pill-text {
+    display: none;
+  }
   /* Icon+count summary row (Environment card's container stats,
    * Schedules card's status counts) — spread evenly across the full card
    * width via flex, not a fixed-column grid: a grid needs its column

@@ -169,8 +169,9 @@ Wedges and rounded corners come from `d3-shape`'s `arc()`, the one dependency be
 - **`renderResourceMetrics` / `renderResourceIo`** (`common/resource-sections.ts`): CPU/memory bars and the network/disk grid, for the Container and Stack cards. A stack has no memory percentage (`STACK_RESOURCE_KEYS`), so its bar is usage over limit, as on Dockhand's Stacks page.
 - **`newerVersionTag` / `isVersionTagOnly` / `renderVersionTagPill` / `versionTagTooltip`** (`common/version-tag.ts`): ha-dockhand's newer-version-tag attributes, for the Updates, Containers and Stack cards. The tooltip follows Dockhand's `VersionUpdateBadge.svelte`.
 - **`updateStatus` / `updateKindIcon` / `renderUpdateKindIcon`** (`common/update-kind.ts`): what an update entity that's on means — `installable`, `tag` (newer tag only), `pinned` (moved digest on a digest-pinned image) or `held` (`update_held_hours`); the last three have nothing to install. Orange arrow, grey tag, orange pin, grey clock, as in Dockhand's containers list.
-- **`renderTagPills`** (`common/tag-pills.ts`): Dockhand tags as colored pills; the pill group shrinks before the name does.
+- **`renderTagPills`** (`common/tag-pills.ts`): Dockhand tags as colored pills, plus the count pill `RowFitController` swaps in; the pill group shrinks before the name does.
 - **`PairGridController`** (`common/pair-grid.ts`): stacks every `.grid-2` pair at once when the widest item won't fit in half the width, measured from content.
+- **`RowFitController`** (`common/row-fit.ts`): on a list row whose name would be cut, the version tag pill drops its text (`.compact-version`); tags that don't fit fold into one count pill (`.compact-tags`), or are left out when even that doesn't fit (`.no-tags`). Measured with the classes off each time, so rows don't flip back and forth.
 
 ## 18. CSS classes
 

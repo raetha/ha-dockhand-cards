@@ -77,6 +77,11 @@ export class DockhandDashboardStrategyEditor extends LitElement {
       .column.hidden-cards {
         grid-column: 1 / -1;
       }
+      /* Left-out cards side by side, so the area is one row high. */
+      .column.hidden-cards .order-list {
+        flex-direction: row;
+        flex-wrap: wrap;
+      }
       .column .order-row {
         font-size: var(--ha-font-size-s, 12px);
         overflow-wrap: break-word;
@@ -198,6 +203,7 @@ export class DockhandDashboardStrategyEditor extends LitElement {
       <h3 slot="header">${t(this._hass, headingKey)}</h3>
       <div class="content">
         <div class="hint">${t(this._hass, 'dashboard_layout_hint')}</div>
+        ${key === 'overview_layout' ? html`<div class="hint">${t(this._hass, 'dashboard_overview_columns_hint')}</div>` : nothing}
         <div class="columns-control">
           <span>${t(this._hass, 'dashboard_columns')}</span>
           <ha-icon-button class="fewer" .disabled=${layout.length <= 1} label="−" @click=${() => this._columns(key, layout.length - 1)}>

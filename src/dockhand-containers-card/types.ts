@@ -21,8 +21,9 @@ export const DEFAULT_CONTAINERS_BADGES: ContainersCardBadge[] = ['health', 'upda
 export type ContainersGroupBy = 'none' | 'environment' | 'status';
 
 /** 'status' sorts problems first, matching every other card's own
- * status-priority ordering. */
-export type ContainersSortBy = 'name' | 'status';
+ * status-priority ordering; 'cpu' and 'memory' put the busiest first.
+ * Ties fall back to the name. */
+export type ContainersSortBy = 'name' | 'status' | 'cpu' | 'memory';
 
 export interface DockhandContainersCardConfig extends LovelaceCardConfig {
   type: 'custom:dockhand-containers-card';

@@ -68,7 +68,8 @@ export class DockhandStacksCardEditor extends LitElement implements LovelaceCard
             mode: 'dropdown' as const,
             options: [
               { value: 'name', label: t(this._hass, 'sort_by_name') },
-              { value: 'status', label: t(this._hass, 'sort_by_status') }
+              { value: 'status', label: t(this._hass, 'sort_by_status') },
+              { value: 'containers', label: t(this._hass, 'sort_by_containers') }
             ]
           }
         }

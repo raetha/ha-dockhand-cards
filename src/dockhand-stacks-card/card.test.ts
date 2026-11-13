@@ -31,6 +31,12 @@ describe('sortStackRows', () => {
     const sorted = sortStackRows(rows, 'status');
     expect(sorted.map((r) => r.status)).toEqual(['stopped', 'partial', 'running']);
   });
+
+  it('sorts the most containers first, then by name; unknown counts last', () => {
+    const count = (n: string | undefined) => ({ containersInStack: n === undefined ? undefined : { state: { state: n } } }) as never;
+    const rows = [row({ name: 'plex', found: count('1') }), row({ name: 'unknown', found: count(undefined) }), row({ name: 'immich', found: count('4') }), row({ name: 'arr', found: count('1') })];
+    expect(sortStackRows(rows, 'containers').map((r) => r.name)).toEqual(['immich', 'arr', 'plex', 'unknown']);
+  });
 });
 
 describe('groupStackRows', () => {
