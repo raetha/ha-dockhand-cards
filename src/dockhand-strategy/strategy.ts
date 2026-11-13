@@ -3,21 +3,24 @@
  * dashboard Home Assistant builds from the cards, picked from Add dashboard
  * → Community dashboards. An overview of every environment, then a
  * subview per environment with all its cards, each laid out in columns
- * the settings choose. The cards' own settings are the Overview card's
- * (section defaults and per-environment overrides). Built again whenever
- * the set of environments changes; "take control" turns it into a normal
- * dashboard. See docs/architecture.md §22.
+ * the settings choose, and under each environment a page of Stack cards
+ * and one of Container cards. Every page of a kind shares its card
+ * settings (`cards`), so changing a card on one environment's page changes
+ * it on all of them. Built again whenever the set of environments
+ * changes; "take control" turns it into a normal dashboard. See
+ * docs/architecture.md §22.
  */
 import type { LovelaceCardEditor } from 'custom-card-helpers';
 import type { HomeAssistant } from '../common/ha-types';
-import { getEnvironmentDevices } from '../common/device-utils';
+import { getContainerDevicesForEnvironment, getContainerName, getEnvironmentDevices, getStackDevicesForEnvironment, getStackName } from '../common/device-utils';
 import { resolveIncludedOrdered } from '../common/environment-scope';
 import { resolveEnvironmentEntities } from '../common/entity-resolver';
 import { loadEditor } from '../common/editor-loader';
 import { t } from '../common/i18n-card';
-import { sectionSettings, type DockhandOverviewCardConfig, type OverviewSection } from '../dockhand-overview-card/types';
+import type { OverviewSection } from '../dockhand-overview-card/types';
 
 type Config = Record<string, unknown>;
+type CardSettings = Record<string, unknown>;
 
 /** The cards the overview can show. */
 export type OverviewPageCard = 'environments' | 'updates' | 'vulnerabilities' | 'schedules';
@@ -34,16 +37,30 @@ export const DEFAULT_OVERVIEW_LAYOUT: OverviewPageCard[][] = [['environments'], 
 export const DEFAULT_ENVIRONMENT_LAYOUT: OverviewSection[][] = [['environments'], ['vulnerabilities', 'updates', 'schedules'], ['stacks'], ['containers']];
 export const MAX_COLUMNS = 4;
 
-/** The dashboard's settings: the Overview card's card settings (section
- * defaults, environment order and exclusions, overrides), plus its own
- * layout and instance. Show/hide and order come from the layouts. */
-export type DockhandDashboardSettings = Omit<DockhandOverviewCardConfig, 'type' | 'align_columns' | 'section_order'> & {
+/** Each kind of page's card settings, by card. */
+export interface DashboardCards {
+  overview?: Partial<Record<OverviewPageCard, CardSettings>>;
+  environment?: Partial<Record<OverviewSection, CardSettings>>;
+  /** The Stack card on every Stacks page. */
+  stack?: CardSettings;
+  /** The Container card on every Containers page. */
+  container?: CardSettings;
+}
+
+export type PageKind = keyof DashboardCards;
+
+/** The dashboard's settings. Show/hide and order on a page come from its
+ * layout. */
+export interface DockhandDashboardSettings {
   /** Only this Dockhand instance's environments (a config entry id). */
   config_entry_id?: string;
+  environments_order?: string[];
+  exclude_device_ids?: string[];
   /** Columns of cards, left to right; a card in no column isn't shown. */
   overview_layout?: OverviewPageCard[][];
   environment_layout?: OverviewSection[][];
-};
+  cards?: DashboardCards;
+}
 
 export interface DockhandDashboardStrategyConfig extends DockhandDashboardSettings {
   type: 'custom:dockhand';
@@ -58,10 +75,29 @@ export interface DockhandEnvironmentViewConfig {
   alone?: boolean;
 }
 
-/** An environment's view shows its full card, unless set otherwise. */
-export const DASHBOARD_DEFAULTS = { environment_mode: 'full' } as const satisfies Partial<DockhandDashboardSettings>;
+/** A page of one card per stack, or per container, of one environment. */
+export interface DockhandDevicesViewConfig {
+  type: 'custom:dockhand-devices';
+  device_id: string;
+  kind: 'stacks' | 'containers';
+  settings?: DockhandDashboardSettings;
+}
 
-const withDefaults = (settings: Config | undefined): DockhandDashboardSettings => ({ ...DASHBOARD_DEFAULTS, ...settings }) as DockhandDashboardSettings;
+/** What a card shows when its settings don't say: the overview's
+ * environments at the standard size and its schedules with their counts,
+ * an environment's own page with its full card. */
+export const CARD_DEFAULTS: { [P in PageKind]?: Record<string, CardSettings> } = {
+  overview: { environments: { mode: 'standard' }, schedules: { show_stats: true } },
+  environment: { environments: { mode: 'full' } }
+};
+
+/** A card's settings on a kind of page: its defaults, then what was set.
+ * `which` names the card on the overview and environment pages. */
+export function cardSettings(settings: DockhandDashboardSettings, page: PageKind, which?: OverviewSection): CardSettings {
+  if (page === 'stack' || page === 'container') return { ...(settings.cards?.[page] ?? {}) };
+  const saved = (settings.cards?.[page] as Record<string, CardSettings> | undefined)?.[which!];
+  return { ...CARD_DEFAULTS[page]?.[which!], ...saved };
+}
 
 /** `saved`, keeping only known cards, each once, in at most MAX_COLUMNS
  * columns; the default when nothing is saved. */
@@ -89,6 +125,7 @@ const environmentKey = (hass: HomeAssistant): string =>
 /** A view's path, from the device id: environment names can repeat across
  * Dockhand instances. */
 const viewPath = (deviceId: string): string => `environment-${deviceId.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+const devicesPath = (deviceId: string, kind: DockhandDevicesViewConfig['kind']): string => `${viewPath(deviceId)}-${kind}`;
 
 const scanning = (hass: HomeAssistant, deviceId: string): boolean =>
   Boolean(resolveEnvironmentEntities(hass, deviceId, ['vulnerabilities']).found.vulnerabilities);
@@ -115,11 +152,21 @@ const CARD: Record<OverviewSection, string> = {
 
 const section = (cards: Config[], extra: Config = {}): Config => ({ type: 'grid', ...extra, cards });
 
-/** One environment's card for a section, with the section's defaults and
- * the environment's override; the list cards solo'd to it the way their
- * editors' solo action writes it. */
+/** A heading opening one of the environment's Stacks or Containers pages,
+ * above that list. */
+const devicesHeading = (hass: HomeAssistant, deviceId: string, kind: DockhandDevicesViewConfig['kind']): Config => ({
+  type: 'heading',
+  heading: t(hass, kind === 'stacks' ? 'strategy_stack_details' : 'strategy_container_details'),
+  heading_style: 'subtitle',
+  icon: kind === 'stacks' ? 'mdi:layers-outline' : 'mdi:docker',
+  tap_action: { action: 'navigate', navigation_path: devicesPath(deviceId, kind) }
+});
+
+/** One environment's card for a section, with the environment pages'
+ * settings; the list cards solo'd to it the way their editors' solo
+ * action writes it. */
 function environmentCard(hass: HomeAssistant, settings: DockhandDashboardSettings, deviceId: string, which: OverviewSection, alone = false): Config {
-  const own = sectionSettings(settings, which, settings.environments_overrides?.[deviceId]);
+  const own = cardSettings(settings, 'environment', which);
   const others = getEnvironmentDevices(hass)
     .map((d) => d.deviceId)
     .filter((id) => id !== deviceId);
@@ -127,6 +174,18 @@ function environmentCard(hass: HomeAssistant, settings: DockhandDashboardSetting
   // Global schedules belong to no environment.
   const global = which === 'schedules' && !alone ? { include_global: false } : {};
   return card(CARD[which], { ...own, exclude_device_ids: others, ...global });
+}
+
+/** An environment's Stacks and Containers pages: subviews, built only when
+ * opened, with a back arrow to the environment's page. */
+function devicesViews(env: { deviceId: string; name: string }, settings: Config): Config[] {
+  return (['stacks', 'containers'] as const).map((kind) => ({
+    title: env.name,
+    path: devicesPath(env.deviceId, kind),
+    subview: true,
+    back_path: viewPath(env.deviceId),
+    strategy: { type: 'custom:dockhand-devices', device_id: env.deviceId, kind, settings } satisfies DockhandDevicesViewConfig
+  }));
 }
 
 export class DockhandDashboardStrategy extends HTMLElement {
@@ -146,7 +205,7 @@ export class DockhandDashboardStrategy extends HTMLElement {
   static async generate(config: Config, hass: HomeAssistant): Promise<Config> {
     const rest = { ...config };
     delete rest.type;
-    const settings = withDefaults(rest);
+    const settings = rest as DockhandDashboardSettings;
     const excluded = excludedEnvironments(hass, settings);
     const environments = resolveIncludedOrdered(getEnvironmentDevices(hass), settings.environments_order, excluded);
     if (environments.length === 0) {
@@ -159,7 +218,7 @@ export class DockhandDashboardStrategy extends HTMLElement {
       // Nothing to choose between: the environment's own view is the dashboard.
       const [env] = environments;
       const view = { type: 'custom:dockhand-environment', device_id: env.deviceId, settings: rest, alone: true } satisfies DockhandEnvironmentViewConfig;
-      return { title: 'Dockhand', views: [{ title: env.name, path: viewPath(env.deviceId), icon: 'mdi:docker', strategy: view }] };
+      return { title: 'Dockhand', views: [{ title: env.name, path: viewPath(env.deviceId), icon: 'mdi:docker', strategy: view }, ...devicesViews(env, rest)] };
     }
 
     // Two environments fit one column; from three they take two, two to a
@@ -167,6 +226,7 @@ export class DockhandDashboardStrategy extends HTMLElement {
     const wide = environments.length >= 3;
     const scope = { environments_order: settings.environments_order, exclude_device_ids: excluded };
     const cardsFor = (which: OverviewPageCard): Config[] => {
+      const own = cardSettings(settings, 'overview', which);
       switch (which) {
         case 'environments':
           return environments.map((env) => ({
@@ -174,23 +234,16 @@ export class DockhandDashboardStrategy extends HTMLElement {
             grid_options: { columns: wide ? 12 : 'full' },
             cards: [
               { type: 'heading', heading: env.name, icon: 'mdi:server', tap_action: { action: 'navigate', navigation_path: viewPath(env.deviceId) } },
-              card('environment', {
-                ...sectionSettings(settings, 'environments', settings.environments_overrides?.[env.deviceId]),
-                // The overview's own size, whatever the views use.
-                mode: 'standard',
-                device_id: env.deviceId
-              })
+              card('environment', { ...own, device_id: env.deviceId })
             ]
           }));
         case 'updates':
-          return [card('updates', { ...sectionSettings(settings, 'updates', undefined), ...scope })];
+          return [card('updates', { ...own, ...scope })];
         case 'vulnerabilities':
           // One card adding up every scanned environment's findings.
-          return environments.some((env) => scanning(hass, env.deviceId))
-            ? [card('vulnerability', { ...sectionSettings(settings, 'vulnerabilities', undefined), ...scope })]
-            : [];
+          return environments.some((env) => scanning(hass, env.deviceId)) ? [card('vulnerability', { ...own, ...scope })] : [];
         case 'schedules':
-          return [card('schedules', { show_stats: true, ...sectionSettings(settings, 'schedules', undefined), ...scope })];
+          return [card('schedules', { ...own, ...scope })];
       }
     };
     const sections = cleanLayout(settings.overview_layout, OVERVIEW_PAGE_CARDS, DEFAULT_OVERVIEW_LAYOUT).flatMap((column) => {
@@ -207,14 +260,17 @@ export class DockhandDashboardStrategy extends HTMLElement {
       max_columns: Math.max(1, sections.reduce<number>((n, s) => n + ((s.column_span as number | undefined) ?? 1), 0)),
       sections
     };
-    const perEnvironment = environments.map((env) => ({
-      title: env.name,
-      path: viewPath(env.deviceId),
-      // Not a tab: opened from the overview, with a back arrow to it.
-      subview: true,
-      // Built only when someone opens it.
-      strategy: { type: 'custom:dockhand-environment', device_id: env.deviceId, settings: rest } satisfies DockhandEnvironmentViewConfig
-    }));
+    const perEnvironment = environments.flatMap((env) => [
+      {
+        title: env.name,
+        path: viewPath(env.deviceId),
+        // Not a tab: opened from the overview, with a back arrow to it.
+        subview: true,
+        // Built only when someone opens it.
+        strategy: { type: 'custom:dockhand-environment', device_id: env.deviceId, settings: rest } satisfies DockhandEnvironmentViewConfig
+      },
+      ...devicesViews(env, rest)
+    ]);
     return { title: 'Dockhand', views: [overview, ...perEnvironment] };
   }
 }
@@ -228,13 +284,48 @@ export class DockhandEnvironmentViewStrategy extends HTMLElement {
 
   static async generate(config: DockhandEnvironmentViewConfig, hass: HomeAssistant): Promise<Config> {
     const deviceId = config.device_id;
-    const settings = withDefaults(config.settings);
+    const settings = config.settings ?? {};
     const sections = cleanLayout(settings.environment_layout, ENVIRONMENT_PAGE_CARDS, DEFAULT_ENVIRONMENT_LAYOUT).flatMap((column) => {
       const cards = column
         .filter((which) => which !== 'vulnerabilities' || scanning(hass, deviceId))
-        .map((which) => environmentCard(hass, settings, deviceId, which, config.alone));
+        .flatMap((which) => {
+          const own = environmentCard(hass, settings, deviceId, which, config.alone);
+          return which === 'stacks' || which === 'containers' ? [devicesHeading(hass, deviceId, which), own] : [own];
+        });
       return cards.length > 0 ? [section(cards)] : [];
     });
     return { type: 'sections', max_columns: Math.max(1, sections.length), sections };
   }
+}
+
+/** The stacks or containers of one environment, one card each, by name.
+ * Built again when they come and go. */
+export class DockhandDevicesViewStrategy extends HTMLElement {
+  static shouldRegenerate(config: DockhandDevicesViewConfig, oldHass: HomeAssistant, newHass: HomeAssistant): boolean {
+    const key = (hass: HomeAssistant) =>
+      devices(hass, config)
+        .map((d) => d.id)
+        .join('|');
+    return key(oldHass) !== key(newHass);
+  }
+
+  static async generate(config: DockhandDevicesViewConfig, hass: HomeAssistant): Promise<Config> {
+    const settings = config.settings ?? {};
+    const own = cardSettings(settings, config.kind === 'stacks' ? 'stack' : 'container');
+    const type = config.kind === 'stacks' ? 'stack' : 'container';
+    const sections = devices(hass, config).map((d) => section([card(type, { ...own, device_id: d.id })]));
+    if (sections.length === 0) {
+      const empty = t(hass, config.kind === 'stacks' ? 'strategy_no_stacks' : 'strategy_no_containers');
+      return { type: 'sections', max_columns: 1, sections: [section([{ type: 'markdown', content: empty }])] };
+    }
+    return { type: 'sections', max_columns: MAX_COLUMNS, sections };
+  }
+}
+
+function devices(hass: HomeAssistant, config: DockhandDevicesViewConfig) {
+  const env = hass.devices?.[config.device_id];
+  if (!env) return [];
+  const list = config.kind === 'stacks' ? getStackDevicesForEnvironment(hass, env) : getContainerDevicesForEnvironment(hass, env);
+  const name = config.kind === 'stacks' ? getStackName : getContainerName;
+  return [...list].sort((a, b) => (name(a) ?? a.name ?? '').localeCompare(name(b) ?? b.name ?? ''));
 }

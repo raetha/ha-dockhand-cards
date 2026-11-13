@@ -44,6 +44,10 @@ export class DockhandSchedulesCardEditor extends LitElement implements LovelaceC
    * itself when this editor is used standalone via getConfigElement(),
    * so default false preserves existing behavior. */
   @property({ type: Boolean }) cardIsEmbedded = false;
+  /** Set by the Dockhand dashboard's settings: the dashboard chooses the
+   * environments, so the editor leaves its Environments section out, but
+   * the card still spans several (unlike cardIsEmbedded). */
+  @property({ type: Boolean }) scopeFixed = false;
   /** See DockhandEnvironmentCardEditor's identical property for the full
    * reasoning. */
   @property({ type: Boolean }) hideTitle = false;
@@ -234,7 +238,7 @@ export class DockhandSchedulesCardEditor extends LitElement implements LovelaceC
         headingKey: 'label_environments',
         hintKey: 'order_list_hint',
         icon: 'mdi:web',
-        hidden: this.cardIsEmbedded,
+        hidden: this.cardIsEmbedded || this.scopeFixed,
         order: this._config.environments_order,
         excluded: this._config.exclude_device_ids,
         showExcludeToggle: true,

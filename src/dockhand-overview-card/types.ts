@@ -47,8 +47,7 @@ const OVERRIDE_KEY: Record<OverviewSection, keyof EnvironmentOverride> = {
 /** A section's settings for one environment's card: the section's
  * defaults (`stacks_group_by` → `group_by`), then the environment's
  * override. The singular `environment_` prefix can't match the plural
- * `environments_overrides`/`environments_order` (§4). Shared by the
- * Overview card and the Dockhand dashboard (§22). */
+ * `environments_overrides`/`environments_order` (§4). */
 export function sectionSettings(config: Record<string, unknown>, section: OverviewSection, override: EnvironmentOverride | undefined): Record<string, unknown> {
   const prefix = `${SECTION_PREFIX[section]}_`;
   const out: Record<string, unknown> = {};
