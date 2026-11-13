@@ -70,11 +70,13 @@ function byNameThenEnvironment(a: ContainerRow, b: ContainerRow): number {
   return byName !== 0 ? byName : a.environment.localeCompare(b.environment);
 }
 
-/** The row's CPU or memory percentage, as the row shows it; -1 when it
- * has none, so those sort last. */
+/** The row's CPU or memory percentage as the row shows it, in whole
+ * percent, so rows showing the same number sort by name; -1 when it has
+ * none, so those sort last. */
 function usage(row: ContainerRow, sortBy: 'cpu' | 'memory'): number {
   const entry = sortBy === 'cpu' ? row.found.cpuPercent : row.found.memoryPercent;
-  return numericState(entry?.state.state) ?? -1;
+  const value = numericState(entry?.state.state);
+  return value === undefined ? -1 : Math.round(value);
 }
 
 export function sortContainerRows(rows: ContainerRow[], sortBy: ContainersSortBy): ContainerRow[] {

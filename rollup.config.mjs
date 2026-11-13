@@ -65,7 +65,8 @@ export default [
   // One file per non-English language, loaded on demand by both bundles
   // (common/i18n-loader.ts). Only data: nothing shared with the bundles.
   ...readdirSync('src/i18n')
-    .filter((file) => file.endsWith('.ts'))
+    // English is built into the bundles.
+    .filter((file) => file.endsWith('.ts') && file !== 'en.ts')
     .map((file) => ({
       input: `src/i18n/${file}`,
       output: {

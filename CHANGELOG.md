@@ -21,7 +21,7 @@ Some changes are breaking: update the Dockhand integration to 2.0.0 at the same 
 
 - **Dockhand tags** as coloured pills, as in Dockhand's own lists: on Stacks and Containers card rows (a new **Tags** detail, on by default) and under the Stack and Container cards' headers. Needs ha-dockhand 2.0.0 or later; earlier releases simply show none.
 - **Controls on list rows** — a **Show controls** option, off by default, on the Stacks and Containers cards (start or stop, and restart while running, asking before stopping or restarting) and the Schedules card (**Run now**, which asks first, and enable/disable). They sit in their own column at the end of each row, so controls and values line up down the card. Schedule controls need ha-dockhand 2.0.0 or later.
-- **More ways to sort** — the Stacks card can sort by container count (most first) and the Containers card by CPU or memory use (highest first), each then by name.
+- **More ways to sort** — the Stacks card can sort by container count (most first) and the Containers card by CPU or memory use as the row shows it, in whole percent (highest first), each then by name.
 - **Narrow rows keep their names** — on the Containers, Stacks and Updates cards, when a row's name would be cut, a version tag pill keeps just its icon and tags that don't all fit fold into one pill with their count; hover either for what's hidden.
 
 ### Changed
@@ -57,6 +57,7 @@ Some changes are breaking: update the Dockhand integration to 2.0.0 at the same 
 - **Schedules card: every Dockhand schedule type has a name in every language**, including container start and stop, backups, repository prune, check and verify, and stack deploy.
 
 ### Internal
+- English strings moved to `src/i18n/en.ts`, beside the other languages; still built into the bundles.
 - Markdown is written one line per paragraph or list item, so GitHub's release pages and other renderers wrap it instead of breaking lines where the source did; CI checks it.
 - CI checks that released changelog sections are unchanged from `main`: a 2.0.0 entry had landed in 1.5.1's section on `dev`, and is back under Unreleased.
 - The screenshot harness mocks ha-dockhand 2.0's sensors; the Stack card screenshots show its tags.

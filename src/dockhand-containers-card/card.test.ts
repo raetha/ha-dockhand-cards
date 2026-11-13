@@ -43,10 +43,12 @@ describe('sortContainerRows', () => {
       row({ name: 'plex', found: usage('112', '3') }),
       row({ name: 'stopped', found: usage(undefined, undefined) }),
       row({ name: 'immich', found: usage('0', '4') }),
-      row({ name: 'adguard', found: usage('0', 'unavailable') })
+      row({ name: 'adguard', found: usage('0', 'unavailable') }),
+      // Shows 0%, like idle and immich: sorts with them by name.
+      row({ name: 'busybox', found: usage('0.43', '0.4') })
     ];
-    expect(sortContainerRows(rows, 'cpu').map((r) => r.name)).toEqual(['plex', 'adguard', 'idle', 'immich', 'stopped']);
-    expect(sortContainerRows(rows, 'memory').map((r) => r.name)).toEqual(['immich', 'plex', 'idle', 'adguard', 'stopped']);
+    expect(sortContainerRows(rows, 'cpu').map((r) => r.name)).toEqual(['plex', 'adguard', 'busybox', 'idle', 'immich', 'stopped']);
+    expect(sortContainerRows(rows, 'memory').map((r) => r.name)).toEqual(['immich', 'plex', 'idle', 'busybox', 'adguard', 'stopped']);
   });
 });
 

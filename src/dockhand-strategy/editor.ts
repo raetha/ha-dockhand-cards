@@ -81,6 +81,7 @@ export class DockhandDashboardStrategyEditor extends LitElement {
       .column.hidden-cards .order-list {
         flex-direction: row;
         flex-wrap: wrap;
+        align-items: center;
       }
       .column .order-row {
         font-size: var(--ha-font-size-s, 12px);
@@ -92,11 +93,16 @@ export class DockhandDashboardStrategyEditor extends LitElement {
         color: var(--secondary-text-color);
         margin-bottom: var(--ha-space-2, 8px);
       }
+      /* Cards as small as their names, so an empty column (and Not
+       * shown, often empty) is one card high. */
       .column .order-list {
-        min-height: 40px;
+        align-items: flex-start;
+        gap: var(--ha-space-1, 4px);
+        min-height: 24px;
       }
       .card-chip {
         cursor: grab;
+        line-height: 16px;
         border-radius: 6px;
         background: var(--secondary-background-color);
         padding: var(--ha-space-1, 4px) var(--ha-space-2, 8px);
