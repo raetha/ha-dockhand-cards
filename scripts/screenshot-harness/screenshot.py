@@ -12,6 +12,7 @@ CARDS = [
     ("dockhand-environment-card", {"device_id": "env_1", "mode": "detailed"}, "env-detailed.png", 500, 700),
     ("dockhand-environment-card", {"device_id": "env_4", "mode": "full"}, "env-full.png", 900, 640),
     ("dockhand-vulnerability-card", {"device_id": "env_1"}, "vulnerability.png", 420, 260),
+    ("dockhand-vulnerability-card", {}, "vulnerability-rollup.png", 420, 320),
     ("dockhand-stack-card", {"device_id": "stack_1_core"}, "stack.png", 420, 420),
     ("dockhand-container-card", {"device_id": "container_1_web"}, "container.png", 420, 320),
     ("dockhand-stacks-card", {"exclude_device_ids": ["env_2", "env_3", "env_4"]}, "stacks-list.png", 420, 220),
