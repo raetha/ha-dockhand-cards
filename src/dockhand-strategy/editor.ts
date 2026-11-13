@@ -1,7 +1,7 @@
 /**
  * The Dockhand dashboard's settings (§22): which Dockhand instance and
  * environments, the columns of the overview and of each environment's page
- * (cards dragged between columns, or to Not shown), and each card's own
+ * (cards dragged between columns, or to Hide), and each card's own
  * settings. A card's pencil opens that card's own editor, for every page of
  * its kind: the overview's cards, every environment page's, every Stacks
  * page's Stack card and every Containers page's Container card. A card
@@ -210,7 +210,7 @@ export class DockhandDashboardStrategyEditor extends LitElement {
     this._write({ ...this._config, [key]: layout });
   }
 
-  /** `card` dropped into `column` (-1: Not shown) at `index`. */
+  /** `card` dropped into `column` (-1: Hide) at `index`. */
   private _placed(key: LayoutKey, column: number, ev: CustomEvent<{ index: number; data: OverviewSection }>): void {
     ev.stopPropagation();
     const card = ev.detail.data;

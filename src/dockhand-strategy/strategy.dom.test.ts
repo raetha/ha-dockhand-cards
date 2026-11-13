@@ -316,10 +316,10 @@ describe('Dockhand dashboard settings', () => {
     // Updates above Vulnerabilities.
     sortable('overview_layout', 1).dispatchEvent(new CustomEvent('item-moved', { detail: { oldIndex: 1, newIndex: 0 } }));
     expect(seen.pop()!.overview_layout).toEqual([['environments'], ['updates', 'vulnerabilities'], ['schedules']]);
-    // Stacks to Not shown.
+    // Stacks to Hide.
     sortable('environment_layout', 4).dispatchEvent(new CustomEvent('item-added', { detail: { index: 0, data: 'stacks' } }));
     expect(seen.pop()!.environment_layout).toEqual([['environments'], ['vulnerabilities', 'updates', 'schedules'], [], ['containers']]);
-    // Reordering Not shown means nothing.
+    // Reordering Hide means nothing.
     sortable('environment_layout', 4).dispatchEvent(new CustomEvent('item-moved', { detail: { oldIndex: 0, newIndex: 1 } }));
     expect(seen).toEqual([]);
   });
