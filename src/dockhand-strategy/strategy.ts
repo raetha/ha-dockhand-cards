@@ -26,8 +26,9 @@ export const OVERVIEW_PAGE_CARDS: OverviewPageCard[] = ['environments', 'updates
 export const ENVIRONMENT_PAGE_CARDS: OverviewSection[] = ['environments', 'vulnerabilities', 'updates', 'schedules', 'stacks', 'containers'];
 
 /** Environments on the left (two columns' worth once there are three or
- * more), updates and vulnerabilities, then schedules. */
-export const DEFAULT_OVERVIEW_LAYOUT: OverviewPageCard[][] = [['environments'], ['updates', 'vulnerabilities'], ['schedules']];
+ * more), vulnerabilities above updates (a fixed height above one that
+ * grows, so it stays in view), then schedules. */
+export const DEFAULT_OVERVIEW_LAYOUT: OverviewPageCard[][] = [['environments'], ['vulnerabilities', 'updates'], ['schedules']];
 /** The full Environment card alone, the short cards together, then stacks
  * and containers. */
 export const DEFAULT_ENVIRONMENT_LAYOUT: OverviewSection[][] = [['environments'], ['vulnerabilities', 'updates', 'schedules'], ['stacks'], ['containers']];

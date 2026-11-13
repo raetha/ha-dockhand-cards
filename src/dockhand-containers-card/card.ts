@@ -22,6 +22,7 @@ import { applyFilters } from '../common/filters';
 import { containerFilters, renderFilteredNote } from '../common/list-filters';
 import { renderTagPills } from '../common/tag-pills';
 import { cardStyles } from './styles';
+import { RowFitController } from '../common/row-fit';
 
 // Matches Dockhand's own statusTypes color list (src/routes/containers/+page.svelte).
 const STATE_ICON: Record<string, { icon: string; cls: 'ok' | 'warn' | 'error' | 'info' | 'neutral' }> = {
@@ -69,6 +70,13 @@ function byNameThenEnvironment(a: ContainerRow, b: ContainerRow): number {
   return byName !== 0 ? byName : a.environment.localeCompare(b.environment);
 }
 
+/** The row's CPU or memory percentage, as the row shows it; -1 when it
+ * has none, so those sort last. */
+function usage(row: ContainerRow, sortBy: 'cpu' | 'memory'): number {
+  const entry = sortBy === 'cpu' ? row.found.cpuPercent : row.found.memoryPercent;
+  return numericState(entry?.state.state) ?? -1;
+}
+
 export function sortContainerRows(rows: ContainerRow[], sortBy: ContainersSortBy): ContainerRow[] {
   const sorted = [...rows];
   sorted.sort((a, b) => {
@@ -76,6 +84,9 @@ export function sortContainerRows(rows: ContainerRow[], sortBy: ContainersSortBy
       const rankA = statusRank(a.status);
       const rankB = statusRank(b.status);
       if (rankA !== rankB) return rankA - rankB;
+    } else if (sortBy === 'cpu' || sortBy === 'memory') {
+      const diff = usage(b, sortBy) - usage(a, sortBy);
+      if (diff !== 0) return diff;
     }
     return byNameThenEnvironment(a, b);
   });
@@ -117,6 +128,11 @@ export function groupContainerRows(
 
 export class DockhandContainersCard extends LitElement implements LovelaceCard {
   static styles = cardStyles;
+
+  constructor() {
+    super();
+    new RowFitController(this);
+  }
 
   @state() private _config?: DockhandContainersCardConfig;
   @state() private _hass?: HomeAssistant;

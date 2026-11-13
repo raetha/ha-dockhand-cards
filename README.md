@@ -180,7 +180,7 @@ show_settings_link: true # link to view stacks in Dockhand
 show_controls: false # start/stop and restart buttons on each row
 visible_badges: [container_count, updates, type, tags] # per-row details; add `environment` for an environment pill
 group_by: environment # none | environment | status | type
-sort_by: name # name | status
+sort_by: name # name | status | containers (most first)
 filters: {} # which rows show — see [Filtering lists](#filtering-lists)
 show_filtered_count: true # a "Hidden by filters" line under a filtered list
 ```
@@ -205,7 +205,7 @@ show_settings_link: true # link to view containers in Dockhand
 show_controls: false # start/stop and restart buttons on each row
 visible_badges: [health, updates, cpu, memory, tags] # per-row details; add `environment` for an environment pill
 group_by: environment # none | environment | status
-sort_by: name # name | status
+sort_by: name # name | status | cpu | memory (highest first)
 filters: {} # which rows show — see [Filtering lists](#filtering-lists)
 show_filtered_count: true # a "Hidden by filters" line under a filtered list
 ```
@@ -213,6 +213,8 @@ show_filtered_count: true # a "Hidden by filters" line under a filtered list
 Every container in one environment, several, or all of them, one compact row each: state, health, pending updates and CPU/memory (when container stats are enabled). Works like the Stacks card above, including **Row details** and **Show controls**.
 
 With ha-dockhand 1.11.0 or later, a newer version tag Dockhand has found shows as a tag pill, like Dockhand's own containers list: next to the update icon when there's also an update to install, or on its own when there isn't. A container pinned to a digest whose tag has moved on gets an orange pin in the update icon's place, and one whose update Dockhand is holding until the new image reaches its minimum image age gets a grey clock; hover either for the details. All of these are part of the **updates** row detail.
+
+On a row too narrow for everything, the name stays readable: a version tag pill keeps just its icon (hover for the tag), and tags that don't all fit fold into one pill with their count (hover for their names). The Stacks and Updates cards do the same.
 
 <p>
   <img src="docs/images/containers-list.png" alt="Containers card, dark theme" width="420">
@@ -340,12 +342,12 @@ Both the environments and the sections can be dragged into a different order in 
 
 ## Dockhand dashboard
 
-A ready-made dashboard instead of building one card by card: in **Settings → Dashboards → Add dashboard**, pick **Dockhand** under Community dashboards. Its overview shows your environments (in one column for one or two, two columns from three), with pending updates, vulnerabilities across all environments and schedules beside them; click an environment's name to open its own page, with all its cards and a back arrow to the overview. With a single environment, its page is the whole dashboard. Environments you add or remove in Dockhand appear and disappear by themselves.
+A ready-made dashboard instead of building one card by card: in **Settings → Dashboards → Add dashboard**, pick **Dockhand** under Community dashboards. Its overview shows your environments (in one column for one or two, two columns from three), with vulnerabilities across all environments, pending updates and schedules beside them; click an environment's name to open its own page, with all its cards and a back arrow to the overview. With a single environment, its page is the whole dashboard. Environments you add or remove in Dockhand appear and disappear by themselves.
 
 To change it, open the dashboard's **⋮ → Edit dashboard**:
 
 - **Dockhand instance** (only with more than one): one instance's environments, or all of them.
-- **Overview page** and **Environment pages**: up to four columns each; drag cards between columns, or to **Not shown** to leave them out.
+- **Overview page** and **Environment pages**: up to four columns each; drag cards between columns, or to **Not shown** to leave them out. On the overview, three or more environments take two columns, so the page is one column wider than the number set.
 - **Card settings**: each kind of card's settings, the order of environments and which to leave out, and per-environment overrides, as in the [Overview card](#dockhand-overview-card).
 
 Anything beyond that needs **Take control**, which turns it into a normal dashboard you edit like any other (it then stops updating itself). In YAML it's:

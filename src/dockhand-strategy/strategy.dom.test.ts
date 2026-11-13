@@ -45,17 +45,17 @@ describe('Dockhand dashboard strategy', () => {
     expect(new Set(views.map((v) => v.path)).size).toBe(views.length);
   });
 
-  it('lays the overview out as environments across two columns, then updates and vulnerabilities, then schedules', async () => {
+  it('lays the overview out as environments across two columns, then vulnerabilities above updates, then schedules', async () => {
     const [overview, ...environments] = await dashboard();
-    const [envSection, updates, schedules] = overview.sections!;
+    const [envSection, middle, schedules] = overview.sections!;
     expect(overview.max_columns).toBe(4);
     expect(envSection.column_span).toBe(2);
     expect(envSection.cards.every((c) => (c.grid_options as { columns: number }).columns === 12)).toBe(true);
     const headings = envSection.cards.map((stack) => stack.cards![0]);
     expect(headings.map((h) => (h.tap_action as { navigation_path: string }).navigation_path)).toEqual(environments.map((v) => v.path));
     expect(envSection.cards.map((stack) => stack.cards![1].mode)).toEqual(['standard', 'standard', 'standard', 'standard']);
-    expect(types(updates.cards)).toEqual(['updates', 'vulnerability']);
-    expect(updates.cards[1]).not.toHaveProperty('device_id');
+    expect(types(middle.cards)).toEqual(['vulnerability', 'updates']);
+    expect(middle.cards[0]).not.toHaveProperty('device_id');
     expect(types(schedules.cards)).toEqual(['schedules']);
   });
 
@@ -207,19 +207,22 @@ describe('Dockhand dashboard settings', () => {
 
   it('lays out both pages in columns, with what isn’t shown last', async () => {
     await mount({ environment_layout: [['environments'], ['containers']] });
-    expect(columns(0)).toEqual([['environments'], ['updates', 'vulnerabilities'], ['schedules'], []]);
+    expect(columns(0)).toEqual([['environments'], ['vulnerabilities', 'updates'], ['schedules'], []]);
     expect(columns(1)).toEqual([['environments'], ['containers'], ['vulnerabilities', 'updates', 'schedules', 'stacks']]);
     expect(panel(0).querySelector('.column-count')!.textContent).toBe('3');
+    // Only the overview says the environments may take two columns.
+    expect(panel(0).querySelectorAll('.hint')).toHaveLength(2);
+    expect(panel(1).querySelectorAll('.hint')).toHaveLength(1);
   });
 
   it('moves a card between columns, within one, and out of the layout', async () => {
     const { seen } = await mount({});
     // Schedules dropped into the first column, after Environments.
     sortable(0, 0).dispatchEvent(new CustomEvent('item-added', { detail: { index: 1, data: 'schedules' } }));
-    expect(seen.pop()).toEqual({ type: 'custom:dockhand', overview_layout: [['environments', 'schedules'], ['updates', 'vulnerabilities'], []] });
-    // Vulnerabilities above Updates.
+    expect(seen.pop()).toEqual({ type: 'custom:dockhand', overview_layout: [['environments', 'schedules'], ['vulnerabilities', 'updates'], []] });
+    // Updates above Vulnerabilities.
     sortable(0, 1).dispatchEvent(new CustomEvent('item-moved', { detail: { oldIndex: 1, newIndex: 0 } }));
-    expect(seen.pop()!.overview_layout).toEqual([['environments'], ['vulnerabilities', 'updates'], ['schedules']]);
+    expect(seen.pop()!.overview_layout).toEqual([['environments'], ['updates', 'vulnerabilities'], ['schedules']]);
     // Stacks to Not shown.
     sortable(1, 4).dispatchEvent(new CustomEvent('item-added', { detail: { index: 0, data: 'stacks' } }));
     expect(seen.pop()!.environment_layout).toEqual([['environments'], ['vulnerabilities', 'updates', 'schedules'], [], ['containers']]);
@@ -233,7 +236,7 @@ describe('Dockhand dashboard settings', () => {
     panel(1).querySelector<HTMLElement>('.fewer')!.click();
     expect(seen.pop()!.environment_layout).toEqual([['environments'], ['vulnerabilities', 'updates', 'schedules'], ['stacks', 'containers']]);
     panel(0).querySelector<HTMLElement>('.more')!.click();
-    expect(seen.pop()!.overview_layout).toEqual([['environments'], ['updates', 'vulnerabilities'], ['schedules'], []]);
+    expect(seen.pop()!.overview_layout).toEqual([['environments'], ['vulnerabilities', 'updates'], ['schedules'], []]);
   });
 
   it('offers an instance only when there are several', async () => {

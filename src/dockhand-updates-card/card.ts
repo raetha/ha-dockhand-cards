@@ -18,6 +18,7 @@ import { renderVersionTagPill, type NewerVersionTag } from '../common/version-ta
 import { heldShort, heldTooltip, pinnedDigestTooltip, updateStatus, type UpdateKind } from '../common/update-kind';
 import type { DockhandUpdatesCardConfig } from './types';
 import { cardStyles } from './styles';
+import { RowFitController } from '../common/row-fit';
 
 const UPDATE_ROW_ICONS: Record<UpdateKind, string> = {
   installable: 'mdi:arrow-up-circle',
@@ -74,6 +75,11 @@ const UPDATE_FEATURE_INSTALL = 1;
 
 export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
   static styles = cardStyles;
+
+  constructor() {
+    super();
+    new RowFitController(this);
+  }
 
   @state() private _config?: DockhandUpdatesCardConfig;
   @state() private _hass?: HomeAssistant;

@@ -19,6 +19,7 @@ import { applyFilters, type FilterExtractor } from '../common/filters';
 import { renderFilteredNote, tagValues } from '../common/list-filters';
 import { renderTagPills } from '../common/tag-pills';
 import { cardStyles } from './styles';
+import { RowFitController } from '../common/row-fit';
 
 // Matches Dockhand's own stackStatusTypes color list (src/routes/stacks/+page.svelte).
 const STATUS_ICON: Record<string, { icon: string; cls: 'ok' | 'warn' | 'error' | 'neutral' }> = {
@@ -75,6 +76,12 @@ function byNameThenEnvironment(a: StackRow, b: StackRow): number {
   return byName !== 0 ? byName : a.environment.localeCompare(b.environment);
 }
 
+/** The stack's container count, as its row shows it; -1 when unknown,
+ * so those sort last. */
+function containerCount(row: StackRow): number {
+  return numericState(row.found.containersInStack?.state.state) ?? -1;
+}
+
 export function sortStackRows(rows: StackRow[], sortBy: StacksSortBy): StackRow[] {
   const sorted = [...rows];
   sorted.sort((a, b) => {
@@ -82,6 +89,9 @@ export function sortStackRows(rows: StackRow[], sortBy: StacksSortBy): StackRow[
       const rankA = statusRank(a.status);
       const rankB = statusRank(b.status);
       if (rankA !== rankB) return rankA - rankB;
+    } else if (sortBy === 'containers') {
+      const diff = containerCount(b) - containerCount(a);
+      if (diff !== 0) return diff;
     }
     return byNameThenEnvironment(a, b);
   });
@@ -139,6 +149,11 @@ export function groupStackRows(
 
 export class DockhandStacksCard extends LitElement implements LovelaceCard {
   static styles = cardStyles;
+
+  constructor() {
+    super();
+    new RowFitController(this);
+  }
 
   @state() private _config?: DockhandStacksCardConfig;
   @state() private _hass?: HomeAssistant;

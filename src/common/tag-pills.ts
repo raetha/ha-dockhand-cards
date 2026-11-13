@@ -37,10 +37,15 @@ export function renderTagPill(tag: DockhandTag): TemplateResult {
 }
 
 /** Every tag of an entity as pills on a list row, or nothing. The group
- * gives way before the row's name does (see `.tag-pills`). */
+ * gives way before the row's name does (see `.tag-pills`); when they don't
+ * all fit, RowFitController shows the one pill with their count instead. */
 export function renderTagPills(stateObj: HassEntity | undefined): TemplateResult | typeof nothing {
   const tags = entityTags(stateObj);
-  return tags.length ? html`<span class="tag-pills">${tags.map(renderTagPill)}</span>` : nothing;
+  if (!tags.length) return nothing;
+  return html`<span class="tag-pills">${tags.map(renderTagPill)}</span
+    ><span class="label-pill tag-summary" title=${tags.map((tag) => tag.name).join(', ')}
+      ><ha-icon icon="mdi:tag-multiple-outline"></ha-icon>${tags.length}</span
+    >`;
 }
 
 /** The tags as their own row under a single Stack or Container card's

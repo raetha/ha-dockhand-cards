@@ -121,3 +121,41 @@ describe('Containers card pinned digest and held update', () => {
     card.remove();
   });
 });
+
+describe('Containers card on a narrow row', () => {
+  const width = (el: Element, scroll: () => number, client: () => number): void => {
+    Object.defineProperty(el, 'scrollWidth', { configurable: true, get: scroll });
+    Object.defineProperty(el, 'clientWidth', { configurable: true, get: client });
+  };
+
+  it('drops the version pill’s text, then folds the tags, only while the name would be cut', async () => {
+    const hass = hassWithContainer({ state: 'on', latest: '17.6', newer: '15-vectorchord1.1.1' });
+    hass.states['sensor.postgres_state'].attributes = { tags: ['db', 'prod'] };
+    const card = await mount(hass, { visible_badges: ['updates', 'tags'] });
+    const root = card.shadowRoot!;
+    const row = root.querySelector<HTMLElement>('.row')!;
+    expect(root.querySelector('.tag-summary')!.getAttribute('title')).toBe('db, prod');
+    expect(root.querySelector('.tag-summary')!.textContent!.trim()).toBe('2');
+    let narrow = true;
+    // The name is cut until the pill gives up its text; the tags never fit.
+    width(row.querySelector('.item-name')!, () => 120, () => (narrow && !row.classList.contains('compact-version') ? 60 : 120));
+    width(row.querySelector('.tag-pills')!, () => 80, () => (narrow ? 0 : 80));
+    card.hass = { ...hass };
+    await card.updateComplete;
+    expect([...row.classList]).toEqual(expect.arrayContaining(['compact-version', 'compact-tags']));
+
+    // Even the count pill doesn't fit: the tags are left out, and the
+    // version pill is checked again without them.
+    width(row.querySelector('.row-left')!, () => (row.classList.contains('compact-tags') ? 100 : 50), () => 50);
+    card.hass = { ...hass };
+    await card.updateComplete;
+    expect([...row.classList]).toEqual(expect.arrayContaining(['compact-version', 'no-tags']));
+    expect(row.classList.contains('compact-tags')).toBe(false);
+
+    narrow = false;
+    card.hass = { ...hass };
+    await card.updateComplete;
+    for (const cls of ['compact-version', 'compact-tags', 'no-tags']) expect(row.classList.contains(cls)).toBe(false);
+    card.remove();
+  });
+});

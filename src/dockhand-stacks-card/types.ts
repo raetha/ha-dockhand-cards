@@ -19,9 +19,10 @@ export const DEFAULT_STACKS_BADGES: StacksCardBadge[] = ['container_count', 'upd
 export type StacksGroupBy = 'none' | 'environment' | 'status' | 'type';
 
 /** 'status' sorts problems first, matching every other card's own
- * status-priority ordering (see card.ts's STATUS_RANK) rather than
- * introducing a different convention here. */
-export type StacksSortBy = 'name' | 'status';
+ * status-priority ordering (see card.ts's STATUS_RANK); 'containers'
+ * puts the stacks with the most containers first. Ties fall back to the
+ * name. */
+export type StacksSortBy = 'name' | 'status' | 'containers';
 
 export interface DockhandStacksCardConfig extends LovelaceCardConfig {
   type: 'custom:dockhand-stacks-card';

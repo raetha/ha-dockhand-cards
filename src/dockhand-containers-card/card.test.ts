@@ -31,6 +31,23 @@ describe('sortContainerRows', () => {
     const sorted = sortContainerRows(rows, 'status');
     expect(sorted.map((r) => r.status)).toEqual(['dead', 'paused', 'running']);
   });
+
+  it('sorts the busiest first by CPU or memory, then by name; rows without a value last', () => {
+    const usage = (cpu: string | undefined, mem: string | undefined) =>
+      ({
+        cpuPercent: cpu === undefined ? undefined : { state: { state: cpu } },
+        memoryPercent: mem === undefined ? undefined : { state: { state: mem } }
+      }) as never;
+    const rows = [
+      row({ name: 'idle', found: usage('0', '1') }),
+      row({ name: 'plex', found: usage('112', '3') }),
+      row({ name: 'stopped', found: usage(undefined, undefined) }),
+      row({ name: 'immich', found: usage('0', '4') }),
+      row({ name: 'adguard', found: usage('0', 'unavailable') })
+    ];
+    expect(sortContainerRows(rows, 'cpu').map((r) => r.name)).toEqual(['plex', 'adguard', 'idle', 'immich', 'stopped']);
+    expect(sortContainerRows(rows, 'memory').map((r) => r.name)).toEqual(['immich', 'plex', 'idle', 'adguard', 'stopped']);
+  });
 });
 
 describe('groupContainerRows', () => {
