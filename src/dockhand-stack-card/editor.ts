@@ -1,5 +1,5 @@
 import { LitElement, html, type TemplateResult } from 'lit';
-import { state } from 'lit/decorators.js';
+import { property, state } from 'lit/decorators.js';
 import { fireEvent, type LovelaceCardEditor } from 'custom-card-helpers';
 import type { HaFormSchema } from '../common/ha-form-types';
 
@@ -24,6 +24,10 @@ const SECTION_LABEL_KEY = {
 export class DockhandStackCardEditor extends LitElement implements LovelaceCardEditor {
   @state() private _config?: DockhandStackCardConfig;
   @state() private _hass?: HomeAssistant;
+  /** Set by the Dockhand dashboard's settings, which edit the one set of
+   * settings every stack page's cards share: no stack to pick, and no
+   * name (each card is named after its own stack). */
+  @property({ type: Boolean }) cardIsEmbedded = false;
 
   static styles = [editorFormStyles];
 
@@ -58,14 +62,19 @@ export class DockhandStackCardEditor extends LitElement implements LovelaceCardE
   }
 
   private _schema(envDevices: ReturnType<typeof getEnvironmentDevices>, stackOptions: { value: string; label: string }[]): HaFormSchema[] {
+    const pickers: HaFormSchema[] = this.cardIsEmbedded
+      ? []
+      : [
+          { name: 'environment_device_id', required: true, selector: { select: { mode: 'dropdown' as const, options: envDevices.map((d) => ({ value: d.deviceId, label: d.name })) } } },
+          {
+            name: 'device_id',
+            required: true,
+            disabled: stackOptions.length === 0,
+            selector: { select: { mode: 'dropdown' as const, options: stackOptions } }
+          }
+        ];
     return [
-      { name: 'environment_device_id', required: true, selector: { select: { mode: 'dropdown' as const, options: envDevices.map((d) => ({ value: d.deviceId, label: d.name })) } } },
-      {
-        name: 'device_id',
-        required: true,
-        disabled: stackOptions.length === 0,
-        selector: { select: { mode: 'dropdown' as const, options: stackOptions } }
-      },
+      ...pickers,
       // Content is everything shaping how this stack is displayed — Name
       // and the settings link. Named and ordered to match every other
       // card's Content section. Represents from the stack's own device
@@ -77,7 +86,7 @@ export class DockhandStackCardEditor extends LitElement implements LovelaceCardE
         icon: 'mdi:text-short',
         title: t(this._hass, 'content_section_heading'),
         schema: [
-          cardNameFieldSchema(this._config?.device_id && this._hass ? getRepresentativeEntityId(this._hass, this._config.device_id) : undefined, [{ type: 'device' }]),
+          ...(this.cardIsEmbedded ? [] : [cardNameFieldSchema(this._config?.device_id && this._hass ? getRepresentativeEntityId(this._hass, this._config.device_id) : undefined, [{ type: 'device' }])]),
           { name: 'icon', selector: { icon: {} } },
           { name: 'show_settings_link', default: true, selector: { boolean: {} } },
           { name: 'show_controls', default: true, selector: { boolean: {} } },
@@ -177,6 +186,11 @@ export class DockhandStackCardEditor extends LitElement implements LovelaceCardE
    * card naming a stack that isn't there. */
   private _valueChanged(ev: CustomEvent<{ value: DockhandStackCardConfig }>): void {
     const config = { ...ev.detail.value };
+    if (this.cardIsEmbedded) {
+      delete config.environment_device_id;
+      fireEvent(this, 'config-changed', { config });
+      return;
+    }
     const before = this._resolvedEnvDeviceId();
     if (before && config.environment_device_id !== before) config.device_id = '';
     fireEvent(this, 'config-changed', { config });

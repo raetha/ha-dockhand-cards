@@ -21,6 +21,10 @@ export class DockhandUpdatesCardEditor extends LitElement implements LovelaceCar
   @state() private _config?: DockhandUpdatesCardConfig;
   @state() private _hass?: HomeAssistant;
   @property({ type: Boolean }) cardIsEmbedded = false;
+  /** Set by the Dockhand dashboard's settings: the dashboard chooses the
+   * environments, so the editor leaves its Environments section out, but
+   * the card still spans several (unlike cardIsEmbedded). */
+  @property({ type: Boolean }) scopeFixed = false;
   /** See DockhandEnvironmentCardEditor's identical property: set only by
    * Overview's global-defaults view, where one name shared by every
    * environment's card has no meaning. */
@@ -102,7 +106,7 @@ export class DockhandUpdatesCardEditor extends LitElement implements LovelaceCar
         icon: 'mdi:web',
         order: this._config.environments_order,
         excluded: this._config.exclude_device_ids,
-        hidden: this.cardIsEmbedded,
+        hidden: this.cardIsEmbedded || this.scopeFixed,
         showExcludeToggle: true,
         allowReorder: true,
         onMoved: (order) => this._updateConfig({ environments_order: order }),

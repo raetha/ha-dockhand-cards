@@ -20,7 +20,7 @@ import { DockhandContainersCard } from './dockhand-containers-card/card';
 import { DockhandUpdatesCard } from './dockhand-updates-card/card';
 import { DockhandOverviewCard } from './dockhand-overview-card/card';
 import { DockhandSchedulesCard } from './dockhand-schedules-card/card';
-import { DockhandDashboardStrategy, DockhandEnvironmentViewStrategy } from './dockhand-strategy/strategy';
+import { DockhandDashboardStrategy, DockhandDevicesViewStrategy, DockhandEnvironmentViewStrategy } from './dockhand-strategy/strategy';
 import { t } from './common/i18n-card';
 import { pageLanguageReady } from './common/i18n-loader';
 
@@ -45,6 +45,7 @@ customElements.define('dockhand-overview-card', DockhandOverviewCard);
 customElements.define('dockhand-schedules-card', DockhandSchedulesCard);
 customElements.define('ll-strategy-dashboard-dockhand', DockhandDashboardStrategy);
 customElements.define('ll-strategy-view-dockhand-environment', DockhandEnvironmentViewStrategy);
+customElements.define('ll-strategy-view-dockhand-devices', DockhandDevicesViewStrategy);
 
 // Each card's own editor is registered lazily via its getConfigElement()
 // (dynamically imported, self-registers on first use) to keep the initial

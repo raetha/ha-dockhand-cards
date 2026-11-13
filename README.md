@@ -348,19 +348,31 @@ Both the environments and the sections can be dragged into a different order in 
 
 ## Dockhand dashboard
 
-A ready-made dashboard instead of building one card by card: in **Settings → Dashboards → Add dashboard**, pick **Dockhand** under Community dashboards. Its overview shows your environments (in one column for one or two, two columns from three), with vulnerabilities across all environments, pending updates and schedules beside them; click an environment's name to open its own page, with all its cards and a back arrow to the overview. With a single environment, its page is the whole dashboard. Environments you add or remove in Dockhand appear and disappear by themselves.
+A ready-made dashboard instead of building one card by card: in **Settings → Dashboards → Add dashboard**, pick **Dockhand** under Community dashboards. Its overview shows your environments (in one column for one or two, two columns from three), with vulnerabilities across all environments, pending updates and schedules beside them; click an environment's name to open its own page, with all its cards and a back arrow to the overview. From there, **Stack details** and **Container details** open a page with a Stack card for each of the environment's stacks, or a Container card for each of its containers. With a single environment, its page is the whole dashboard. Environments, stacks and containers you add or remove in Dockhand appear and disappear by themselves.
 
 To change it, open the dashboard's **⋮ → Edit dashboard**:
 
 - **Dockhand instance** (only with more than one): one instance's environments, or all of them.
-- **Overview page** and **Environment pages**: up to four columns each; drag cards between columns, or to **Not shown** to leave them out. On the overview, three or more environments take two columns, so the page is one column wider than the number set.
-- **Card settings**: each kind of card's settings, the order of environments and which to leave out, and per-environment overrides, as in the [Overview card](#dockhand-overview-card).
+- **Environments**: their order, and which to leave out.
+- **Overview page** and **Environment pages**: up to four columns each; drag cards between columns, or to **Not shown** to leave them out. On the overview, three or more environments take two columns, so the page is one column wider than the number set. A card's pencil opens its own settings, the same as in that card's editor. Every environment's page shares them: change the Containers card on one and it changes on all.
+- **Stacks and containers pages**: the settings of the Stack card on every Stacks page, and of the Container card on every Containers page.
 
 Anything beyond that needs **Take control**, which turns it into a normal dashboard you edit like any other (it then stops updating itself). In YAML it's:
 
 ```yaml
 strategy:
   type: custom:dockhand
+  # Everything below is optional.
+  exclude_device_ids: [] # environments to leave out
+  overview_layout: [[environments], [vulnerabilities, updates], [schedules]]
+  environment_layout: [[environments], [vulnerabilities, updates, schedules], [stacks], [containers]]
+  cards: # each card's own settings, by page
+    overview:
+      schedules: { show_stats: true }
+    environment:
+      containers: { show_controls: true }
+    stack: { visible_sections: [status, metrics, containers] }
+    container: {}
 ```
 
 ---

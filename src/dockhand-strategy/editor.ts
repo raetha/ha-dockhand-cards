@@ -1,57 +1,83 @@
 /**
- * The Dockhand dashboard's settings (§22): which Dockhand instance, the
- * columns of the overview and of each environment's page (cards dragged
- * between columns, or to Not shown), and the cards' own settings, for now
- * through the Overview card's editor (dashboardStrategy hides what the
- * layout decides). Values equal to the defaults aren't written back, so
- * the dashboard's YAML holds only what was changed.
+ * The Dockhand dashboard's settings (§22): which Dockhand instance and
+ * environments, the columns of the overview and of each environment's page
+ * (cards dragged between columns, or to Not shown), and each card's own
+ * settings. A card's pencil opens that card's own editor, for every page of
+ * its kind: the overview's cards, every environment page's, every Stacks
+ * page's Stack card and every Containers page's Container card. A card
+ * whose settings are all cleared drops out of `cards`.
  */
-import { LitElement, html, css, nothing, type PropertyValues, type TemplateResult } from 'lit';
+import { LitElement, html, css, nothing, type TemplateResult } from 'lit';
 import { state } from 'lit/decorators.js';
+import { keyed } from 'lit/directives/keyed.js';
+import { ref } from 'lit/directives/ref.js';
+import { html as staticHtml, unsafeStatic } from 'lit/static-html.js';
 import { fireEvent } from 'custom-card-helpers';
 import type { HomeAssistant } from '../common/ha-types';
 import { getEnvironmentDevices } from '../common/device-utils';
 import { getInstanceLabel } from '../common/format';
-import { t } from '../common/i18n-editor';
+import { t, type EditorTranslationKey } from '../common/i18n-editor';
 import { editorFormStyles, sortableRowStyles } from '../common/editor-styles';
-import type { DockhandOverviewCardConfig, OverviewSection } from '../dockhand-overview-card/types';
+import { renderEnvironmentOrderSection } from '../common/environment-scope-editor';
+import type { OverviewSection } from '../dockhand-overview-card/types';
 import { SECTION_LABEL_KEY } from '../dockhand-overview-card/editor';
 import {
-  DASHBOARD_DEFAULTS,
   DEFAULT_ENVIRONMENT_LAYOUT,
   DEFAULT_OVERVIEW_LAYOUT,
   ENVIRONMENT_PAGE_CARDS,
   MAX_COLUMNS,
   OVERVIEW_PAGE_CARDS,
+  cardSettings,
   cleanLayout,
-  type DockhandDashboardStrategyConfig
+  type DashboardCards,
+  type DockhandDashboardStrategyConfig,
+  type PageKind
 } from './strategy';
 
-type OverviewEditor = HTMLElement & { hass: HomeAssistant; dashboardStrategy: boolean; setConfig(config: DockhandOverviewCardConfig): void };
 type LayoutKey = 'overview_layout' | 'environment_layout';
+type CardEditor = HTMLElement & { hass: HomeAssistant; cardIsEmbedded: boolean; scopeFixed?: boolean; hideTitle?: boolean; setConfig(config: Record<string, unknown>): void };
 
-const LAYOUTS: Record<LayoutKey, { known: readonly OverviewSection[]; fallback: OverviewSection[][] }> = {
-  overview_layout: { known: OVERVIEW_PAGE_CARDS, fallback: DEFAULT_OVERVIEW_LAYOUT },
-  environment_layout: { known: ENVIRONMENT_PAGE_CARDS, fallback: DEFAULT_ENVIRONMENT_LAYOUT }
+const LAYOUTS: Record<LayoutKey, { page: 'overview' | 'environment'; known: readonly OverviewSection[]; fallback: OverviewSection[][] }> = {
+  overview_layout: { page: 'overview', known: OVERVIEW_PAGE_CARDS, fallback: DEFAULT_OVERVIEW_LAYOUT },
+  environment_layout: { page: 'environment', known: ENVIRONMENT_PAGE_CARDS, fallback: DEFAULT_ENVIRONMENT_LAYOUT }
 };
 
-/** Every section on in the Overview card's editor, so each card's settings
- * can be edited; the layout decides what shows. */
-const ALL_SHOWN = {
-  show_environments: true,
-  show_vulnerabilities: true,
-  show_stacks: true,
-  show_containers: true,
-  show_updates: true,
-  show_schedules: true
+const CARD_TYPE: Record<OverviewSection, string> = {
+  environments: 'environment',
+  vulnerabilities: 'vulnerability',
+  stacks: 'stacks',
+  containers: 'containers',
+  updates: 'updates',
+  schedules: 'schedules'
 };
 
-/** Keys the Overview card's editor writes that mean nothing here. */
-const NOT_SAVED = new Set(['type', 'align_columns', 'section_order', ...Object.keys(ALL_SHOWN)]);
+const PAGE_LABEL: Record<PageKind, EditorTranslationKey> = {
+  overview: 'dashboard_overview_page',
+  environment: 'dashboard_environment_pages',
+  stack: 'dashboard_stack_pages',
+  container: 'dashboard_container_pages'
+};
+
+const APPLIES: Record<PageKind, EditorTranslationKey> = {
+  overview: 'dashboard_applies_overview',
+  environment: 'dashboard_applies_environment',
+  stack: 'dashboard_applies_stack',
+  container: 'dashboard_applies_container'
+};
+
+/** The card a page's settings view edits. */
+interface Editing {
+  page: PageKind;
+  which?: OverviewSection;
+}
+
+/** Fields an embedded editor emits that the dashboard decides itself. */
+const NOT_SAVED = new Set(['type', 'device_id', 'environment_device_id', 'environments_order', 'exclude_device_ids']);
 
 export class DockhandDashboardStrategyEditor extends LitElement {
   @state() private _config?: DockhandDashboardStrategyConfig;
   @state() private _hass?: HomeAssistant;
+  @state() private _editing?: Editing;
 
   static styles = [
     editorFormStyles,
@@ -83,11 +109,6 @@ export class DockhandDashboardStrategyEditor extends LitElement {
         flex-wrap: wrap;
         align-items: center;
       }
-      .column .order-row {
-        font-size: var(--ha-font-size-s, 12px);
-        overflow-wrap: break-word;
-        hyphens: auto;
-      }
       .column-title {
         font-size: var(--ha-font-size-s, 12px);
         color: var(--secondary-text-color);
@@ -102,22 +123,52 @@ export class DockhandDashboardStrategyEditor extends LitElement {
       }
       .card-chip {
         cursor: grab;
-        line-height: 16px;
+        display: inline-flex;
+        align-items: center;
+        gap: var(--ha-space-1, 4px);
         border-radius: 6px;
         background: var(--secondary-background-color);
-        padding: var(--ha-space-1, 4px) var(--ha-space-2, 8px);
+        padding: 0 0 0 var(--ha-space-2, 8px);
+        font-size: var(--ha-font-size-s, 12px);
+        line-height: 24px;
+        max-width: 100%;
+      }
+      .card-chip .chip-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .card-chip ha-icon-button {
+        --ha-icon-button-size: 24px;
+        --mdc-icon-size: 14px;
+        flex-shrink: 0;
       }
       .hint {
         color: var(--secondary-text-color);
         font-size: var(--ha-font-size-s, 12px);
         margin-bottom: var(--ha-space-3, 12px);
       }
+      .card-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .detail-header {
+        display: flex;
+        align-items: center;
+        gap: var(--ha-space-2, 8px);
+        margin-bottom: var(--ha-space-2, 8px);
+      }
+      .detail-name {
+        font-size: var(--ha-font-size-l, 16px);
+        font-weight: var(--ha-font-weight-medium, 500);
+      }
     `
   ];
 
   set hass(hass: HomeAssistant) {
     this._hass = hass;
-    const inner = this._inner();
+    const inner = this.shadowRoot?.querySelector<CardEditor>('.card-editor');
     if (inner) inner.hass = hass;
   }
 
@@ -125,31 +176,14 @@ export class DockhandDashboardStrategyEditor extends LitElement {
     this._config = config;
   }
 
-  private _inner(): OverviewEditor | null | undefined {
-    return this.shadowRoot?.querySelector<OverviewEditor>('dockhand-overview-card-editor');
-  }
-
-  protected updated(changed: PropertyValues): void {
-    const inner = this._inner();
-    if (!inner || !this._config || !changed.has('_config')) return;
-    inner.dashboardStrategy = true;
-    if (this._hass) inner.hass = this._hass;
-    inner.setConfig({ ...DASHBOARD_DEFAULTS, ...this._config, ...ALL_SHOWN, type: 'custom:dockhand-overview-card' } as unknown as DockhandOverviewCardConfig);
-  }
-
   private _write(config: Record<string, unknown>): void {
-    const defaults: Record<string, unknown> = DASHBOARD_DEFAULTS;
     const out: Record<string, unknown> = { type: this._config?.type ?? 'custom:dockhand' };
     for (const [key, value] of Object.entries(config)) {
-      if (NOT_SAVED.has(key) || value === undefined || value === '' || value === defaults[key]) continue;
+      if (key === 'type' || value === undefined || value === '') continue;
+      if (Array.isArray(value) && value.length === 0 && key === 'exclude_device_ids') continue;
       out[key] = value;
     }
     fireEvent(this, 'config-changed', { config: out as unknown as DockhandDashboardStrategyConfig });
-  }
-
-  private _cardSettingsChanged(ev: CustomEvent<{ config: Record<string, unknown> }>): void {
-    ev.stopPropagation();
-    this._write(ev.detail.config);
   }
 
   private _layout(key: LayoutKey): OverviewSection[][] {
@@ -188,6 +222,12 @@ export class DockhandDashboardStrategyEditor extends LitElement {
     this._setLayout(key, layout);
   }
 
+  private _editButton(editing: Editing): TemplateResult {
+    return html`<ha-icon-button class="edit-card" label=${t(this._hass, 'dashboard_edit_card')} @click=${() => (this._editing = editing)}>
+      <ha-icon icon="mdi:pencil"></ha-icon>
+    </ha-icon-button>`;
+  }
+
   private _renderCards(key: LayoutKey, column: number, cards: OverviewSection[]): TemplateResult {
     return html`<ha-sortable
       group=${`dockhand-${key}`}
@@ -195,21 +235,28 @@ export class DockhandDashboardStrategyEditor extends LitElement {
       @item-added=${(ev: CustomEvent<{ index: number; data: OverviewSection }>) => this._placed(key, column, ev)}
     >
       <div class="order-list">
-        ${cards.map((card) => html`<div class="order-row card-chip" .sortableData=${card} data-card=${card}>${t(this._hass, SECTION_LABEL_KEY[card])}</div>`)}
+        ${cards.map(
+          (card) =>
+            html`<div class="order-row card-chip" .sortableData=${card} data-card=${card}>
+              <span class="chip-name">${t(this._hass, SECTION_LABEL_KEY[card])}</span>
+              ${this._editButton({ page: LAYOUTS[key].page, which: card })}
+            </div>`
+        )}
       </div>
     </ha-sortable>`;
   }
 
-  private _renderLayout(key: LayoutKey, headingKey: Parameters<typeof t>[1], expanded: boolean): TemplateResult {
+  private _renderLayout(key: LayoutKey): TemplateResult {
     const layout = this._layout(key);
     const placed = new Set(layout.flat());
     const hidden = LAYOUTS[key].known.filter((card) => !placed.has(card));
-    return html`<ha-expansion-panel outlined ?expanded=${expanded}>
-      <ha-icon slot="leading-icon" icon=${key === 'overview_layout' ? 'mdi:view-dashboard' : 'mdi:server'}></ha-icon>
-      <h3 slot="header">${t(this._hass, headingKey)}</h3>
+    const overview = key === 'overview_layout';
+    return html`<ha-expansion-panel outlined expanded data-layout=${key}>
+      <ha-icon slot="leading-icon" icon=${overview ? 'mdi:view-dashboard' : 'mdi:server'}></ha-icon>
+      <h3 slot="header">${t(this._hass, PAGE_LABEL[LAYOUTS[key].page])}</h3>
       <div class="content">
         <div class="hint">${t(this._hass, 'dashboard_layout_hint')}</div>
-        ${key === 'overview_layout' ? html`<div class="hint">${t(this._hass, 'dashboard_overview_columns_hint')}</div>` : nothing}
+        ${overview ? html`<div class="hint">${t(this._hass, 'dashboard_overview_columns_hint')}</div>` : nothing}
         <div class="columns-control">
           <span>${t(this._hass, 'dashboard_columns')}</span>
           <ha-icon-button class="fewer" .disabled=${layout.length <= 1} label="−" @click=${() => this._columns(key, layout.length - 1)}>
@@ -236,6 +283,46 @@ export class DockhandDashboardStrategyEditor extends LitElement {
     </ha-expansion-panel>`;
   }
 
+  private _renderDevicePages(): TemplateResult {
+    return html`<ha-expansion-panel outlined expanded data-layout="device_pages">
+      <ha-icon slot="leading-icon" icon="mdi:layers-outline"></ha-icon>
+      <h3 slot="header">${t(this._hass, 'dashboard_device_pages')}</h3>
+      <div class="content">
+        <div class="hint">${t(this._hass, 'dashboard_device_pages_hint')}</div>
+        ${(['stack', 'container'] as const).map(
+          (page) => html`<div class="card-row" data-page=${page}>
+            <span>${t(this._hass, page === 'stack' ? 'dashboard_stack_card' : 'dashboard_container_card')}</span>
+            ${this._editButton({ page })}
+          </div>`
+        )}
+      </div>
+    </ha-expansion-panel>`;
+  }
+
+  private _renderEnvironments(): TemplateResult {
+    const hass = this._hass!;
+    const devices = getEnvironmentDevices(hass);
+    const update = (patch: Record<string, unknown>) => this._write({ ...this._config, ...patch });
+    return renderEnvironmentOrderSection({
+      hass,
+      headingKey: 'label_environments',
+      hintKey: 'order_list_hint',
+      icon: 'mdi:web',
+      order: this._config?.environments_order,
+      excluded: this._config?.exclude_device_ids,
+      showExcludeToggle: true,
+      allowReorder: true,
+      onMoved: (order) => update({ environments_order: order }),
+      onToggleExcluded: (deviceId, nowExcluded) => {
+        const current = this._config?.exclude_device_ids ?? [];
+        update({ exclude_device_ids: nowExcluded ? [...current, deviceId] : current.filter((id) => id !== deviceId) });
+      },
+      onSolo: (deviceId) => update({ exclude_device_ids: devices.filter((d) => d.deviceId !== deviceId).map((d) => d.deviceId) }),
+      onSelectAll: () => update({ exclude_device_ids: undefined }),
+      onClearAll: () => update({ exclude_device_ids: devices.map((d) => d.deviceId) })
+    });
+  }
+
   private _renderInstance(): TemplateResult | typeof nothing {
     const hass = this._hass!;
     const instances = new Map<string, string>();
@@ -256,20 +343,76 @@ export class DockhandDashboardStrategyEditor extends LitElement {
     ></ha-form>`;
   }
 
+  /** The card's own editor, given its settings for this kind of page. On
+   * the overview, the list cards span every environment the dashboard
+   * shows (scopeFixed); everywhere else the card is about one environment,
+   * stack or container (cardIsEmbedded). Per-card names only make sense
+   * for the overview's list cards. */
+  private _mountCardEditor(editing: Editing) {
+    return (el?: Element) => {
+      if (!el || !this._hass) return;
+      const editor = el as CardEditor;
+      const settings = this._config ?? {};
+      const spansEnvironments = editing.page === 'overview' && editing.which !== 'environments';
+      editor.hass = this._hass;
+      editor.cardIsEmbedded = !spansEnvironments;
+      editor.scopeFixed = spansEnvironments;
+      editor.hideTitle = !spansEnvironments;
+      editor.setConfig({ type: `custom:${this._cardTag(editing)}`, ...cardSettings(settings, editing.page, editing.which) });
+    };
+  }
+
+  private _cardTag(editing: Editing): string {
+    if (editing.page === 'stack' || editing.page === 'container') return `dockhand-${editing.page}-card`;
+    return `dockhand-${CARD_TYPE[editing.which!]}-card`;
+  }
+
+  /** The embedded editor's config, minus what the dashboard decides,
+   * saved for every page of its kind. Stops it reaching Home Assistant's
+   * dialog, which would preview that card instead of the dashboard. */
+  private _cardChanged(editing: Editing) {
+    return (ev: CustomEvent<{ config: Record<string, unknown> }>): void => {
+      ev.stopPropagation();
+      const own = Object.fromEntries(Object.entries(ev.detail.config).filter(([key, value]) => !NOT_SAVED.has(key) && value !== undefined));
+      const cards: DashboardCards = structuredClone(this._config?.cards ?? {});
+      if (editing.page === 'stack' || editing.page === 'container') {
+        if (Object.keys(own).length) cards[editing.page] = own;
+        else delete cards[editing.page];
+      } else {
+        const page: Record<string, Record<string, unknown>> = { ...(cards[editing.page] ?? {}) };
+        if (Object.keys(own).length) page[editing.which!] = own;
+        else delete page[editing.which!];
+        if (Object.keys(page).length) cards[editing.page] = page;
+        else delete cards[editing.page];
+      }
+      this._write({ ...this._config, cards: Object.keys(cards).length ? cards : undefined });
+    };
+  }
+
+  private _renderCardSettings(editing: Editing): TemplateResult {
+    const hass = this._hass;
+    const card =
+      editing.page === 'stack' ? 'dashboard_stack_card' : editing.page === 'container' ? 'dashboard_container_card' : SECTION_LABEL_KEY[editing.which!];
+    const tag = unsafeStatic(`${this._cardTag(editing)}-editor`);
+    const editor = staticHtml`<${tag} class="card-editor" ${ref(this._mountCardEditor(editing))} @config-changed=${this._cardChanged(editing)}></${tag}>`;
+    return html`${keyed(
+      `${editing.page}:${editing.which ?? ''}`,
+      html`<div class="detail-header">
+          <ha-icon-button class="back" label=${t(hass, 'back')} @click=${() => (this._editing = undefined)}>
+            <ha-icon icon="mdi:arrow-left"></ha-icon>
+          </ha-icon-button>
+          <span class="detail-name">${t(hass, PAGE_LABEL[editing.page])} · ${t(hass, card)}</span>
+        </div>
+        <div class="hint">${t(hass, APPLIES[editing.page])}</div>
+        ${editor}`
+    )}`;
+  }
+
   protected render(): TemplateResult {
     if (!this._hass || !this._config) return html``;
+    if (this._editing) return this._renderCardSettings(this._editing);
     return html`
-      ${this._renderInstance()}
-      ${this._renderLayout('overview_layout', 'dashboard_overview_page', true)}
-      ${this._renderLayout('environment_layout', 'dashboard_environment_pages', true)}
-      <ha-expansion-panel outlined>
-        <ha-icon slot="leading-icon" icon="mdi:tune"></ha-icon>
-        <h3 slot="header">${t(this._hass, 'dashboard_card_settings')}</h3>
-        <div class="content">
-          <div class="hint">${t(this._hass, 'dashboard_card_settings_hint')}</div>
-          <dockhand-overview-card-editor @config-changed=${this._cardSettingsChanged}></dockhand-overview-card-editor>
-        </div>
-      </ha-expansion-panel>
+      ${this._renderInstance()} ${this._renderEnvironments()} ${this._renderLayout('overview_layout')} ${this._renderLayout('environment_layout')} ${this._renderDevicePages()}
     `;
   }
 }

@@ -1,5 +1,5 @@
 import { LitElement, html, type TemplateResult } from 'lit';
-import { state } from 'lit/decorators.js';
+import { property, state } from 'lit/decorators.js';
 import { fireEvent, type LovelaceCardEditor } from 'custom-card-helpers';
 import type { HaFormSchema } from '../common/ha-form-types';
 
@@ -21,6 +21,10 @@ const SECTION_LABEL_KEY = {
 export class DockhandContainerCardEditor extends LitElement implements LovelaceCardEditor {
   @state() private _config?: DockhandContainerCardConfig;
   @state() private _hass?: HomeAssistant;
+  /** Set by the Dockhand dashboard's settings, which edit the one set of
+   * settings every container page's cards share: no container to pick, and no
+   * name (each card is named after its own container). */
+  @property({ type: Boolean }) cardIsEmbedded = false;
 
   static styles = [editorFormStyles];
 
@@ -55,14 +59,19 @@ export class DockhandContainerCardEditor extends LitElement implements LovelaceC
   }
 
   private _schema(envDevices: ReturnType<typeof getEnvironmentDevices>, containerOptions: { value: string; label: string }[]): HaFormSchema[] {
+    const pickers: HaFormSchema[] = this.cardIsEmbedded
+      ? []
+      : [
+          { name: 'environment_device_id', required: true, selector: { select: { mode: 'dropdown' as const, options: envDevices.map((d) => ({ value: d.deviceId, label: d.name })) } } },
+          {
+            name: 'device_id',
+            required: true,
+            disabled: containerOptions.length === 0,
+            selector: { select: { mode: 'dropdown' as const, options: containerOptions } }
+          }
+        ];
     return [
-      { name: 'environment_device_id', required: true, selector: { select: { mode: 'dropdown' as const, options: envDevices.map((d) => ({ value: d.deviceId, label: d.name })) } } },
-      {
-        name: 'device_id',
-        required: true,
-        disabled: containerOptions.length === 0,
-        selector: { select: { mode: 'dropdown' as const, options: containerOptions } }
-      },
+      ...pickers,
       // Content is everything shaping how this container is displayed —
       // Name and the settings link. Named and ordered to match every
       // other card's Content section. Represents from the container's
@@ -75,7 +84,7 @@ export class DockhandContainerCardEditor extends LitElement implements LovelaceC
         icon: 'mdi:text-short',
         title: t(this._hass, 'content_section_heading'),
         schema: [
-          cardNameFieldSchema(this._config?.device_id && this._hass ? getRepresentativeEntityId(this._hass, this._config.device_id) : undefined, [{ type: 'device' }]),
+          ...(this.cardIsEmbedded ? [] : [cardNameFieldSchema(this._config?.device_id && this._hass ? getRepresentativeEntityId(this._hass, this._config.device_id) : undefined, [{ type: 'device' }])]),
           { name: 'icon', selector: { icon: {} } },
           { name: 'show_settings_link', default: true, selector: { boolean: {} } },
           { name: 'show_controls', default: true, selector: { boolean: {} } },
@@ -175,6 +184,11 @@ export class DockhandContainerCardEditor extends LitElement implements LovelaceC
    * card naming a container that isn't there. */
   private _valueChanged(ev: CustomEvent<{ value: DockhandContainerCardConfig }>): void {
     const config = { ...ev.detail.value };
+    if (this.cardIsEmbedded) {
+      delete config.environment_device_id;
+      fireEvent(this, 'config-changed', { config });
+      return;
+    }
     const before = this._resolvedEnvDeviceId();
     if (before && config.environment_device_id !== before) config.device_id = '';
     fireEvent(this, 'config-changed', { config });
