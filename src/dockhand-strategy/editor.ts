@@ -19,6 +19,7 @@ import { getInstanceLabel } from '../common/format';
 import { t, type EditorTranslationKey } from '../common/i18n-editor';
 import { editorFormStyles, sortableRowStyles } from '../common/editor-styles';
 import { renderEnvironmentOrderSection } from '../common/environment-scope-editor';
+import { resolveIncludedOrdered } from '../common/environment-scope';
 import type { OverviewSection } from '../dockhand-overview-card/types';
 import { SECTION_LABEL_KEY } from '../dockhand-overview-card/editor';
 import {
@@ -29,7 +30,9 @@ import {
   OVERVIEW_PAGE_CARDS,
   cardSettings,
   cleanLayout,
+  excludedEnvironments,
   type DashboardCards,
+  type DockhandDashboardSettings,
   type DockhandDashboardStrategyConfig,
   type PageKind
 } from './strategy';
@@ -78,6 +81,10 @@ export class DockhandDashboardStrategyEditor extends LitElement {
   @state() private _config?: DockhandDashboardStrategyConfig;
   @state() private _hass?: HomeAssistant;
   @state() private _editing?: Editing;
+  /** The layout panels someone opened: closed at first, so every section
+   * fits on screen, and still open on the way back from a card's
+   * settings. */
+  @state() private _open = new Set<string>();
 
   static styles = [
     editorFormStyles,
@@ -100,24 +107,33 @@ export class DockhandDashboardStrategyEditor extends LitElement {
         border-radius: 8px;
         padding: var(--ha-space-2, 8px);
       }
+      /* Hide (or Hidden): its label beside its cards, so it's one row
+       * high, and only as tall as a card while empty. */
       .column.hidden-cards {
         grid-column: 1 / -1;
-      }
-      /* Left-out cards side by side, so the area is one row high. */
-      .column.hidden-cards .order-list {
-        flex-direction: row;
-        flex-wrap: wrap;
+        display: flex;
         align-items: center;
+        gap: var(--ha-space-2, 8px);
+      }
+      .column.hidden-cards .column-title {
+        margin-bottom: 0;
+        flex-shrink: 0;
+      }
+      .column.hidden-cards ha-sortable {
+        flex: 1;
+        min-width: 0;
       }
       .column-title {
         font-size: var(--ha-font-size-s, 12px);
         color: var(--secondary-text-color);
         margin-bottom: var(--ha-space-2, 8px);
       }
-      /* Cards as small as their names, so an empty column (and Not
-       * shown, often empty) is one card high. */
+      /* Cards as small as their names, side by side, wrapping only when
+       * a column is full, so an empty column is one card high. */
       .column .order-list {
-        align-items: flex-start;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
         gap: var(--ha-space-1, 4px);
         min-height: 24px;
       }
@@ -251,12 +267,11 @@ export class DockhandDashboardStrategyEditor extends LitElement {
     const placed = new Set(layout.flat());
     const hidden = LAYOUTS[key].known.filter((card) => !placed.has(card));
     const overview = key === 'overview_layout';
-    return html`<ha-expansion-panel outlined expanded data-layout=${key}>
+    return html`<ha-expansion-panel outlined .expanded=${this._open.has(key)} @expanded-changed=${this._panelToggled(key)} data-layout=${key}>
       <ha-icon slot="leading-icon" icon=${overview ? 'mdi:view-dashboard' : 'mdi:server'}></ha-icon>
       <h3 slot="header">${t(this._hass, PAGE_LABEL[LAYOUTS[key].page])}</h3>
       <div class="content">
-        <div class="hint">${t(this._hass, 'dashboard_layout_hint')}</div>
-        ${overview ? html`<div class="hint">${t(this._hass, 'dashboard_overview_columns_hint')}</div>` : nothing}
+        <div class="hint">${t(this._hass, overview ? 'dashboard_overview_layout_hint' : 'dashboard_layout_hint')}</div>
         <div class="columns-control">
           <span>${t(this._hass, 'dashboard_columns')}</span>
           <ha-icon-button class="fewer" .disabled=${layout.length <= 1} label="−" @click=${() => this._columns(key, layout.length - 1)}>
@@ -275,12 +290,28 @@ export class DockhandDashboardStrategyEditor extends LitElement {
             </div>`
           )}
           <div class="column hidden-cards">
-            <div class="column-title">${t(this._hass, 'dashboard_not_shown')}</div>
+            <div class="column-title">${t(this._hass, hidden.length ? 'dashboard_hidden' : 'dashboard_hide')}</div>
             ${this._renderCards(key, -1, hidden)}
           </div>
         </div>
       </div>
     </ha-expansion-panel>`;
+  }
+
+  private _panelToggled(key: string) {
+    return (ev: CustomEvent<{ expanded: boolean }>): void => {
+      const open = new Set(this._open);
+      if (ev.detail.expanded) open.add(key);
+      else open.delete(key);
+      this._open = open;
+    };
+  }
+
+  /** One environment shows its own page, not the overview. */
+  private _overviewShown(): boolean {
+    const hass = this._hass!;
+    const settings: DockhandDashboardSettings = this._config ?? {};
+    return resolveIncludedOrdered(getEnvironmentDevices(hass), settings.environments_order, excludedEnvironments(hass, settings)).length > 1;
   }
 
   private _renderDevicePages(): TemplateResult {
@@ -306,7 +337,8 @@ export class DockhandDashboardStrategyEditor extends LitElement {
     return renderEnvironmentOrderSection({
       hass,
       headingKey: 'label_environments',
-      hintKey: 'order_list_hint',
+      hintKey: 'dashboard_environments_hint',
+      collapsible: true,
       icon: 'mdi:web',
       order: this._config?.environments_order,
       excluded: this._config?.exclude_device_ids,
@@ -412,7 +444,8 @@ export class DockhandDashboardStrategyEditor extends LitElement {
     if (!this._hass || !this._config) return html``;
     if (this._editing) return this._renderCardSettings(this._editing);
     return html`
-      ${this._renderInstance()} ${this._renderEnvironments()} ${this._renderLayout('overview_layout')} ${this._renderLayout('environment_layout')} ${this._renderDevicePages()}
+      ${this._renderInstance()} ${this._renderEnvironments()} ${this._overviewShown() ? this._renderLayout('overview_layout') : nothing}
+      ${this._renderLayout('environment_layout')} ${this._renderDevicePages()}
     `;
   }
 }

@@ -99,6 +99,9 @@ export function renderEnvironmentOrderSection(opts: {
    * than excluding everyone else one at a time. */
   onSelectAll?: () => void;
   onClearAll?: () => void;
+  /** Lets the section be folded away (open at first); card editors keep
+   * it open. */
+  collapsible?: boolean;
 }): TemplateResult {
   if (opts.hidden) return html``;
 
@@ -156,7 +159,7 @@ export function renderEnvironmentOrderSection(opts: {
   `;
 
   return html`
-    <ha-expansion-panel outlined expanded no-collapse>
+    <ha-expansion-panel outlined expanded ?no-collapse=${!opts.collapsible}>
       <ha-icon slot="leading-icon" icon=${opts.icon ?? 'mdi:sort'}></ha-icon>
       <span slot="header">${t(opts.hass, opts.headingKey)}</span>
       <div class="content">

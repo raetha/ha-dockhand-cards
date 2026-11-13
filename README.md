@@ -353,8 +353,8 @@ A ready-made dashboard instead of building one card by card: in **Settings → D
 To change it, open the dashboard's **⋮ → Edit dashboard**:
 
 - **Dockhand instance** (only with more than one): one instance's environments, or all of them.
-- **Environments**: their order, and which to leave out.
-- **Overview page** and **Environment pages**: up to four columns each; drag cards between columns, or to **Not shown** to leave them out. On the overview, three or more environments take two columns, so the page is one column wider than the number set. A card's pencil opens its own settings, the same as in that card's editor. Every environment's page shares them: change the Containers card on one and it changes on all.
+- **Environments**: their order, and which to leave out. With only one, the dashboard opens on that environment's page instead of an overview, which suits a dashboard per environment.
+- **Overview page** and **Environment pages**: up to four columns each; drag cards between columns, or to **Hide** to leave them out. On the overview, three or more environments take two columns, so the page is one column wider than the number set. A card's pencil opens its own settings, the same as in that card's editor. Every environment's page shares them: change the Containers card on one and it changes on all.
 - **Stacks and containers pages**: the settings of the Stack card on every Stacks page, and of the Container card on every Containers page.
 
 Anything beyond that needs **Take control**, which turns it into a normal dashboard you edit like any other (it then stops updating itself). In YAML it's:

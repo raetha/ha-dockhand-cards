@@ -275,8 +275,37 @@ describe('Dockhand dashboard settings', () => {
     expect(columns('environment_layout')).toEqual([['environments'], ['containers'], ['vulnerabilities', 'updates', 'schedules', 'stacks']]);
     expect(panel('overview_layout').querySelector('.column-count')!.textContent).toBe('3');
     // Only the overview says the environments may take two columns.
-    expect(panel('overview_layout').querySelectorAll('.hint')).toHaveLength(2);
-    expect(panel('environment_layout').querySelectorAll('.hint')).toHaveLength(1);
+    expect(panel('overview_layout').querySelector('.hint')!.textContent).toContain('two columns');
+    expect(panel('environment_layout').querySelector('.hint')!.textContent).not.toContain('two columns');
+    // The drop point for leaving cards out says what it holds.
+    const hiddenTitle = (key: string) => panel(key).querySelector('.hidden-cards .column-title')!.textContent;
+    expect(hiddenTitle('overview_layout')).toBe('Hide');
+    expect(hiddenTitle('environment_layout')).toBe('Hidden');
+  });
+
+  it('starts with the layouts folded, and keeps one open on the way back from a card', async () => {
+    await mount({});
+    const environments = root().querySelector('ha-expansion-panel:not([data-layout])')!;
+    expect(environments.hasAttribute('expanded')).toBe(true);
+    expect(environments.hasAttribute('no-collapse')).toBe(false);
+    const overview = () => panel('overview_layout') as HTMLElement & { expanded: boolean };
+    expect(overview().expanded).toBe(false);
+    expect((panel('environment_layout') as HTMLElement & { expanded: boolean }).expanded).toBe(false);
+    overview().dispatchEvent(new CustomEvent('expanded-changed', { detail: { expanded: true } }));
+    await el!.updateComplete;
+    await open(overview().querySelector<HTMLElement>('.card-chip[data-card="updates"]')!);
+    root().querySelector<HTMLElement>('.back')!.click();
+    await el!.updateComplete;
+    expect(overview().expanded).toBe(true);
+    overview().dispatchEvent(new CustomEvent('expanded-changed', { detail: { expanded: false } }));
+    await el!.updateComplete;
+    expect(overview().expanded).toBe(false);
+  });
+
+  it('leaves out the overview’s layout when one environment is shown, as the dashboard opens on its page', async () => {
+    await mount({ exclude_device_ids: ['env_2', 'env_3', 'env_4'] });
+    expect(panel('overview_layout')).toBeNull();
+    expect(panel('environment_layout')).not.toBeNull();
   });
 
   it('moves a card between columns, within one, and out of the layout', async () => {
