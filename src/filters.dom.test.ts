@@ -164,6 +164,22 @@ describe('Filters section in the editors', () => {
     expect(match.visible).toEqual({ field: values.name, operator: 'exists' });
   });
 
+  it('offers Dockhand’s tags, not image tags', async () => {
+    const el = document.createElement('dockhand-stacks-card-editor') as Lit;
+    el.setConfig({ type: 'custom:dockhand-stacks-card' });
+    const hass = mockHass();
+    // An image sensor's `tags` are its image tags, which no stack has.
+    hass.entities['sensor.nginx_image'] = { entity_id: 'sensor.nginx_image', platform: 'dockhand', translation_key: 'image', device_id: 'env_1' } as (typeof hass.entities)[string];
+    hass.states['sensor.nginx_image'] = { entity_id: 'sensor.nginx_image', state: 'latest', attributes: { tags: ['nginx:latest'] } } as unknown as (typeof hass.states)[string];
+    el.hass = hass;
+    document.body.appendChild(el);
+    mounted.push(el);
+    await el.updateComplete;
+    const schema = JSON.stringify(filterForm(el).schema);
+    expect(schema).toContain('"critical"');
+    expect(schema).not.toContain('nginx:latest');
+  });
+
   it('offers no Where filter in the Overview', async () => {
     const el = document.createElement('dockhand-schedules-card-editor') as Lit & { cardIsEmbedded: boolean };
     el.cardIsEmbedded = true;

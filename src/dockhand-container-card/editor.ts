@@ -170,18 +170,14 @@ export class DockhandContainerCardEditor extends LitElement implements LovelaceC
     return { device_id: t(this._hass, 'availability_hint', { names }) };
   }
 
-  /** Plain passthrough — same as every other converted editor.
-   * environment_device_id changing doesn't touch device_id here, matching
-   * the previous hand-rendered picker's actual behavior: switching
-   * environment only ever re-scoped which containers the dropdown
-   * offered, it never silently cleared or rewrote a previously-chosen
-   * device_id on its own. If the two end up mismatched (environment
-   * changed, container not yet re-picked), the container schema options
-   * are already scoped to the new environment on the very next render,
-   * so the stale value simply won't appear as a valid choice until the
-   * user picks again — no separate cleanup needed. */
+  /** A container belongs to one environment, so choosing another clears it
+   * rather than leaving its device ID showing in the container field, and the
+   * card naming a container that isn't there. */
   private _valueChanged(ev: CustomEvent<{ value: DockhandContainerCardConfig }>): void {
-    fireEvent(this, 'config-changed', { config: ev.detail.value });
+    const config = { ...ev.detail.value };
+    const before = this._resolvedEnvDeviceId();
+    if (before && config.environment_device_id !== before) config.device_id = '';
+    fireEvent(this, 'config-changed', { config });
   }
 }
 

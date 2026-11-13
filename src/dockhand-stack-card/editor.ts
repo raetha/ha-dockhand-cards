@@ -172,11 +172,14 @@ export class DockhandStackCardEditor extends LitElement implements LovelaceCardE
     return { device_id: t(this._hass, 'availability_hint', { names }) };
   }
 
-  /** Plain passthrough — see DockhandContainerCardEditor's identical
-   * comment for why environment_device_id changing doesn't need to clear
-   * device_id here. */
+  /** A stack belongs to one environment, so choosing another clears it
+   * rather than leaving its device ID showing in the stack field, and the
+   * card naming a stack that isn't there. */
   private _valueChanged(ev: CustomEvent<{ value: DockhandStackCardConfig }>): void {
-    fireEvent(this, 'config-changed', { config: ev.detail.value });
+    const config = { ...ev.detail.value };
+    const before = this._resolvedEnvDeviceId();
+    if (before && config.environment_device_id !== before) config.device_id = '';
+    fireEvent(this, 'config-changed', { config });
   }
 }
 
