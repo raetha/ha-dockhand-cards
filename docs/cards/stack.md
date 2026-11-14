@@ -14,7 +14,7 @@ visible_sections: [status, metrics, io, containers, git_sync] # which sections s
 
 Under the header, the stack's Dockhand tags as coloured pills (when it has any). The stack's status, CPU/memory and network/disk I/O totals, its containers (each one a pill that opens that container), pending updates, and — for git stacks — sync status, last sync time and any sync error. The totals are Dockhand's own (the same numbers its Stacks page shows), from ha-dockhand 1.11.0's stack stats sensors — they need Dockhand 1.0.52 or later and ha-dockhand's **Enable container and stack stats** option; without them the card simply leaves those sections out. Like Dockhand, memory shows as usage over limit, where the limit is the largest single container limit (usually the host's memory).
 
-Buttons in the header start, stop or restart the stack, beside its **Redeploy** (internal stacks) or **Deploy / Sync from Git** (git stacks) button; each one's tooltip names it. Everything except Start asks for confirmation first. A stack containing a system container (Dockhand itself, or a Hawser agent) has no buttons, matching Dockhand.
+Buttons in the header redeploy (internal stacks) or deploy / sync from Git (git stacks), start, restart and stop the stack, in the order Dockhand's own stacks list shows them; each one's tooltip names it. Everything except Start asks for confirmation first. A stack containing a system container (Dockhand itself, or a Hawser agent) has no buttons, matching Dockhand.
 
 <picture>
   <source media="(prefers-color-scheme: light)" srcset="../images/stack-light.png">

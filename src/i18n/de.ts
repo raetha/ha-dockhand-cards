@@ -18,6 +18,8 @@ const card: Record<CardTranslationKey, string> = {
   control_start: 'Starten',
   control_stop: 'Stoppen',
   control_restart: 'Neu starten',
+  control_pause: 'Pausieren',
+  control_resume: 'Fortsetzen',
   control_stop_confirm: '{name} stoppen?',
   control_restart_confirm: '{name} neu starten?',
   control_deploy: 'Neu bereitstellen',
