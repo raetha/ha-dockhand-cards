@@ -25,6 +25,7 @@ import { SECTION_LABEL_KEY } from '../dockhand-overview-card/editor';
 import {
   DEFAULT_ENVIRONMENT_LAYOUT,
   DEFAULT_OVERVIEW_LAYOUT,
+  ENVIRONMENT_BADGES,
   ENVIRONMENT_PAGE_CARDS,
   MAX_COLUMNS,
   OVERVIEW_PAGE_CARDS,
@@ -34,6 +35,7 @@ import {
   type DashboardCards,
   type DockhandDashboardSettings,
   type DockhandDashboardStrategyConfig,
+  type EnvironmentBadge,
   type PageKind
 } from './strategy';
 
@@ -163,6 +165,10 @@ export class DockhandDashboardStrategyEditor extends LitElement {
         color: var(--secondary-text-color);
         font-size: var(--ha-font-size-s, 12px);
         margin-bottom: var(--ha-space-3, 12px);
+      }
+      ha-form.badges {
+        display: block;
+        margin-top: var(--ha-space-4, 16px);
       }
       .card-row {
         display: flex;
@@ -294,8 +300,28 @@ export class DockhandDashboardStrategyEditor extends LitElement {
             ${this._renderCards(key, -1, hidden)}
           </div>
         </div>
+        ${overview ? nothing : this._renderBadges()}
       </div>
     </ha-expansion-panel>`;
+  }
+
+  /** Which host details the environment pages show as badges; unset means
+   * all, so the setting stays out of the config until one is unticked. */
+  private _renderBadges(): TemplateResult {
+    const hass = this._hass!;
+    const options = Object.fromEntries(ENVIRONMENT_BADGES.map((badge) => [badge, t(hass, `badge_${badge}`)]));
+    return html`<ha-form
+      class="badges"
+      .hass=${hass}
+      .data=${{ environment_badges: this._config?.environment_badges ?? [...ENVIRONMENT_BADGES] }}
+      .schema=${[{ name: 'environment_badges', type: 'multi_select', options }]}
+      .computeLabel=${() => t(hass, 'dashboard_badges')}
+      .computeHelper=${() => t(hass, 'dashboard_badges_helper')}
+      @value-changed=${(ev: CustomEvent<{ value: { environment_badges: EnvironmentBadge[] } }>) => {
+        const chosen = ENVIRONMENT_BADGES.filter((badge) => ev.detail.value.environment_badges.includes(badge));
+        this._write({ ...this._config, environment_badges: chosen.length === ENVIRONMENT_BADGES.length ? undefined : chosen });
+      }}
+    ></ha-form>`;
   }
 
   private _panelToggled(key: string) {

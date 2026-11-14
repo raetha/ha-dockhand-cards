@@ -17,6 +17,7 @@ import { resolveIncludedOrdered } from '../common/environment-scope';
 import { resolveEnvironmentEntities } from '../common/entity-resolver';
 import { loadEditor } from '../common/editor-loader';
 import { t } from '../common/i18n-card';
+import type { EnvTranslationKey } from '../common/const';
 import type { OverviewSection } from '../dockhand-overview-card/types';
 
 type Config = Record<string, unknown>;
@@ -59,6 +60,8 @@ export interface DockhandDashboardSettings {
   /** Columns of cards, left to right; a card in no column isn't shown. */
   overview_layout?: OverviewPageCard[][];
   environment_layout?: OverviewSection[][];
+  /** Environment page badges to show; all when unset. */
+  environment_badges?: EnvironmentBadge[];
   cards?: DashboardCards;
 }
 
@@ -200,7 +203,7 @@ export class DockhandDashboardStrategy extends HTMLElement {
     return { title: 'Dockhand', icon: 'mdi:docker' };
   }
 
-  static shouldRegenerate(_config: Config, oldHass: HomeAssistant, newHass: HomeAssistant): boolean {
+  static shouldRegenerate(_config: unknown, oldHass: HomeAssistant, newHass: HomeAssistant): boolean {
     return environmentKey(oldHass) !== environmentKey(newHass);
   }
 
@@ -277,11 +280,49 @@ export class DockhandDashboardStrategy extends HTMLElement {
   }
 }
 
+/** What describes the environment's host, as badges at the top of its
+ * page: the setting lists which (all by default), and only entities that
+ * are turned on show. Hawser agent version only exists for Hawser
+ * connections. */
+export const ENVIRONMENT_BADGES = ['host_platform', 'uptime', 'hawser_agent_version', 'host_docker_version'] as const;
+export type EnvironmentBadge = (typeof ENVIRONMENT_BADGES)[number];
+const BADGE_KEY: Record<EnvironmentBadge, EnvTranslationKey> = {
+  host_platform: 'hostPlatform',
+  uptime: 'uptime',
+  hawser_agent_version: 'hawserAgentVersion',
+  host_docker_version: 'hostDockerVersion'
+};
+
+const detailBadges = (hass: HomeAssistant, deviceId: string, settings: DockhandDashboardSettings = {}): Config[] => {
+  const shown = ENVIRONMENT_BADGES.filter((badge) => settings.environment_badges?.includes(badge) ?? true);
+  const { found } = resolveEnvironmentEntities(
+    hass,
+    deviceId,
+    shown.map((badge) => BADGE_KEY[badge])
+  );
+  // Icon and value only, as Home Assistant's entity badges default to.
+  return shown.flatMap((badge) => {
+    const entity = found[BADGE_KEY[badge]]?.entityId;
+    return entity ? [{ type: 'entity', entity }] : [];
+  });
+};
+
+/** What the environment page is built from beyond the environment list:
+ * whether it scans and which badges exist, so turning an entity on shows
+ * without a reload. */
+const environmentPageKey = (hass: HomeAssistant, config: DockhandEnvironmentViewConfig): string =>
+  `${scanning(hass, config.device_id)}|${detailBadges(hass, config.device_id, config.settings)
+    .map((b) => b.entity)
+    .join(',')}`;
+
 /** One environment's cards in Home Assistant's sections, in the columns
- * the settings lay out. */
+ * the settings lay out, below badges for its host details. */
 export class DockhandEnvironmentViewStrategy extends HTMLElement {
-  static shouldRegenerate(config: Config, oldHass: HomeAssistant, newHass: HomeAssistant): boolean {
-    return DockhandDashboardStrategy.shouldRegenerate(config, oldHass, newHass);
+  static shouldRegenerate(config: DockhandEnvironmentViewConfig, oldHass: HomeAssistant, newHass: HomeAssistant): boolean {
+    return (
+      DockhandDashboardStrategy.shouldRegenerate(config, oldHass, newHass) ||
+      environmentPageKey(oldHass, config) !== environmentPageKey(newHass, config)
+    );
   }
 
   static async generate(config: DockhandEnvironmentViewConfig, hass: HomeAssistant): Promise<Config> {
@@ -296,7 +337,8 @@ export class DockhandEnvironmentViewStrategy extends HTMLElement {
         });
       return cards.length > 0 ? [section(cards)] : [];
     });
-    return { type: 'sections', max_columns: Math.max(1, sections.length), sections };
+    const badges = detailBadges(hass, deviceId, settings);
+    return { type: 'sections', max_columns: Math.max(1, sections.length), ...(badges.length > 0 ? { badges } : {}), sections };
   }
 }
 

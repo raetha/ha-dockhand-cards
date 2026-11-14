@@ -129,7 +129,32 @@ describe('Dockhand dashboard strategy', () => {
     expect(DockhandDashboardStrategy.shouldRegenerate({}, hass, { ...hass, states: {} } as HomeAssistant)).toBe(false);
     const fewer = { ...hass, devices: Object.fromEntries(Object.entries(hass.devices).filter(([id]) => id !== 'env_4')) } as HomeAssistant;
     expect(DockhandDashboardStrategy.shouldRegenerate({}, hass, fewer)).toBe(true);
-    expect(DockhandEnvironmentViewStrategy.shouldRegenerate({}, hass, fewer)).toBe(true);
+    const view = { type: 'custom:dockhand-environment', device_id: 'env_1' } as DockhandEnvironmentViewConfig;
+    expect(DockhandEnvironmentViewStrategy.shouldRegenerate(view, hass, fewer)).toBe(true);
+    expect(DockhandEnvironmentViewStrategy.shouldRegenerate(view, hass, { ...hass, states: { ...hass.states } } as HomeAssistant)).toBe(false);
+  });
+
+  it('shows the environment’s host details as badges, those turned on, and is built again when one is turned on', async () => {
+    const hass = mockHass();
+    const generate = async (h: HomeAssistant, deviceId: string, settings = {}) =>
+      (await DockhandEnvironmentViewStrategy.generate({ type: 'custom:dockhand-environment', device_id: deviceId, settings }, h)) as { badges?: Card[] };
+    const nebula = Object.values(hass.devices).find((d) => d.name === 'Nebula')!.id;
+    const aurora = Object.values(hass.devices).find((d) => d.name === 'Aurora')!.id;
+    expect((await generate(hass, nebula)).badges).toEqual(
+      ['host_platform', 'uptime', 'hawser_agent_version', 'host_docker_version'].map((key) => ({ type: 'entity', entity: `sensor.nebula_${key}` }))
+    );
+    // Only the badges the settings list, in their own order.
+    expect((await generate(hass, nebula, { environment_badges: ['host_docker_version', 'uptime'] })).badges!.map((b) => b.entity)).toEqual(['sensor.nebula_uptime', 'sensor.nebula_host_docker_version']);
+    expect((await generate(hass, nebula, { environment_badges: [] })).badges).toBeUndefined();
+    // A socket connection has no Hawser agent.
+    expect((await generate(hass, aurora)).badges!.map((b) => b.entity)).toEqual(['sensor.aurora_host_platform', 'sensor.aurora_uptime', 'sensor.aurora_host_docker_version']);
+
+    const entities = { ...hass.entities };
+    for (const id of Object.keys(entities)) if (id.startsWith('sensor.nebula_') && /platform|uptime|version/.test(id)) entities[id] = { ...entities[id], disabled_by: 'integration' };
+    const off = { ...hass, entities } as HomeAssistant;
+    expect((await generate(off, nebula)).badges).toBeUndefined();
+    const view = { type: 'custom:dockhand-environment', device_id: nebula } as DockhandEnvironmentViewConfig;
+    expect(DockhandEnvironmentViewStrategy.shouldRegenerate(view, off, hass)).toBe(true);
   });
 
   it('suggests a title and icon, and has a settings editor', async () => {
@@ -304,6 +329,17 @@ describe('Dockhand dashboard settings', () => {
     expect(overview().expanded).toBe(false);
   });
 
+  it('chooses the environment pages’ badges, leaving the setting out while all are shown', async () => {
+    const { seen } = await mount({});
+    const form = panel('environment_layout').querySelector('ha-form.badges') as HTMLElement & { data: { environment_badges: string[] } };
+    expect(panel('overview_layout').querySelector('ha-form.badges')).toBeNull();
+    expect(form.data.environment_badges).toEqual(['host_platform', 'uptime', 'hawser_agent_version', 'host_docker_version']);
+    form.dispatchEvent(new CustomEvent('value-changed', { detail: { value: { environment_badges: ['host_docker_version', 'host_platform'] } } }));
+    expect(seen.pop()).toEqual({ type: 'custom:dockhand', environment_badges: ['host_platform', 'host_docker_version'] });
+    form.dispatchEvent(new CustomEvent('value-changed', { detail: { value: { environment_badges: ['uptime', 'host_platform', 'hawser_agent_version', 'host_docker_version'] } } }));
+    expect(seen.pop()).toEqual({ type: 'custom:dockhand' });
+  });
+
   it('leaves out the overview’s layout when one environment is shown, as the dashboard opens on its page', async () => {
     await mount({ exclude_device_ids: ['env_2', 'env_3', 'env_4'] });
     expect(panel('overview_layout')).toBeNull();
@@ -358,12 +394,12 @@ describe('Dockhand dashboard settings', () => {
 
   it('offers an instance only when there are several', async () => {
     await mount({});
-    expect(root().querySelector('ha-form')).toBeNull();
+    expect(root().querySelector('ha-form:not(.badges)')).toBeNull();
     el!.remove();
     const hass = mockHass();
     hass.devices.env_3 = { ...hass.devices.env_3, config_entry_id: 'other' };
     const { seen } = await mount({}, hass);
-    const form = root().querySelector('ha-form') as HTMLElement & { schema: { selector: { select: { options: { value: string }[] } } }[] };
+    const form = root().querySelector('ha-form:not(.badges)') as HTMLElement & { schema: { selector: { select: { options: { value: string }[] } } }[] };
     expect(form.schema[0].selector.select.options.map((o) => o.value)).toEqual(['', hass.devices.env_1.config_entry_id, 'other']);
     form.dispatchEvent(new CustomEvent('value-changed', { detail: { value: { config_entry_id: 'other' } } }));
     expect(seen.pop()).toEqual({ type: 'custom:dockhand', config_entry_id: 'other' });
