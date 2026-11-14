@@ -28,9 +28,21 @@ describe('resolveDeviceControls', () => {
     expect(controls).toEqual({ running: { entityId: 'switch.web', isOn: true }, restartEntityId: 'button.web_restart', deploy: null });
   });
 
-  it('reports a stopped container as not on, with no restart offered', () => {
+  it('offers restart on a stopped container too, as Dockhand’s containers list does', () => {
     const controls = resolveDeviceControls(hassWith({ running: 'off', restart: true }), DEVICE, true);
-    expect(controls).toEqual({ running: { entityId: 'switch.web', isOn: false }, restartEntityId: null, deploy: null });
+    expect(controls).toEqual({ running: { entityId: 'switch.web', isOn: false }, restartEntityId: 'button.web_restart', deploy: null });
+  });
+
+  it('offers restart on a stack only while it runs, as Dockhand’s stacks list does', () => {
+    const hass = makeHass({
+      devices: [makeDevice({ id: 'stack_1_core', identifiers: [['dockhand', 'E_stack_1_core']] })],
+      entities: [
+        makeEntity({ entity_id: 'switch.core', device_id: 'stack_1_core', translation_key: null }),
+        makeEntity({ entity_id: 'button.core_restart', device_id: 'stack_1_core', translation_key: 'restart' })
+      ],
+      states: [makeState({ entity_id: 'switch.core', state: 'off' }), makeState({ entity_id: 'button.core_restart', state: 'unknown' })]
+    });
+    expect(resolveDeviceControls(hass, 'stack_1_core', undefined)?.restartEntityId).toBeNull();
   });
 
   it('returns null when show_controls is false', () => {
@@ -69,6 +81,7 @@ describe('resolveDeviceControls', () => {
 
   it("offers an internal stack's redeploy button, even while stopped", () => {
     const hass = makeHass({
+      devices: [makeDevice({ id: 'stack_1_db', identifiers: [['dockhand', 'E_stack_1_db']] })],
       entities: [
         makeEntity({ entity_id: 'switch.db', device_id: 'stack_1_db', translation_key: null }),
         makeEntity({ entity_id: 'button.db_restart', device_id: 'stack_1_db', translation_key: 'restart' }),

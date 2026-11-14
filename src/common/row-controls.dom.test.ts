@@ -77,24 +77,24 @@ describe.each([
     }
   });
 
-  it('offer stop and restart while running, each asking first, without opening more-info', async () => {
+  it('offer restart and stop while running, in Dockhand’s order, each asking first, without opening more-info', async () => {
     const card = await mount(tag, type, hassWithDevice(kind, true), { show_controls: true });
-    expect(controlTitles(card)).toEqual(['Stop', 'Restart']);
+    expect(controlTitles(card)).toEqual(['Restart', 'Stop']);
     const fired = actions(card);
     const moreInfo = vi.fn();
     card.addEventListener('hass-more-info', moreInfo);
     for (const control of card.shadowRoot!.querySelectorAll<HTMLElement>('.row-control')) control.click();
     expect(fired.mock.calls.map(([a]) => [a.perform_action, a.target.entity_id, a.confirmation?.text])).toEqual([
-      ['switch.turn_off', 'switch.web', 'Stop web?'],
-      ['button.press', 'button.web_restart', 'Restart web?']
+      ['button.press', 'button.web_restart', 'Restart web?'],
+      ['switch.turn_off', 'switch.web', 'Stop web?']
     ]);
     expect(moreInfo).not.toHaveBeenCalled();
     card.remove();
   });
 
-  it('offer start alone while stopped, without asking', async () => {
+  it('offer start while stopped, without asking, and restart too for a container, as Dockhand does', async () => {
     const card = await mount(tag, type, hassWithDevice(kind, false), { show_controls: true });
-    expect(controlTitles(card)).toEqual(['Start']);
+    expect(controlTitles(card)).toEqual(kind === 'container' ? ['Start', 'Restart'] : ['Start']);
     const fired = actions(card);
     card.shadowRoot!.querySelector<HTMLElement>('.row-control')!.click();
     expect(fired.mock.calls[0][0]).toMatchObject({ perform_action: 'switch.turn_on', target: { entity_id: 'switch.web' } });
