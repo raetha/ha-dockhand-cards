@@ -4,7 +4,7 @@ import { state } from 'lit/decorators.js';
 import { fireEvent, type LovelaceCard, type LovelaceCardEditor } from 'custom-card-helpers';
 
 import type { HomeAssistant, LovelaceGridOptions } from '../common/ha-types';
-import { getAllContainerDevices, getRepresentativeEntityId } from '../common/device-utils';
+import { defaultCardName, getAllContainerDevices, getRepresentativeEntityId } from '../common/device-utils';
 import { resolveCardName } from '../common/card-name';
 import { resolveContainerEntities, findPrimaryEntityByDomain, type ResolutionResult } from '../common/entity-resolver';
 import { renderResourceIo, renderResourceMetrics } from '../common/resource-sections';
@@ -17,7 +17,7 @@ import { updateKindIcon, updateStatus } from '../common/update-kind';
 import { stateLabel } from '../common/state-label';
 import { renderSettingsLink, renderIcon } from '../common/icon';
 import { CONTAINER_STATE_CLASS, HEALTH_ICON, HEALTH_STATUS_CLASS, DEFAULT_CONTAINER_ICON, UPDATE_PENDING_VERSION } from '../common/const';
-import { renderDeviceControls, resolveDeviceControls } from '../common/device-controls';
+import { renderHeaderControls, resolveDeviceControls } from '../common/device-controls';
 import { DEFAULT_CONTAINER_SECTIONS, type DockhandContainerCardConfig } from './types';
 import { renderTagRow } from '../common/tag-pills';
 import { cardStyles } from './styles';
@@ -122,7 +122,7 @@ export class DockhandContainerCard extends LitElement implements LovelaceCard {
     ]);
     const s = resolution.found;
     const representativeEntityId = getRepresentativeEntityId(this._hass, this._config.device_id);
-    const name = resolveCardName(this._hass, representativeEntityId, this._config.name, device.name_by_user || device.name || t(this._hass, 'name_container'));
+    const name = resolveCardName(this._hass, representativeEntityId, this._config.name, defaultCardName(this._hass, device) || t(this._hass, 'name_container'));
     const image = s.state?.state.attributes.image as string | undefined;
     const update = findPrimaryEntityByDomain(this._hass, this._config.device_id, 'update');
     const controls = resolveDeviceControls(this._hass, this._config.device_id, this._config.show_controls);
@@ -156,6 +156,7 @@ export class DockhandContainerCard extends LitElement implements LovelaceCard {
                     onClick: () => this._moreInfo(update?.entityId)
                   })
                 : nothing}
+              ${controls ? renderHeaderControls(this, this._hass, controls, name) : nothing}
               ${renderSettingsLink({
                 hass: this._hass,
                 show: this._config?.show_settings_link,
@@ -166,13 +167,13 @@ export class DockhandContainerCard extends LitElement implements LovelaceCard {
           </div>
           ${renderTagRow(s.state?.state)}
           <div class="divider"></div>
-          ${this._renderBody(s, controls ? renderDeviceControls(this, this._hass, controls, name) : nothing)}
+          ${this._renderBody(s)}
         </div>
       </ha-card>
     `;
   }
 
-  private _renderBody(s: ResolutionResult<ContainerTranslationKey>['found'], controlsContent: TemplateResult | typeof nothing): TemplateResult {
+  private _renderBody(s: ResolutionResult<ContainerTranslationKey>['found']): TemplateResult {
     if (!s.state) {
       return html`<div class="card-message warn">
         <ha-icon icon="mdi:alert-circle-outline"></ha-icon>
@@ -210,6 +211,6 @@ export class DockhandContainerCard extends LitElement implements LovelaceCard {
     const metricsContent = visible.has('metrics') ? renderResourceMetrics(this._hass, s, moreInfo) : nothing;
     const ioContent = visible.has('io') ? renderResourceIo(this._hass, s, moreInfo) : nothing;
 
-    return joinWithDividers([mergeSections(stateContent, controlsContent), mergeSections(metricsContent, ioContent)]);
+    return joinWithDividers([stateContent, mergeSections(metricsContent, ioContent)]);
   }
 }

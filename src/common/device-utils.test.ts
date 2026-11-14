@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getEnvironmentDevices, isEnvironmentDevice, getEnvId, getContainerDevicesForEnvironment, getStackDevicesForEnvironment, getEnvIdForContainerDevice, getEnvIdForStackDevice, getEnvDeviceForEnvId, getEnvDeviceIdForEnvId, isScheduleDevice, getAllScheduleDevices, getScheduleHubDevices, getScheduleGroupDeviceForEnvironment, getScheduleDevicesForEnvironment, getGlobalScheduleDevices, getEnvIdForScheduleDevice, getContainerName, getScheduleName } from './device-utils';
+import { getEnvironmentDevices, isEnvironmentDevice, getEnvId, getContainerDevicesForEnvironment, getStackDevicesForEnvironment, getEnvIdForContainerDevice, getEnvIdForStackDevice, getEnvDeviceForEnvId, getEnvDeviceIdForEnvId, isScheduleDevice, getAllScheduleDevices, getScheduleHubDevices, getScheduleGroupDeviceForEnvironment, getScheduleDevicesForEnvironment, getGlobalScheduleDevices, getEnvIdForScheduleDevice, getContainerName, getScheduleName, defaultCardName } from './device-utils';
 import { makeDevice, makeHass } from './test-fixtures';
 
 describe('isEnvironmentDevice / getEnvironmentDevices', () => {
@@ -278,5 +278,24 @@ describe('names from the device', () => {
   it('reads a schedule’s name from the device name ha-dockhand gives it', () => {
     expect(getScheduleName(makeDevice({ id: 'd', name: 'Nebula – Schedules – Prune images: Nebula' }))).toBe('Prune images: Nebula');
     expect(getScheduleName(makeDevice({ id: 'd', name: 'Something else' }))).toBeNull();
+  });
+});
+
+describe('defaultCardName', () => {
+  const env = makeDevice({ id: 'env', identifiers: [['dockhand', 'E_env_1']], name: 'Heimdall', config_entry_id: 'E' });
+  const stack = makeDevice({ id: 's', identifiers: [['dockhand', 'E_stack_1_traefik']], name: 'Heimdall – Stacks – traefik', config_entry_id: 'E' });
+  const container = makeDevice({ id: 'c', identifiers: [['dockhand', 'E_container_1_web']], name: 'Heimdall – Containers – web', config_entry_id: 'E' });
+
+  it('names a stack or container after its environment and itself, leaving out what the icon says', () => {
+    const hass = makeHass({ devices: [env, stack, container] });
+    expect(defaultCardName(hass, stack)).toBe('Heimdall – traefik');
+    expect(defaultCardName(hass, container)).toBe('Heimdall – web');
+  });
+
+  it('keeps a name given in Home Assistant, and does without an environment it can’t find', () => {
+    const hass = makeHass({ devices: [stack, container] });
+    expect(defaultCardName(hass, { ...stack, name_by_user: 'Proxy' })).toBe('Proxy');
+    expect(defaultCardName(hass, container)).toBe('web');
+    expect(defaultCardName(hass, makeDevice({ id: 'x', identifiers: [], name: 'Odd' }))).toBe('Odd');
   });
 });

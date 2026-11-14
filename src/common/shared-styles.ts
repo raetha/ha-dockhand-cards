@@ -162,31 +162,6 @@ export const sharedStyles = css`
    * the two never compete for the same element at all — its own
    * padding here is genuinely larger and intentional (12px, not the
    * standard 4px), for the single most prominent value on a card. */
-  /* Container/Stack start/stop/restart/deploy buttons, directly under the
-   * hero status. Wraps rather than overflowing on a narrow card. */
-  .control-row {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: var(--ha-space-2, 8px);
-    padding-bottom: 12px;
-  }
-  .control-button {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--ha-space-1, 4px);
-    height: 32px;
-    padding: 0 var(--ha-space-3, 12px);
-    border-radius: 16px;
-    background: rgb(from var(--dockhand-accent-color) r g b / 0.1);
-    color: var(--dockhand-accent-text-color);
-    font-size: var(--ha-font-size-m, 14px);
-    font-weight: 500;
-    --mdc-icon-size: 18px;
-  }
-  .control-button:hover {
-    background: rgb(from var(--dockhand-accent-color) r g b / 0.18);
-  }
   .hero-row {
     display: flex;
     align-items: center;

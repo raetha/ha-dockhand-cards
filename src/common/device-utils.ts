@@ -208,6 +208,21 @@ export function getEnvDeviceForEnvId(hass: HomeAssistant, envId: number, referen
   return null;
 }
 
+/** A Stack or Container card's name when none is set: "{environment} –
+ * {name}". The device's own name, "{environment} – Stacks – {name}", says
+ * "Stacks" or "Containers", which the card's icon already shows. A name
+ * given to the device in Home Assistant wins. */
+export function defaultCardName(hass: HomeAssistant, device: DeviceRegistryEntry): string | null {
+  if (device.name_by_user) return device.name_by_user;
+  const stack = isStackDevice(device);
+  const own = stack ? getStackName(device) : getContainerName(device);
+  if (!own) return device.name ?? null;
+  const envId = stack ? getEnvIdForStackDevice(device) : getEnvIdForContainerDevice(device);
+  const env = envId === null ? null : getEnvDeviceForEnvId(hass, envId, device);
+  const envName = env?.name_by_user || env?.name;
+  return envName ? `${envName} – ${own}` : own;
+}
+
 /** Convenience wrapper over getEnvDeviceForEnvId for callers that only
  * need the device_id (e.g. building a card config), not the full device. */
 export function getEnvDeviceIdForEnvId(hass: HomeAssistant, envId: number, referenceDevice: DeviceRegistryEntry): string | null {

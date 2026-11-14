@@ -56,18 +56,13 @@ describe('resolveCardName', () => {
     expect(resolveCardName(hass, 'sensor.x', [{ type: 'area' }], 'Fallback')).toBe('Fallback');
   });
 
-  it('also delegates a plain string through formatEntityName when a real entity is present, rather than always short-circuiting on typeof string', () => {
-    // Confirms the early-return for strings is specifically about "no
-    // entity to resolve against," not "strings never call
-    // formatEntityName" — HA's own formatEntityName accepts a plain
-    // string value too (Custom mode is a real EntityNameItem-shaped
-    // concept as far as HA's own API goes).
+  it('returns a plain string as written, as HA’s own formatEntityName does (compute_entity_name_display.ts)', () => {
     const stateObj = makeState({ entity_id: 'sensor.x', state: 'on' });
     const formatEntityName = vi.fn().mockReturnValue('Resolved String');
     const hass = makeHass({ states: [stateObj], formatEntityName });
 
-    expect(resolveCardName(hass, 'sensor.x', 'My Custom Name', 'Fallback')).toBe('Resolved String');
-    expect(formatEntityName).toHaveBeenCalledWith(stateObj, 'My Custom Name');
+    expect(resolveCardName(hass, 'sensor.x', 'My Custom Name', 'Fallback')).toBe('My Custom Name');
+    expect(formatEntityName).not.toHaveBeenCalled();
   });
 });
 

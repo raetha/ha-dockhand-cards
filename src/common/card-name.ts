@@ -103,9 +103,10 @@ export function resolveCardName(
   fallback: string
 ): string {
   if (!name) return fallback;
-  if (typeof name === 'string' && (!entityId || !hass.states[entityId])) return name;
+  // Custom text is the name as written, as formatEntityName() returns it.
+  if (typeof name === 'string') return name;
   if (!entityId) return fallback;
   const stateObj = hass.states[entityId];
-  if (!stateObj) return typeof name === 'string' ? name : fallback;
+  if (!stateObj) return fallback;
   return hass.formatEntityName(stateObj, name) || fallback;
 }
