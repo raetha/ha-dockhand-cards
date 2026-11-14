@@ -10,7 +10,8 @@ The canonical guide for working on this repo. How the cards work and why is in [
 | `src/dockhand-*-card/` | One folder per card: `card.ts`, `editor.ts`, `types.ts`, styles, tests |
 | `src/common/` | Shared code: entity and device resolution, formatting, translations, styles |
 | `scripts/release.mjs` | Changelog check, release notes and test-build versions, used by CI |
-| `scripts/screenshot-harness/` | Renders the built cards against mock data: README screenshots and the accessibility check |
+| `scripts/screenshot-harness/` | Renders the built cards against mock data: the screenshots in the README and user docs, and the accessibility check |
+| `docs/cards/`, `docs/dashboard.md` | User docs: each card's options and details, choosing environments and filtering (`lists.md`), and the Dockhand dashboard. The README keeps one screenshot and a sentence per card and links here with full `main` URLs, since the Marketplace shows only the README |
 | `docs/` | This guide, architecture, quality checklist, editor design, styling reference, backlog, audits |
 | `.github/workflows/build.yml` | All of CI: checks, releases, test builds (see "What CI does") |
 
