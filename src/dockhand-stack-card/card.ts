@@ -4,7 +4,7 @@ import { state } from 'lit/decorators.js';
 import { fireEvent, type LovelaceCard, type LovelaceCardEditor } from 'custom-card-helpers';
 
 import type { HomeAssistant, LovelaceGridOptions, DeviceRegistryEntry } from '../common/ha-types';
-import { getAllStackDevices, getEnvIdForStackDevice, getEnvDeviceForEnvId, getContainerDevicesForEnvironment, getRepresentativeEntityId, getContainerName } from '../common/device-utils';
+import { defaultCardName, getAllStackDevices, getEnvIdForStackDevice, getEnvDeviceForEnvId, getContainerDevicesForEnvironment, getRepresentativeEntityId, getContainerName } from '../common/device-utils';
 import { resolveCardName } from '../common/card-name';
 import { resolveStackEntities, resolveContainerEntities, findPrimaryEntityByDomain, type ResolutionResult } from '../common/entity-resolver';
 import { DEFAULT_STACK_ICON, STACK_STATUS_CLASS, type StackTranslationKey } from '../common/const';
@@ -15,7 +15,7 @@ import { renderSettingsLink, renderIcon, onKeydownActivate } from '../common/ico
 import { STACK_RESOURCE_KEYS, renderResourceIo, renderResourceMetrics } from '../common/resource-sections';
 import { renderUpdateKindIcon, updateStatus, type UpdateStatus } from '../common/update-kind';
 import { joinWithDividers, mergeSections } from '../common/section-join';
-import { renderDeviceControls, resolveDeviceControls } from '../common/device-controls';
+import { renderHeaderControls, resolveDeviceControls } from '../common/device-controls';
 import { DEFAULT_STACK_SECTIONS, type DockhandStackCardConfig } from './types';
 import { renderTagRow } from '../common/tag-pills';
 import { cardStyles } from './styles';
@@ -122,7 +122,7 @@ export class DockhandStackCard extends LitElement implements LovelaceCard {
     ]);
     const s = resolution.found;
     const representativeEntityId = getRepresentativeEntityId(this._hass, this._config.device_id);
-    const name = resolveCardName(this._hass, representativeEntityId, this._config.name, device.name_by_user || device.name || t(this._hass, 'name_stack'));
+    const name = resolveCardName(this._hass, representativeEntityId, this._config.name, defaultCardName(this._hass, device) || t(this._hass, 'name_stack'));
     const isGit = Boolean(s.gitSyncStatus);
     const controls = resolveDeviceControls(this._hass, this._config.device_id, this._config.show_controls);
 
@@ -136,6 +136,7 @@ export class DockhandStackCard extends LitElement implements LovelaceCard {
             </div>
             <div class="header-right">
               <span class="label-pill">${stateLabel(this._hass, 'stack_type', s.status?.state.attributes.type || device.model || t(this._hass, 'name_stack'))}</span>
+              ${controls ? renderHeaderControls(this, this._hass, controls, name) : nothing}
               ${renderSettingsLink({
                 hass: this._hass,
                 show: this._config?.show_settings_link,
@@ -146,7 +147,7 @@ export class DockhandStackCard extends LitElement implements LovelaceCard {
           </div>
           ${renderTagRow(s.status?.state)}
           <div class="divider"></div>
-          ${this._renderBody(s, isGit, device, controls ? renderDeviceControls(this, this._hass, controls, name) : nothing)}
+          ${this._renderBody(s, isGit, device)}
         </div>
       </ha-card>
     `;
@@ -155,8 +156,7 @@ export class DockhandStackCard extends LitElement implements LovelaceCard {
   private _renderBody(
     s: ResolutionResult<StackTranslationKey>['found'],
     isGit: boolean,
-    stackDevice: DeviceRegistryEntry,
-    controlsContent: TemplateResult | typeof nothing
+    stackDevice: DeviceRegistryEntry
   ): TemplateResult {
     if (!s.status) {
       return html`<div class="card-message warn">
@@ -218,7 +218,7 @@ export class DockhandStackCard extends LitElement implements LovelaceCard {
     const metricsContent = visible.has('metrics') ? renderResourceMetrics(this._hass, s, moreInfo) : nothing;
     const ioContent = visible.has('io') ? renderResourceIo(this._hass, s, moreInfo) : nothing;
 
-    return joinWithDividers([mergeSections(statusContent, controlsContent), mergeSections(metricsContent, ioContent), containersContent, gitSyncContent]);
+    return joinWithDividers([statusContent, mergeSections(metricsContent, ioContent), containersContent, gitSyncContent]);
   }
 
   /** Maps each container's raw Docker name (what `container_names` lists)

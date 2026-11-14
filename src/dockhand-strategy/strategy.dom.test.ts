@@ -239,15 +239,22 @@ describe('Dockhand Stacks and Containers pages', () => {
     const { sections, max_columns } = await devicesView(await page('stacks', { cards: { stack: { show_controls: false } } }));
     expect(max_columns).toBe(4);
     expect(sections.map((s) => s.cards[0])).toEqual([
-      { type: 'custom:dockhand-stack-card', show_controls: false, device_id: 'stack_1_core' },
-      { type: 'custom:dockhand-stack-card', show_controls: false, device_id: 'stack_1_monitoring' }
+      { type: 'custom:dockhand-stack-card', show_controls: false, device_id: 'stack_1_core', name: 'core' },
+      { type: 'custom:dockhand-stack-card', show_controls: false, device_id: 'stack_1_monitoring', name: 'monitoring' }
     ]);
   });
 
   it('shows a Container card per container, by name, with the Container card settings', async () => {
     const { sections } = await devicesView(await page('containers', { cards: { container: { visible_sections: ['status'] } } }));
     expect(sections.map((s) => s.cards[0].device_id)).toEqual(['container_1_backup', 'container_1_postgres', 'container_1_redis', 'container_1_traefik', 'container_1_web', 'container_1_worker']);
-    expect(sections[0].cards[0]).toMatchObject({ type: 'custom:dockhand-container-card', visible_sections: ['status'] });
+    expect(sections[0].cards[0]).toMatchObject({ type: 'custom:dockhand-container-card', visible_sections: ['status'], name: 'backup' });
+  });
+
+  it('keeps a name the device was given in Home Assistant', async () => {
+    const hass = mockHass();
+    hass.devices.stack_1_core = { ...hass.devices.stack_1_core, name_by_user: 'Core services' };
+    const { sections } = await devicesView(await page('stacks', {}, hass), hass);
+    expect(sections[0].cards[0].name).toBe('Core services');
   });
 
   it('says so when there are none, and is built again when they come and go', async () => {

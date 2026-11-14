@@ -3,8 +3,8 @@ import { property, state } from 'lit/decorators.js';
 import { fireEvent, type LovelaceCardEditor } from 'custom-card-helpers';
 import type { HaFormSchema } from '../common/ha-form-types';
 
-import type { HomeAssistant } from '../common/ha-types';
-import { getEnvironmentDevices, getContainerDevicesForEnvironment, getEnvIdForContainerDevice, getEnvDeviceIdForEnvId, getRepresentativeEntityId } from '../common/device-utils';
+import type { EntityNameItem, HomeAssistant } from '../common/ha-types';
+import { defaultCardName, getEnvironmentDevices, getContainerDevicesForEnvironment, getEnvIdForContainerDevice, getEnvDeviceIdForEnvId, getRepresentativeEntityId } from '../common/device-utils';
 import { cardNameFieldSchema } from '../common/card-name';
 import { resolveContainerEntities, getContainerDropdownOptions } from '../common/entity-resolver';
 import { t } from '../common/i18n-editor';
@@ -84,7 +84,7 @@ export class DockhandContainerCardEditor extends LitElement implements LovelaceC
         icon: 'mdi:text-short',
         title: t(this._hass, 'content_section_heading'),
         schema: [
-          ...(this.cardIsEmbedded ? [] : [cardNameFieldSchema(this._config?.device_id && this._hass ? getRepresentativeEntityId(this._hass, this._config.device_id) : undefined, [{ type: 'device' }])]),
+          ...(this.cardIsEmbedded ? [] : [cardNameFieldSchema(this._config?.device_id && this._hass ? getRepresentativeEntityId(this._hass, this._config.device_id) : undefined, this._defaultName())]),
           { name: 'icon', selector: { icon: {} } },
           { name: 'show_settings_link', default: true, selector: { boolean: {} } },
           { name: 'show_controls', default: true, selector: { boolean: {} } },
@@ -96,6 +96,12 @@ export class DockhandContainerCardEditor extends LitElement implements LovelaceC
         ]
       }
     ];
+  }
+
+  /** What the card shows with no name set, as the Name field's preview. */
+  private _defaultName(): string | EntityNameItem[] {
+    const device = this._config?.device_id ? this._hass?.devices?.[this._config.device_id] : undefined;
+    return (device && this._hass && defaultCardName(this._hass, device)) || [{ type: 'device' }];
   }
 
   protected render(): TemplateResult {

@@ -357,7 +357,11 @@ export class DockhandDevicesViewStrategy extends HTMLElement {
     const settings = config.settings ?? {};
     const own = cardSettings(settings, config.kind === 'stacks' ? 'stack' : 'container');
     const type = config.kind === 'stacks' ? 'stack' : 'container';
-    const sections = devices(hass, config).map((d) => section([card(type, { ...own, device_id: d.id })]));
+    // The page's title names the environment, and the card's icon says
+    // stack or container, so each card is named for its stack or container
+    // alone (unless the device was renamed in Home Assistant).
+    const name = config.kind === 'stacks' ? getStackName : getContainerName;
+    const sections = devices(hass, config).map((d) => section([card(type, { ...own, device_id: d.id, name: d.name_by_user || name(d) || undefined })]));
     if (sections.length === 0) {
       const empty = t(hass, config.kind === 'stacks' ? 'strategy_no_stacks' : 'strategy_no_containers');
       return { type: 'sections', max_columns: 1, sections: [section([{ type: 'markdown', content: empty }])] };
