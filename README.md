@@ -6,7 +6,7 @@
 
 # Dockhand Cards for Home Assistant
 
-Dashboard cards for **[Dockhand](https://dockhand.pro)** — a modern Docker management UI — modeled on Dockhand's own interface. Nine cards cover your environments, stacks, containers, pending updates, vulnerabilities and schedules, from a single compact tile up to a whole-dashboard overview.
+Dashboard cards for **[Dockhand](https://dockhand.pro)** — a modern Docker management UI — modeled on Dockhand's own interface. Nine cards cover your environments, stacks, containers, pending updates, vulnerabilities and schedules, from a single compact tile up to a whole-dashboard overview, and a ready-made **[Dockhand dashboard](#dockhand-dashboard)** lays them all out for you, with a page per environment and its stacks and containers.
 
 The cards are built on the entities from the **[Dockhand integration](https://github.com/raetha/ha-dockhand)**, which needs to be installed first. They only read what Home Assistant already has, so they need no credentials of their own and never contact Dockhand directly.
 
@@ -54,7 +54,7 @@ The browser console shows which version is loaded (`HA-DOCKHAND-CARDS v1.5.1-dev
 
 ## Cards
 
-Add any card from the dashboard's **Add card** dialog — search for "Dockhand", or open a Dockhand device or entity and use its suggested cards. Every card has a visual editor, and all of them share a few things:
+Rather than placing cards yourself, you can let the [Dockhand dashboard](#dockhand-dashboard) build a whole dashboard from them. Or add any card from the dashboard's **Add card** dialog — search for "Dockhand", or open a Dockhand device or entity and use its suggested cards. Every card has a visual editor, and all of them share a few things:
 
 - **No entity setup.** Pick an environment, stack or container and the card finds its entities.
 - **Missing data is left out.** A disabled sensor or an older integration release hides that value rather than breaking the card; the editor tells you what to enable for more.
@@ -348,7 +348,28 @@ Both the environments and the sections can be dragged into a different order in 
 
 ## Dockhand dashboard
 
-A ready-made dashboard instead of building one card by card: in **Settings → Dashboards → Add dashboard**, pick **Dockhand** under Community dashboards. Its overview shows your environments (in one column for one or two, two columns from three), with vulnerabilities across all environments, pending updates and schedules beside them; click an environment's name to open its own page, with all its cards and a back arrow to the overview. From there, **Stack details** and **Container details** open a page with a Stack card for each of the environment's stacks, or a Container card for each of its containers. With a single environment, its page is the whole dashboard. Environments, stacks and containers you add or remove in Dockhand appear and disappear by themselves.
+A ready-made dashboard instead of building one card by card: in **Settings → Dashboards → Add dashboard**, pick **Dockhand** under Community dashboards. Home Assistant builds it from the cards above each time it opens, so it keeps up by itself as environments, stacks and containers come and go in Dockhand.
+
+**The overview** shows your environments (in one column for one or two, two columns from three), with vulnerabilities across all environments, pending updates and schedules beside them. Click an environment's name to open its page.
+
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="docs/images/dashboard-overview-light.png">
+  <img src="docs/images/dashboard-overview.png" alt="The Dockhand dashboard overview: four environments, vulnerabilities and updates across them, and schedules">
+</picture>
+
+**An environment's page** has all its cards, with a back arrow to the overview. With a single environment, its page is the whole dashboard.
+
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="docs/images/dashboard-environment-light.png">
+  <img src="docs/images/dashboard-environment.png" alt="An environment's page: its Environment card, vulnerabilities, updates, schedules, stacks and containers">
+</picture>
+
+**Stack details** and **Container details**, above its Stacks and Containers cards, open a page with a Stack card for each of the environment's stacks, or a Container card for each of its containers.
+
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="docs/images/dashboard-containers-light.png">
+  <img src="docs/images/dashboard-containers.png" alt="An environment's Containers page: a Container card for each container">
+</picture>
 
 To change it, open the dashboard's **⋮ → Edit dashboard**:
 
@@ -356,6 +377,13 @@ To change it, open the dashboard's **⋮ → Edit dashboard**:
 - **Environments**: their order, and which to leave out. With only one, the dashboard opens on that environment's page instead of an overview, which suits a dashboard per environment.
 - **Overview page** and **Environment pages**: up to four columns each; drag cards between columns, or to **Hide** to leave them out. On the overview, three or more environments take two columns, so the page is one column wider than the number set. A card's pencil opens its own settings, the same as in that card's editor. Every environment's page shares them: change the Containers card on one and it changes on all.
 - **Stacks and containers pages**: the settings of the Stack card on every Stacks page, and of the Container card on every Containers page.
+
+<p>
+  <img src="docs/images/dashboard-settings.png" alt="The Dockhand dashboard's settings, dark theme" width="420">
+  <img src="docs/images/dashboard-settings-light.png" alt="The Dockhand dashboard's settings, light theme" width="420">
+</p>
+
+The screenshots use made-up data; the page around the cards is drawn to look like Home Assistant's.
 
 Anything beyond that needs **Take control**, which turns it into a normal dashboard you edit like any other (it then stops updating itself). In YAML it's:
 

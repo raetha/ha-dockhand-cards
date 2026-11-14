@@ -52,6 +52,7 @@ describe('Dockhand dashboard strategy', () => {
     const nebula = environments.find((v) => v.title === 'Nebula')!;
     expect(pages.filter((v) => v.back_path === nebula.path).map((v) => (v.strategy as DockhandDevicesViewConfig).kind)).toEqual(['stacks', 'containers']);
     expect(pages.every((v) => v.subview)).toBe(true);
+    expect(pages.filter((v) => v.back_path === nebula.path).map((v) => v.title)).toEqual(['Nebula — Stacks', 'Nebula — Containers']);
     expect(new Set(views.map((v) => v.path)).size).toBe(views.length);
   });
 

@@ -30,6 +30,7 @@
     color-scheme: dark;
     --primary-background-color: #111111;
     --card-background-color: #1c1c1c;
+    --secondary-background-color: #282828;
     --primary-text-color: #e1e1e1;
     --secondary-text-color: #9b9b9b;
     --divider-color: #333333;
@@ -65,6 +66,7 @@
     color-scheme: light;
     --primary-background-color: #fafafa;
     --card-background-color: #ffffff;
+    --secondary-background-color: #e5e5e5;
     --primary-text-color: #212121;
     --secondary-text-color: #727272;
     --divider-color: #e0e0e0;
@@ -177,6 +179,54 @@
     gap: 6px;
     font-size: 0.9em;
   }
+  /* Stand-in for Home Assistant's sections view (mountDashboard). */
+  .dashboard {
+    background: var(--primary-background-color);
+    padding: 16px 24px 24px;
+    width: max-content;
+    font-family: Roboto, sans-serif;
+    color: var(--primary-text-color);
+  }
+  .dashboard-title {
+    font-size: var(--ha-font-size-xl);
+    margin: 0 0 16px;
+    white-space: pre;
+  }
+  .dashboard-sections {
+    display: grid;
+    gap: 24px;
+    align-items: start;
+  }
+  .dashboard-section,
+  .dashboard-stack {
+    display: grid;
+    gap: 8px;
+  }
+  .dashboard-section > *,
+  .dashboard-stack > * {
+    min-width: 0;
+  }
+  .dashboard-heading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+    font-size: var(--ha-font-size-l);
+    font-weight: 500;
+  }
+  .dashboard-heading.subtitle {
+    font-size: var(--ha-font-size-m);
+    font-weight: 400;
+    color: var(--secondary-text-color);
+  }
+  .dashboard-heading .chevron {
+    color: var(--secondary-text-color);
+    font-size: 20px;
+  }
+  .dashboard-heading ha-icon {
+    --mdc-icon-size: 18px;
+    color: var(--secondary-text-color);
+  }
 </style>
 </head>
 <body>
@@ -258,6 +308,95 @@
   }
 
   window.__mountEditor = mountEditor;
+
+  // A Dockhand dashboard page as the strategies build it: the real cards
+  // in a stand-in for Home Assistant's sections view (columns of grid
+  // sections, a 12-column grid inside each, headings and vertical stacks),
+  // which the harness doesn't have. `page` is 'overview', or
+  // { env, kind? } for an environment's page or its Stacks/Containers page.
+  async function mountDashboard(id, settings, page, columnWidth) {
+    const config = { type: 'custom:dockhand', ...settings };
+    const { views } = await customElements.get('ll-strategy-dashboard-dockhand').generate(config, hass);
+    let view;
+    if (page === 'overview') {
+      view = views[0];
+    } else {
+      const match = views.find((v) => v.strategy?.device_id === page.env && (page.kind ? v.strategy.kind === page.kind : v.strategy.type === 'custom:dockhand-environment'));
+      const tag = page.kind ? 'll-strategy-view-dockhand-devices' : 'll-strategy-view-dockhand-environment';
+      view = { ...match, ...(await customElements.get(tag).generate(match.strategy, hass)) };
+    }
+    const wrap = document.createElement('div');
+    wrap.className = 'dashboard';
+    wrap.id = id;
+    wrap.style.setProperty('--col', (columnWidth || 400) + 'px');
+    const title = document.createElement('div');
+    title.className = 'dashboard-title';
+    title.textContent = (view.subview ? '\u2190  ' : '') + view.title;
+    wrap.appendChild(title);
+    const grid = document.createElement('div');
+    grid.className = 'dashboard-sections';
+    grid.style.gridTemplateColumns = `repeat(${view.max_columns}, var(--col))`;
+    for (const section of view.sections) {
+      const el = document.createElement('div');
+      const span = section.column_span ?? 1;
+      el.className = 'dashboard-section';
+      el.style.gridColumn = `span ${span}`;
+      el.style.gridTemplateColumns = `repeat(${12 * span}, 1fr)`;
+      for (const card of section.cards) el.appendChild(renderCard(card, span));
+      grid.appendChild(el);
+    }
+    wrap.appendChild(grid);
+    document.getElementById('cards').appendChild(wrap);
+  }
+
+  function renderCard(card, span) {
+    let el;
+    if (card.type === 'heading') {
+      el = document.createElement('div');
+      el.className = `dashboard-heading ${card.heading_style ?? 'title'}`;
+      el.innerHTML = `<ha-icon icon="${card.icon ?? ''}"></ha-icon><span></span>${card.tap_action ? '<span class="chevron">\u203a</span>' : ''}`;
+      el.querySelector('span').textContent = card.heading;
+    } else if (card.type === 'vertical-stack') {
+      el = document.createElement('div');
+      el.className = 'dashboard-stack';
+      for (const child of card.cards) el.appendChild(renderCard(child, 1));
+    } else if (card.type === 'markdown') {
+      el = document.createElement('div');
+      el.className = 'dashboard-heading subtitle';
+      el.textContent = card.content;
+    } else {
+      const tag = card.type.replace('custom:', '');
+      el = document.createElement(tag);
+      el.setConfig(card);
+      el.hass = hass;
+    }
+    const columns = card.grid_options?.columns;
+    el.style.gridColumn = `span ${columns === undefined || columns === 'full' ? 12 * span : columns}`;
+    return el;
+  }
+
+  window.__mountDashboard = mountDashboard;
+
+  // The dashboard's settings: the editor HA shows from the strategy's
+  // getConfigElement(), with its folded panels opened.
+  async function mountDashboardEditor(id, settings, width) {
+    const wrap = document.createElement('div');
+    wrap.className = 'editor-slot';
+    wrap.style.setProperty('--slot-width', (width || 600) + 'px');
+    wrap.id = id;
+    document.getElementById('cards').appendChild(wrap);
+    const el = await customElements.get('ll-strategy-dashboard-dockhand').getConfigElement();
+    el.hass = hass;
+    el.setConfig({ type: 'custom:dockhand', ...settings });
+    wrap.appendChild(el);
+    await el.updateComplete;
+    for (const panel of el.shadowRoot.querySelectorAll('ha-expansion-panel[data-layout]')) {
+      panel.dispatchEvent(new CustomEvent('expanded-changed', { detail: { expanded: true } }));
+    }
+    await el.updateComplete;
+  }
+
+  window.__mountDashboardEditor = mountDashboardEditor;
   window.__renderDone = true;
 </script>
 </body>

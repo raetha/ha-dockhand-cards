@@ -40,6 +40,41 @@ CARDS = [
 ]
 
 
+# Dockhand dashboard pages (`window.__mountDashboard`): the strategies'
+# output, in a stand-in for Home Assistant's sections view. Rendered on the
+# dashboard background in both themes, at 1x since they're wide.
+DASHBOARDS = [
+    ("dashboard-overview.png", {}, "overview", 380),
+    ("dashboard-environment.png", {}, {"env": "env_1"}, 380),
+    ("dashboard-containers.png", {}, {"env": "env_1", "kind": "containers"}, 380),
+]
+
+
+async def _dashboards(browser, light):
+    page = await browser.new_page(device_scale_factor=1, viewport={"width": 2000, "height": 1200})
+    page.on("pageerror", lambda exc: print("[pageerror]", exc))
+    await page.goto("http://localhost:8931/index.html" + ("?theme=light" if light else ""))
+    await page.wait_for_function("window.__renderDone === true")
+    for filename, settings, view, column in DASHBOARDS:
+        if light:
+            filename = filename.replace(".png", "-light.png")
+        slot_id = filename.replace(".", "_")
+        await page.evaluate("([id, s, v, c]) => window.__mountDashboard(id, s, v, c)", [slot_id, settings, view, column])
+        await page.wait_for_timeout(800)
+        await page.locator(f"#{slot_id}").screenshot(path=os.path.join(OUT_DIR, filename))
+        print("saved", filename)
+    await page.close()
+
+    page = await _open_page(browser, light)
+    filename = "dashboard-settings-light.png" if light else "dashboard-settings.png"
+    slot_id = filename.replace(".", "_")
+    await page.evaluate("([id]) => window.__mountDashboardEditor(id, {}, 600)", [slot_id])
+    await page.wait_for_timeout(500)
+    await page.locator(f"#{slot_id}").screenshot(path=os.path.join(OUT_DIR, filename))
+    print("saved", filename)
+    await page.close()
+
+
 async def _open_page(browser, light):
     page = await browser.new_page(device_scale_factor=2)
     page.on("pageerror", lambda exc: print("[pageerror]", exc))
@@ -90,6 +125,7 @@ async def main():
             await el.screenshot(path=os.path.join(OUT_DIR, filename), omit_background=True)
             print("saved", filename)
 
+        await _dashboards(browser, LIGHT)
         await browser.close()
 
 

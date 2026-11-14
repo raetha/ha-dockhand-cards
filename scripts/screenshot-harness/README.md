@@ -26,6 +26,8 @@ python3 screenshot.py
 
 Screenshots land in `scripts/screenshot-harness/out/`. `python3 screenshot.py --light` produces the `-light.png` variants. A `CARDS` entry can carry an options dict: `theme` fixes it to one theme (rendered only by the default run, under its plain file name) and `backdrop` renders it on HA's dashboard background instead of a transparent one. Overview uses both, since its column titles sit outside any card and would otherwise be unreadable whenever the README's page background doesn't match the theme. Copy whichever ones you want into `docs/images/` and reference them from `README.md`.
 
+The same run renders the Dockhand dashboard (`DASHBOARDS` in `screenshot.py`): `window.__mountDashboard` asks the real strategies for a page and lays out their cards in a stand-in for Home Assistant's sections view (columns of grid sections, headings, vertical stacks), at 1x since the pages are wide, plus the dashboard's settings editor with its panels opened (`window.__mountDashboardEditor`). The cards are real; the page around them only approximates Home Assistant's.
+
 ### Accessibility check
 
 ```bash

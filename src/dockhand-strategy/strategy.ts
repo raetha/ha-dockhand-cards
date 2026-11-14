@@ -178,9 +178,11 @@ function environmentCard(hass: HomeAssistant, settings: DockhandDashboardSetting
 
 /** An environment's Stacks and Containers pages: subviews, built only when
  * opened, with a back arrow to the environment's page. */
-function devicesViews(env: { deviceId: string; name: string }, settings: Config): Config[] {
+function devicesViews(hass: HomeAssistant, env: { deviceId: string; name: string }, settings: Config): Config[] {
   return (['stacks', 'containers'] as const).map((kind) => ({
-    title: env.name,
+    // Named like the list card it opens from, since both pages share the
+    // environment's back arrow.
+    title: `${env.name} — ${t(hass, kind === 'stacks' ? 'label_stacks' : 'label_containers')}`,
     path: devicesPath(env.deviceId, kind),
     subview: true,
     back_path: viewPath(env.deviceId),
@@ -218,7 +220,7 @@ export class DockhandDashboardStrategy extends HTMLElement {
       // Nothing to choose between: the environment's own view is the dashboard.
       const [env] = environments;
       const view = { type: 'custom:dockhand-environment', device_id: env.deviceId, settings: rest, alone: true } satisfies DockhandEnvironmentViewConfig;
-      return { title: 'Dockhand', views: [{ title: env.name, path: viewPath(env.deviceId), icon: 'mdi:docker', strategy: view }, ...devicesViews(env, rest)] };
+      return { title: 'Dockhand', views: [{ title: env.name, path: viewPath(env.deviceId), icon: 'mdi:docker', strategy: view }, ...devicesViews(hass, env, rest)] };
     }
 
     // Two environments fit one column; from three they take two, two to a
@@ -269,7 +271,7 @@ export class DockhandDashboardStrategy extends HTMLElement {
         // Built only when someone opens it.
         strategy: { type: 'custom:dockhand-environment', device_id: env.deviceId, settings: rest } satisfies DockhandEnvironmentViewConfig
       },
-      ...devicesViews(env, rest)
+      ...devicesViews(hass, env, rest)
     ]);
     return { title: 'Dockhand', views: [overview, ...perEnvironment] };
   }

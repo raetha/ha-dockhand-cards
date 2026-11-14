@@ -106,12 +106,37 @@ class HaFormfield extends HTMLElement {
   }
 }
 
+// Like HA's: a header row (leading icon, title, chevron) over the content,
+// which shows while `expanded` (property or attribute) is set.
 class HaExpansionPanel extends HTMLElement {
   connectedCallback() {
     this.style.display = 'block';
     this.style.border = '1px solid var(--divider-color, #444)';
     this.style.borderRadius = '8px';
-    this.style.padding = '8px';
+    if (this.shadowRoot) return;
+    this.attachShadow({ mode: 'open' }).innerHTML = `
+      <style>
+        .header { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 8px 0 12px; font-size: 16px; }
+        .header ::slotted(*) { margin: 0; font: inherit; }
+        .title { flex: 1; }
+        .chevron { color: var(--secondary-text-color); }
+        .content { padding: 0 8px 8px; }
+        .content[hidden] { display: none; }
+      </style>
+      <div class="header"><slot name="leading-icon"></slot><span class="title"><slot name="header"></slot></span><span class="chevron">\u02c5</span></div>
+      <div class="content"><slot></slot></div>`;
+    this._sync();
+  }
+  set expanded(value) {
+    this._expanded = value;
+    this._sync();
+  }
+  get expanded() {
+    return this._expanded ?? this.hasAttribute('expanded');
+  }
+  _sync() {
+    const content = this.shadowRoot?.querySelector('.content');
+    if (content) content.hidden = !this.expanded;
   }
 }
 

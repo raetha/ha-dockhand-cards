@@ -58,6 +58,7 @@ Some changes are breaking: update the Dockhand integration to 2.0.0 at the same 
 
 ### Internal
 
+- The README shows the Dockhand dashboard (its overview, an environment's page, a Containers page and its settings), rendered by the screenshot harness from the real strategies; the harness's panels now look like Home Assistant's.
 - README screenshots regenerated (the mock update entities offer Install, as ha-dockhand's do); `docs/editor-design.md` rewritten as rules without the history.
 - English strings moved to `src/i18n/en.ts`, beside the other languages; still built into the bundles.
 - Markdown is written one line per paragraph or list item, so GitHub's release pages and other renderers wrap it instead of breaking lines where the source did; CI checks it.
