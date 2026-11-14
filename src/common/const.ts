@@ -66,7 +66,13 @@ export const ENV_TRANSLATION_KEYS = {
   diskUsageContainers: 'disk_usage_containers',
   diskUsageVolumes: 'disk_usage_volumes',
   diskUsageBuildCache: 'disk_usage_build_cache',
-  checkUpdates: 'check_updates'
+  checkUpdates: 'check_updates',
+  // Host details, disabled by default; the dashboard's environment pages
+  // show them as badges.
+  hostPlatform: 'host_platform',
+  uptime: 'uptime',
+  hawserAgentVersion: 'hawser_agent_version',
+  hostDockerVersion: 'host_docker_version'
 } as const;
 
 export type EnvTranslationKey = keyof typeof ENV_TRANSLATION_KEYS;

@@ -111,6 +111,17 @@ function buildEnvironment(addDevice, addEntity, opts) {
     )
   );
 
+  // Host details, shown as the dashboard's environment page badges; the
+  // agent version only for Hawser connections, as ha-dockhand creates it.
+  if (online) {
+    const diagnostic = { entity_category: 'diagnostic' };
+    const detail = (key, state, attrs) => addEntity(entity(`sensor.${slug}_${key}`, envDeviceId, key, state, attrs, diagnostic));
+    detail('host_platform', 'linux', { friendly_name: `${name} Host platform`, architecture: 'x64', icon: 'mdi:laptop' });
+    detail('uptime', new Date(Date.now() - 16 * 86400000).toISOString(), { friendly_name: `${name} Uptime`, device_class: 'timestamp', icon: 'mdi:restart' });
+    if (connectionType.startsWith('hawser')) detail('hawser_agent_version', '0.9.4', { friendly_name: `${name} Hawser agent version`, icon: 'mdi:transit-connection-variant' });
+    detail('host_docker_version', '29.1.2', { friendly_name: `${name} Docker version`, icon: 'mdi:docker' });
+  }
+
   addEntity(
     entity(`sensor.${slug}_cpu_usage`, envDeviceId, 'cpu_usage', online ? '3.8' : '0', {
       unit_of_measurement: '%',

@@ -357,7 +357,7 @@ A ready-made dashboard instead of building one card by card: in **Settings → D
   <img src="docs/images/dashboard-overview.png" alt="The Dockhand dashboard overview: four environments, vulnerabilities and updates across them, and schedules">
 </picture>
 
-**An environment's page** has all its cards, with a back arrow to the overview. With a single environment, its page is the whole dashboard.
+**An environment's page** has all its cards, with a back arrow to the overview, below badges for its host platform, uptime, Hawser agent version and Docker version (each once that entity is turned on in the integration's options, and chosen in the dashboard's settings). With a single environment, its page is the whole dashboard.
 
 <picture>
   <source media="(prefers-color-scheme: light)" srcset="docs/images/dashboard-environment-light.png">
@@ -375,7 +375,7 @@ To change it, open the dashboard's **⋮ → Edit dashboard**:
 
 - **Dockhand instance** (only with more than one): one instance's environments, or all of them.
 - **Environments**: their order, and which to leave out. With only one, the dashboard opens on that environment's page instead of an overview, which suits a dashboard per environment.
-- **Overview page** and **Environment pages**: up to four columns each; drag cards between columns, or to **Hide** to leave them out. On the overview, three or more environments take two columns, so the page is one column wider than the number set. A card's pencil opens its own settings, the same as in that card's editor. Every environment's page shares them: change the Containers card on one and it changes on all.
+- **Overview page** and **Environment pages**: up to four columns each; drag cards between columns, or to **Hide** to leave them out. On the overview, three or more environments take two columns, so the page is one column wider than the number set. A card's pencil opens its own settings, the same as in that card's editor. Every environment's page shares them: change the Containers card on one and it changes on all. The environment pages also choose which badges to show.
 - **Stacks and containers pages**: the settings of the Stack card on every Stacks page, and of the Container card on every Containers page.
 
 <p>

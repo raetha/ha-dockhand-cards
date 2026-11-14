@@ -227,6 +227,38 @@
     --mdc-icon-size: 18px;
     color: var(--secondary-text-color);
   }
+  /* Home Assistant's view badges: pills centred above the sections. */
+  .dashboard-badges {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin: 0 0 16px;
+  }
+  .dashboard-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 36px;
+    padding: 0 16px 0 8px;
+    border-radius: 18px;
+    border: 1px solid var(--divider-color);
+    background: var(--card-background-color);
+    font-size: 12px;
+    line-height: 16px;
+  }
+  .dashboard-badge ha-icon {
+    --mdc-icon-size: 18px;
+    color: var(--state-icon-color, var(--secondary-text-color));
+  }
+  .dashboard-badge .badge-name {
+    font-size: 10px;
+    color: var(--secondary-text-color);
+  }
+  .dashboard-badge .badge-text {
+    display: flex;
+    flex-direction: column;
+  }
 </style>
 </head>
 <body>
@@ -333,6 +365,7 @@
     title.className = 'dashboard-title';
     title.textContent = (view.subview ? '\u2190  ' : '') + view.title;
     wrap.appendChild(title);
+    if (view.badges?.length) wrap.appendChild(renderBadges(view.badges));
     const grid = document.createElement('div');
     grid.className = 'dashboard-sections';
     grid.style.gridTemplateColumns = `repeat(${view.max_columns}, var(--col))`;
@@ -347,6 +380,30 @@
     }
     wrap.appendChild(grid);
     document.getElementById('cards').appendChild(wrap);
+  }
+
+  function renderBadges(badges) {
+    const row = document.createElement('div');
+    row.className = 'dashboard-badges';
+    for (const badge of badges) {
+      const state = hass.states[badge.entity];
+      const device = hass.devices[hass.entities[badge.entity]?.device_id]?.name ?? '';
+      const name = (state.attributes.friendly_name ?? badge.entity).replace(device, '').trim();
+      let text = state.state;
+      if (state.attributes.device_class === 'timestamp') {
+        const days = Math.round((Date.parse(state.state) - Date.now()) / 86400000);
+        text = new Intl.RelativeTimeFormat('en', { numeric: 'auto' }).format(days, 'day');
+      }
+      const el = document.createElement('div');
+      el.className = 'dashboard-badge';
+      el.innerHTML = '<ha-icon></ha-icon><span class="badge-text"><span class="badge-name"></span><span class="badge-state"></span></span>';
+      el.querySelector('ha-icon').setAttribute('icon', state.attributes.icon ?? '');
+      if (badge.show_name) el.querySelector('.badge-name').textContent = name;
+      else el.querySelector('.badge-name').remove();
+      el.querySelector('.badge-state').textContent = text;
+      row.appendChild(el);
+    }
+    return row;
   }
 
   function renderCard(card, span) {
