@@ -13,6 +13,13 @@ Quality, security and housekeeping reviews of the cards, their tooling and CI. R
 7. **Leftovers:** finished experiments, backward compatibility nobody needs (see `docs/backlog.md`'s 2.0.0 items), unused code, stale comments and docs (`CLAUDE.md`, `docs/development.md`, the README).
 8. **Record it:** a dated section below, and changelog lines for anything users notice.
 
+## 2026-11-14: review before releasing 2.0.0
+
+- Open pull requests: none. `npm audit --omit=dev`: nothing. custom-card-helpers 2.1.0 came out today; left for Dependabot after the release rather than taking a day-old runtime dependency into it. TypeScript 7 still held (typescript-eslint 8.72.2 accepts below 6.1).
+- CodeQL (JavaScript/TypeScript) on the cards' source: no findings.
+- Changes since the 2026-11-13 review checked: environment page badges, shorter Stack and Container names, header controls in Dockhand's order with pause, resume and deploy, Dockhand's schedule icons, and the README split into `docs/cards/` and `docs/dashboard.md`. `npm run verify` and `a11y.py` (both themes): pass.
+- Changelog re-read as release notes: the row controls are new in this release, so their order, deploy and the schedule icons belong in **Added**, not as changes; `docs/cards/schedules.md` described the old toggle.
+
 ## 2026-11-13: full review
 
 - Open pull requests: none. Every action pin matches its tag and is the latest release. Updated within their ranges: eslint 10.15.0, typescript-eslint 8.72.2, jsdom 31.0.1, rollup 4.68.3. Held: TypeScript 7 (typescript-eslint 8.72 still accepts `typescript <6.1`; 7.1 is in nightlies), and `custom-card-helpers` reports 1.9.0 as "latest" only because its 2.0.0 is tagged differently.
