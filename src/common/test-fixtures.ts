@@ -5,6 +5,7 @@ export function makeDevice(overrides: Partial<DeviceRegistryEntry> & { id: strin
   return {
     name: null,
     name_by_user: null,
+    area_id: null,
     model: null,
     manufacturer: null,
     identifiers: [],
@@ -16,16 +17,24 @@ export function makeDevice(overrides: Partial<DeviceRegistryEntry> & { id: strin
   };
 }
 
-export function makeEntity(overrides: Partial<EntityRegistryEntry> & { entity_id: string }): EntityRegistryEntry {
+/** An entry of `hass.entities`. Tests may pass `null` for a field Home
+ * Assistant leaves out, as older fixtures do. */
+type EntityOverrides = Omit<Partial<EntityRegistryEntry>, 'device_id' | 'translation_key' | 'entity_category'> & {
+  entity_id: string;
+  device_id?: string | null;
+  translation_key?: string | null;
+  entity_category?: EntityRegistryEntry['entity_category'] | null;
+};
+
+export function makeEntity(overrides: EntityOverrides): EntityRegistryEntry {
+  const { device_id, translation_key, entity_category, ...rest } = overrides;
   return {
-    device_id: null,
     platform: 'dockhand',
-    translation_key: null,
-    unique_id: overrides.entity_id,
-    disabled_by: null,
-    hidden_by: null,
-    entity_category: null,
-    ...overrides
+    labels: [],
+    ...rest,
+    ...(device_id ? { device_id } : {}),
+    ...(translation_key ? { translation_key } : {}),
+    ...(entity_category ? { entity_category } : {})
   };
 }
 
