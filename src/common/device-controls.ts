@@ -209,7 +209,8 @@ export function renderScheduleControls(host: HTMLElement, hass: HomeAssistant | 
     ${enabled
       ? renderIcon({
           baseClass: 'row-icon row-control',
-          icon: enabled.isOn ? 'mdi:toggle-switch' : 'mdi:toggle-switch-off-outline',
+          // Dockhand's own icons: pause an enabled schedule, resume a disabled one.
+          icon: enabled.isOn ? 'mdi:pause' : 'mdi:play-circle-outline',
           title: t(hass, enabled.isOn ? 'control_disable_schedule' : 'control_enable_schedule'),
           onClick: () => performAction(host, enabled.isOn ? 'switch.turn_off' : 'switch.turn_on', enabled.entityId)
         })
