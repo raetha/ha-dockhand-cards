@@ -59,6 +59,7 @@ Some changes are breaking: update the Dockhand integration to 2.0.0 at the same 
 
 ### Internal
 
+- `docs/backlog.md`: what custom-card-helpers 2.1.0 changes for the cards, and what adopting it takes.
 - The README is shorter: one screenshot and a sentence per card, each linking to a page of its own under `docs/cards/` with its options and details, plus `docs/cards/lists.md` for choosing environments and filtering, and `docs/dashboard.md` for the Dockhand dashboard. Screenshots show the light or dark version to match the reader's GitHub theme instead of both side by side.
 - The README shows the Dockhand dashboard (its overview, an environment's page, a Containers page and its settings), rendered by the screenshot harness from the real strategies; the harness's panels now look like Home Assistant's.
 - README screenshots regenerated (the mock update entities offer Install, as ha-dockhand's do); `docs/editor-design.md` rewritten as rules without the history.
