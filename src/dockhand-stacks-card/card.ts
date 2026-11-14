@@ -14,7 +14,7 @@ import { stateLabel } from '../common/state-label';
 import { renderSettingsLink, renderIcon, onKeydownActivate } from '../common/icon';
 import type { StackTranslationKey } from '../common/const';
 import { DEFAULT_STACKS_BADGES, type DockhandStacksCardConfig, type StacksGroupBy, type StacksSortBy } from './types';
-import { renderRowControls, renderActionsColumn, resolveDeviceControls } from '../common/device-controls';
+import { renderRowControls, renderActionsColumn, resolveDeviceControls, rowControlSlots } from '../common/device-controls';
 import { applyFilters, type FilterExtractor } from '../common/filters';
 import { renderFilteredNote, tagValues } from '../common/list-filters';
 import { renderTagPills } from '../common/tag-pills';
@@ -270,9 +270,10 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
     const groups = groupStackRows(shown, resolveEffectiveGroupBy(this._config.group_by, envDevices, 'environment'), this._config.sort_by ?? 'name', envDevices, (by, value) =>
       stateLabel(this._hass, by === 'status' ? 'stack_status' : 'stack_type', value)
     );
+    this._slots = this._config.show_controls ? rowControlSlots(this._hass, shown.map((r) => r.deviceId)) : 2;
 
     return html`
-      <ha-card>
+      <ha-card style=${`--row-control-slots: ${this._slots}`}>
         <div class="body">
           <div class="card-header">
             <div class="header-left">
@@ -308,10 +309,13 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
 
   /** Off unless show_controls is set, so a stray tap on a list doesn't
    * stop anything. */
+  /** Control slots per row in this render (rowControlSlots). */
+  private _slots = 2;
+
   private _renderControls(row: StackRow): TemplateResult | typeof nothing {
     if (!this._config?.show_controls || !this._hass) return nothing;
     const controls = resolveDeviceControls(this._hass, row.deviceId, true);
-    return renderActionsColumn(controls ? renderRowControls(this, this._hass, controls, row.name) : null);
+    return renderActionsColumn(controls ? renderRowControls(this, this._hass, controls, row.name, this._slots) : null);
   }
 
   private _renderRow(row: StackRow): TemplateResult {

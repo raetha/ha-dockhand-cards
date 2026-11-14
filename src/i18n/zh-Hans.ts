@@ -18,6 +18,8 @@ const card: Record<CardTranslationKey, string> = {
   control_start: '启动',
   control_stop: '停止',
   control_restart: '重启',
+  control_pause: '暂停',
+  control_resume: '恢复',
   control_stop_confirm: '停止 {name}？',
   control_restart_confirm: '重启 {name}？',
   control_deploy: '重新部署',

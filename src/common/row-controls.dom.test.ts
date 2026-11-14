@@ -111,6 +111,42 @@ describe.each([
   });
 });
 
+describe('row controls beyond start, restart and stop', () => {
+  function hassWith(kind: 'container' | 'stack', state: 'running' | 'paused', extra: 'pause' | 'deploy'): HomeAssistant {
+    const hass = hassWithDevice(kind, state === 'running');
+    const statusKey = kind === 'container' ? 'state' : 'status';
+    hass.states[`sensor.web_${statusKey}`] = makeState({ entity_id: `sensor.web_${statusKey}`, state, attributes: {} });
+    const id = extra === 'pause' ? 'button.web_pause' : 'button.web_redeploy';
+    hass.entities[id] = makeEntity({ entity_id: id, device_id: 'dev-web', translation_key: extra === 'pause' ? 'pause' : 'stack_deploy' });
+    hass.states[id] = makeState({ entity_id: id, state: state === 'running' || extra === 'deploy' ? 'unknown' : 'unavailable' });
+    return hass;
+  }
+
+  it('puts a stack’s deploy first, in a third slot every row gets', async () => {
+    const card = await mount(TAGS.stacks, 'dockhand-stacks-card', hassWith('stack', 'running', 'deploy'), { show_controls: true });
+    expect(controlTitles(card)).toEqual(['Redeploy', 'Restart', 'Stop']);
+    expect(card.shadowRoot!.querySelector('.row-actions')!.children.length).toBe(3);
+    expect(card.shadowRoot!.querySelector<HTMLElement>('ha-card')!.style.getPropertyValue('--row-control-slots')).toBe('3');
+    card.remove();
+  });
+
+  it('offers Pause between Restart and Stop while a container runs, without asking', async () => {
+    const card = await mount(TAGS.containers, 'dockhand-containers-card', hassWith('container', 'running', 'pause'), { show_controls: true });
+    expect(controlTitles(card)).toEqual(['Restart', 'Pause', 'Stop']);
+    const fired = actions(card);
+    card.shadowRoot!.querySelectorAll<HTMLElement>('.row-control')[1].click();
+    expect(fired.mock.calls[0][0]).toMatchObject({ perform_action: 'button.press', target: { entity_id: 'button.web_pause' } });
+    expect(fired.mock.calls[0][0].confirmation).toBeUndefined();
+    card.remove();
+  });
+
+  it('offers Resume for a paused container, as Dockhand does', async () => {
+    const card = await mount(TAGS.containers, 'dockhand-containers-card', hassWith('container', 'paused', 'pause'), { show_controls: true });
+    expect(controlTitles(card)).toEqual(['Resume', 'Restart']);
+    card.remove();
+  });
+});
+
 function hassWithSchedule(opts: { run?: string; enabled?: string }): HomeAssistant {
   const group = makeDevice({ id: 'sched-group', identifiers: [['dockhand', 'entry_env_1_Schedules']], config_entry_id: 'entry', name: 'Nebula – Schedules' });
   const schedule = makeDevice({ id: 'sched', identifiers: [['dockhand', 'entry_schedule_7_image_prune']], config_entry_id: 'entry', name: 'Prune', via_device_id: 'sched-group' });

@@ -37,7 +37,9 @@ const isStack = (hass: HomeAssistant, deviceId: string): boolean => {
 };
 
 const DEVICE_CONTROL_KEYS = {
+  state: 'state',
   restart: 'restart',
+  pause: 'pause',
   deploy: 'stack_deploy',
   gitDeploy: 'git_stack_deploy'
 } as const;
@@ -48,7 +50,13 @@ const EMPTY_SLOT = html`<span class="row-control-slot"></span>`;
 
 export interface DeviceControls {
   running: { entityId: string; isOn: boolean };
+  /** A paused container: its running switch is off, and turning it on
+   * resumes it, so Start reads Resume. */
+  paused: boolean;
   restartEntityId: string | null;
+  /** A running container's Pause button, when that entity is on (it's
+   * disabled by default in ha-dockhand). */
+  pauseEntityId: string | null;
   /** A stack's redeploy (internal) or deploy / sync-from-git (git) button;
    * at most one exists per stack, none for a container or external stack. */
   deploy: { entityId: string; state: HassEntity; label: string | undefined } | null;
@@ -60,17 +68,20 @@ export interface DeviceControls {
  * one, so their absence is what hides the controls there. Restart is
  * offered as Dockhand's own lists offer it: always for a container, only
  * while running for a stack. A stack's deploy button is offered in either
- * state: for a git stack that isn't deployed, it's the way to deploy it. */
+ * state: for a git stack that isn't deployed, it's the way to deploy it.
+ * Pause, like Dockhand's, only while a container runs. */
 export function resolveDeviceControls(hass: HomeAssistant, deviceId: string, showControls: boolean | undefined): DeviceControls | null {
   if (showControls === false) return null;
   const running = findPrimaryEntityByDomain(hass, deviceId, 'switch');
   if (!running) return null;
   const isOn = running.state.state === 'on';
-  const { found } = resolveEntities(hass, deviceId, DEVICE_CONTROL_KEYS, ['restart', 'deploy', 'gitDeploy']);
+  const { found } = resolveEntities(hass, deviceId, DEVICE_CONTROL_KEYS, ['state', 'restart', 'pause', 'deploy', 'gitDeploy']);
   const deploy = found.deploy ?? found.gitDeploy;
   return {
     running: { entityId: running.entityId, isOn },
+    paused: !isOn && found.state?.state.state === 'paused',
     restartEntityId: isOn || !isStack(hass, deviceId) ? (found.restart?.entityId ?? null) : null,
+    pauseEntityId: isOn && found.pause && found.pause.state.state !== 'unavailable' ? found.pause.entityId : null,
     deploy: deploy ? { entityId: deploy.entityId, state: deploy.state, label: deployLabel(hass, deviceId, deploy.state) } : null
   };
 }
@@ -106,42 +117,38 @@ export function performAction(host: HTMLElement, action: string, entityId: strin
   });
 }
 
+type ControlButton = (icon: string, label: string, onClick: () => void) => TemplateResult;
+
 /** The controls' buttons in Dockhand's own order for its containers and
- * stacks lists: a stack's deploy first, then start while stopped, restart,
- * and stop while running. */
-function controlButtons(
-  host: HTMLElement,
-  hass: HomeAssistant | undefined,
-  controls: DeviceControls,
-  name: string,
-  button: (icon: string, label: string, onClick: () => void) => TemplateResult
-): TemplateResult[] {
+ * stacks lists: a stack's deploy, then start (resume, for a paused
+ * container) while stopped, restart, and pause and stop while running. */
+function controlButtons(host: HTMLElement, hass: HomeAssistant | undefined, controls: DeviceControls, name: string, button: ControlButton, deployClass: string): TemplateResult[] {
   const { entityId, isOn } = controls.running;
-  const restartEntityId = controls.restartEntityId;
-  return [
-    ...(isOn ? [] : [button('mdi:play', t(hass, 'control_start'), () => performAction(host, 'switch.turn_on', entityId))]),
-    ...(restartEntityId
-      ? [button('mdi:restart', t(hass, 'control_restart'), () => performAction(host, 'button.press', restartEntityId, t(hass, 'control_restart_confirm', { name })))]
-      : []),
-    ...(isOn ? [button('mdi:stop', t(hass, 'control_stop'), () => performAction(host, 'switch.turn_off', entityId, t(hass, 'control_stop_confirm', { name })))] : [])
-  ];
+  const { restartEntityId, pauseEntityId } = controls;
+  const buttons: TemplateResult[] = [];
+  if (controls.deploy) buttons.push(renderDeploy(host, hass, controls.deploy, name, deployClass));
+  if (!isOn) buttons.push(button('mdi:play', t(hass, controls.paused ? 'control_resume' : 'control_start'), () => performAction(host, 'switch.turn_on', entityId)));
+  if (restartEntityId) buttons.push(button('mdi:restart', t(hass, 'control_restart'), () => performAction(host, 'button.press', restartEntityId, t(hass, 'control_restart_confirm', { name }))));
+  if (pauseEntityId) buttons.push(button('mdi:pause', t(hass, 'control_pause'), () => performAction(host, 'button.press', pauseEntityId)));
+  if (isOn) buttons.push(button('mdi:stop', t(hass, 'control_stop'), () => performAction(host, 'switch.turn_off', entityId, t(hass, 'control_stop_confirm', { name }))));
+  return buttons;
 }
 
 /** `controls` as icon-only buttons for a Stack or Container card's header,
  * before its settings link. Each button's tooltip names it. Actions fire
  * from `host` (the card). */
 export function renderHeaderControls(host: HTMLElement, hass: HomeAssistant | undefined, controls: DeviceControls, name: string): TemplateResult {
-  const button = (icon: string, label: string, onClick: () => void) => renderIcon({ baseClass: 'header-icon', icon, title: label, onClick });
-  return html`${controls.deploy ? renderDeploy(host, hass, controls.deploy, name) : nothing}${controlButtons(host, hass, controls, name, button)}`;
+  const button: ControlButton = (icon, label, onClick) => renderIcon({ baseClass: 'header-icon', icon, title: label, onClick });
+  return html`${controlButtons(host, hass, controls, name, button, 'header-icon')}`;
 }
 
 /** Uses the entity's own icon (rocket or refresh for the git button), and
  * its name as the tooltip, so the card stays in step with whatever the
  * integration shows. */
-function renderDeploy(host: HTMLElement, hass: HomeAssistant | undefined, deploy: NonNullable<DeviceControls['deploy']>, name: string): TemplateResult {
+function renderDeploy(host: HTMLElement, hass: HomeAssistant | undefined, deploy: NonNullable<DeviceControls['deploy']>, name: string, baseClass: string): TemplateResult {
   const action = deploy.label ?? t(hass, 'control_deploy');
   return renderIcon({
-    baseClass: 'header-icon',
+    baseClass,
     hass,
     stateObj: deploy.state,
     title: action,
@@ -149,13 +156,26 @@ function renderDeploy(host: HTMLElement, hass: HomeAssistant | undefined, deploy
   });
 }
 
-/** The same controls as renderHeaderControls, for a list card's row, in
- * two slots (a stopped stack fills one). A stack's deploy stays on the
- * Stack card, where its tooltip says which kind it is. */
-export function renderRowControls(host: HTMLElement, hass: HomeAssistant | undefined, controls: DeviceControls, name: string): TemplateResult {
-  const button = (icon: string, label: string, onClick: () => void) => renderIcon({ baseClass: 'row-icon row-control', icon, title: label, onClick });
-  const buttons = controlButtons(host, hass, controls, name, button);
-  return html`${buttons}${buttons.length < 2 ? EMPTY_SLOT : nothing}`;
+/** How many buttons a row's controls take: a list card gives every row
+ * that many slots (at least two), so the buttons line up down the card. */
+export function controlCount(controls: DeviceControls | null): number {
+  if (!controls) return 0;
+  const { isOn } = controls.running;
+  return [controls.deploy, !isOn, controls.restartEntityId, controls.pauseEntityId, isOn].filter(Boolean).length;
+}
+
+/** The same controls as renderHeaderControls, for a list card's row, padded
+ * with empty slots to `slots` (see controlCount). */
+export function renderRowControls(host: HTMLElement, hass: HomeAssistant | undefined, controls: DeviceControls, name: string, slots: number): TemplateResult {
+  const button: ControlButton = (icon, label, onClick) => renderIcon({ baseClass: 'row-icon row-control', icon, title: label, onClick });
+  const buttons = controlButtons(host, hass, controls, name, button, 'row-icon row-control');
+  return html`${buttons}${Array.from({ length: Math.max(0, slots - buttons.length) }, () => EMPTY_SLOT)}`;
+}
+
+/** The slots a list card's rows get: the most controls any row shows, and
+ * at least two. Set as `--row-control-slots` on the card. */
+export function rowControlSlots(hass: HomeAssistant, deviceIds: string[]): number {
+  return Math.max(2, ...deviceIds.map((id) => controlCount(resolveDeviceControls(hass, id, true))));
 }
 
 /** The actions column of a list row, present on every row while controls

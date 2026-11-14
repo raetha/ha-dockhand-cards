@@ -8,7 +8,7 @@ environments_order: [] # environment display order; all environments are include
 exclude_device_ids: [] # environments to leave out
 name: null # optional — Composed or Custom, same as every other card's Name field
 show_settings_link: true # link to view containers in Dockhand
-show_controls: false # start/stop and restart buttons on each row
+show_controls: false # the Container card's buttons on each row
 visible_badges: [health, updates, cpu, memory, tags] # per-row details; add `environment` for an environment pill
 group_by: environment # none | environment | status
 sort_by: name # name | status | cpu | memory (highest first)

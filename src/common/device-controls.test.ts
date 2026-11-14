@@ -25,12 +25,12 @@ function hassWith(opts: { running?: 'on' | 'off' | null; restart?: boolean; auto
 describe('resolveDeviceControls', () => {
   it('reports a running container with its restart button', () => {
     const controls = resolveDeviceControls(hassWith({ running: 'on', restart: true }), DEVICE, undefined);
-    expect(controls).toEqual({ running: { entityId: 'switch.web', isOn: true }, restartEntityId: 'button.web_restart', deploy: null });
+    expect(controls).toEqual({ running: { entityId: 'switch.web', isOn: true }, paused: false, restartEntityId: 'button.web_restart', pauseEntityId: null, deploy: null });
   });
 
   it('offers restart on a stopped container too, as Dockhand’s containers list does', () => {
     const controls = resolveDeviceControls(hassWith({ running: 'off', restart: true }), DEVICE, true);
-    expect(controls).toEqual({ running: { entityId: 'switch.web', isOn: false }, restartEntityId: 'button.web_restart', deploy: null });
+    expect(controls).toEqual({ running: { entityId: 'switch.web', isOn: false }, paused: false, restartEntityId: 'button.web_restart', pauseEntityId: null, deploy: null });
   });
 
   it('offers restart on a stack only while it runs, as Dockhand’s stacks list does', () => {
@@ -76,7 +76,7 @@ describe('resolveDeviceControls', () => {
         makeState({ entity_id: 'button.core_deploy', state: 'unknown' })
       ]
     });
-    expect(resolveDeviceControls(hass, 'stack_1_core', undefined)).toEqual({ running: { entityId: 'switch.core', isOn: true }, restartEntityId: 'button.core_restart', deploy: { entityId: 'button.core_deploy', state: hass.states['button.core_deploy'], label: undefined } });
+    expect(resolveDeviceControls(hass, 'stack_1_core', undefined)).toEqual({ running: { entityId: 'switch.core', isOn: true }, paused: false, restartEntityId: 'button.core_restart', pauseEntityId: null, deploy: { entityId: 'button.core_deploy', state: hass.states['button.core_deploy'], label: undefined } });
   });
 
   it("offers an internal stack's redeploy button, even while stopped", () => {
@@ -113,5 +113,31 @@ describe('resolveDeviceControls', () => {
     expect(resolveDeviceControls(hass, 'stack_1_core', undefined)?.deploy?.label).toBe('Sync from Git');
     (hass as unknown as { formatEntityName: () => string }).formatEntityName = () => 'Deploy';
     expect(resolveDeviceControls(hass, 'stack_1_core', undefined)?.deploy?.label).toBe('Deploy');
+  });
+});
+
+describe('pause and resume', () => {
+  const containerHass = (state: 'running' | 'paused', pause: 'enabled' | 'disabled' | 'none') => {
+    const entities = [
+      makeEntity({ entity_id: 'switch.web', device_id: DEVICE, translation_key: null }),
+      makeEntity({ entity_id: 'sensor.web_state', device_id: DEVICE, translation_key: 'state' })
+    ];
+    const states = [makeState({ entity_id: 'switch.web', state: state === 'running' ? 'on' : 'off' }), makeState({ entity_id: 'sensor.web_state', state })];
+    if (pause !== 'none') {
+      entities.push(makeEntity({ entity_id: 'button.web_pause', device_id: DEVICE, translation_key: 'pause', disabled_by: pause === 'disabled' ? 'integration' : null }));
+      if (pause === 'enabled') states.push(makeState({ entity_id: 'button.web_pause', state: state === 'running' ? 'unknown' : 'unavailable' }));
+    }
+    return makeHass({ entities, states });
+  };
+
+  it('offers Pause on a running container only when its Pause entity is on', () => {
+    expect(resolveDeviceControls(containerHass('running', 'enabled'), DEVICE, undefined)?.pauseEntityId).toBe('button.web_pause');
+    expect(resolveDeviceControls(containerHass('running', 'disabled'), DEVICE, undefined)?.pauseEntityId).toBeNull();
+    expect(resolveDeviceControls(containerHass('running', 'none'), DEVICE, undefined)?.pauseEntityId).toBeNull();
+  });
+
+  it('marks a paused container, whose Start resumes it, and offers no Pause', () => {
+    const controls = resolveDeviceControls(containerHass('paused', 'enabled'), DEVICE, undefined);
+    expect(controls).toMatchObject({ paused: true, pauseEntityId: null, running: { isOn: false } });
   });
 });

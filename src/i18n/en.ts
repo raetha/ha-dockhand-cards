@@ -17,6 +17,8 @@ export const card = {
   control_start: 'Start',
   control_stop: 'Stop',
   control_restart: 'Restart',
+  control_pause: 'Pause',
+  control_resume: 'Resume',
   control_stop_confirm: 'Stop {name}?',
   control_restart_confirm: 'Restart {name}?',
   control_deploy: 'Redeploy',

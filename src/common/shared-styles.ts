@@ -703,7 +703,7 @@ export const sharedStyles = css`
    * them do too. A row-icon is 16px (below). */
   .row-actions {
     display: grid;
-    grid-template-columns: repeat(2, 16px);
+    grid-template-columns: repeat(var(--row-control-slots, 2), 16px);
     column-gap: var(--ha-space-2, 8px);
     align-items: center;
     flex-shrink: 0;
