@@ -34,7 +34,7 @@
     "@typescript-eslint/eslint-plugin": "^8.72.1",
     "@typescript-eslint/parser": "^8.72.1",
     "@vitest/coverage-v8": "^5.1.0",
-    "custom-card-helpers": "^2.0.0",
+    "custom-card-helpers": "^2.1.0",
     "eslint": "^10.14.0",
     "globals": "^17.14.0",
     "home-assistant-js-websocket": "^9.8.1",
