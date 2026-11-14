@@ -7,7 +7,8 @@ name: Build
 # Push to main: if package.json's version has no `<version>` tag yet, tag it and publish the
 # GitHub release (the changelog section as notes, the built cards attached; HACS installs from
 # these), delete the test builds, then reset `dev` to `main` when they hold the same files.
-# Push to dev: publish a test build as a GitHub pre-release (`<next patch>-dev.<run>`), which
+# Push to dev: publish a test build as a GitHub pre-release (`<version>-dev.<run>`, or the next
+# patch's while `dev` still holds the released version), which
 # HACS offers once the repository's Pre-release switch is on; older test builds are deleted.
 
 on:

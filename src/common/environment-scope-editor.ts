@@ -26,13 +26,10 @@ import { resolveEnvironmentOrder } from './environment-scope';
  * showing an eye icon that would silently do nothing is worse than not
  * showing one at all.
  *
- * Wraps in a collapsible `<ha-expansion-panel>`, expanded by default,
- * with the native `no-collapse` attribute set so it can't currently be
- * collapsed at all (confirmed real against HA frontend source —
- * `ha-expansion-panel.ts` has a genuine `no-collapse` boolean, not
- * something hand-built here): a bare heading looked worse rendered than
- * the panel does, even fixed open. If collapsing is ever wanted,
- * removing the attribute is enough.
+ * Wraps in an `<ha-expansion-panel>`, open, with HA's own `no-collapse`
+ * unless `collapsible` is set: in a card editor it's what the card is
+ * of, so it stays in view, and a bare heading looked worse than the
+ * panel even fixed open.
  */
 export function renderEnvironmentOrderSection(opts: {
   hass: HomeAssistant;

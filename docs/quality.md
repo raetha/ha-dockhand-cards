@@ -17,7 +17,7 @@ That's the actual bar. Everything below this line is a self-imposed checklist bu
 - [x] README with install instructions, a config reference, and screenshots for every card (via `scripts/screenshot-harness/` — real rendered output against fictional mock data, not a live instance)
 - [ ] GitHub repo description + topics set (`home-assistant`, `hacs`, `lovelace`, `home-assistant-card`, `dockhand`) — set on GitHub itself, not in this repo
 - [x] Tagged GitHub releases with the bundle attached as a release asset (not committed to `main`)
-- [x] A `my.home-assistant.io` "Add to HACS" badge in the README
+- [x] A `my.home-assistant.io` Marketplace badge in the README
 
 ## Code quality
 
@@ -27,7 +27,7 @@ That's the actual bar. Everything below this line is a self-imposed checklist bu
 - [x] Unit tests for all pure logic — entity resolution, device matching, formatting (`src/common/*.ts`) and card-specific logic; every card and editor rendered and every control driven in jsdom against the screenshot harness's mock data (`src/*.dom.test.ts`), with a coverage floor in `vitest.config.ts`
 - [x] No hardcoded API calls or credentials — reads only `hass.states`/`hass.entities`/ `hass.devices`, same trust boundary as any other Lovelace card
 - [x] No `localStorage`/`sessionStorage` usage
-- [x] Editors built on HA's own `<ha-form>` schema system for their core fields (three — Schedules, Updates, Overview — also interleave a shared hand-built sortable environment-order/exclude section `<ha-form>` has no model for; see `docs/architecture.md` §2), verified against present-day HA source rather than assumed from older examples (`docs/architecture.md` §2 and §7)
+- [x] Editors built on HA's own `<ha-form>` schema system for their core fields (the list cards, the Overview card and the dashboard settings also have a shared hand-built sortable environment order and exclude section, which `<ha-form>` has no model for; see `docs/architecture.md` §2), verified against present-day HA source rather than assumed from older examples (`docs/architecture.md` §2 and §7)
 
 ## Card behavior
 

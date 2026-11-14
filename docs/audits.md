@@ -13,6 +13,15 @@ Quality, security and housekeeping reviews of the cards, their tooling and CI. R
 7. **Leftovers:** finished experiments, backward compatibility nobody needs (see `docs/backlog.md`'s 2.0.0 items), unused code, stale comments and docs (`CLAUDE.md`, `docs/development.md`, the README).
 8. **Record it:** a dated section below, and changelog lines for anything users notice.
 
+## 2026-11-13: full review
+
+- Open pull requests: none. Every action pin matches its tag and is the latest release. Updated within their ranges: eslint 10.15.0, typescript-eslint 8.72.2, jsdom 31.0.1, rollup 4.68.3. Held: TypeScript 7 (typescript-eslint 8.72 still accepts `typescript <6.1`; 7.1 is in nightlies), and `custom-card-helpers` reports 1.9.0 as "latest" only because its 2.0.0 is tagged differently.
+- `npm audit --omit=dev`: nothing. The two low advisories are deepmerge in the build (`@rollup/plugin-node-resolve`), still without a fixed release (the owner confirmed the open alert is this one). CodeQL 2.27.4 (JavaScript/TypeScript, Actions): no findings.
+- Workflows: top-level `contents: read`, write only on release, sync-dev and test-build, no credentials kept on checkouts outside sync-dev, `CI passed` covering `verify` and `hacs`. The header comment's test-build version was out of date.
+- `npm run verify` and `a11y.py` (both themes): pass, no violations.
+- Screenshots: most README images predated the tag pills, the Environment card's header icons and the always-present Update all, and are regenerated. The mock update entities now offer Install, as ha-dockhand's do, so Update all is shown enabled.
+- Documentation: `editor-design.md` rewritten without the history, and for the dashboard settings (collapsible environment section, embedded editors); `architecture.md` gains `scopeFixed`, the Stack and Container editors' `cardIsEmbedded` and Always show problems; `quality.md`, the README's version examples and requirements, the backlog's TypeScript 7 note and the environment section's comment brought up to date.
+
 ## 2026-11-09: full review before testing 2.0.0
 
 - Dependabot's four pull requests (#55–#58: d3-shape, rollup, @rollup/plugin-terser, jsdom 31) applied together in #63 and closed. jsdom 31 needs Node 22.22+/24.15+; CI uses Node 24.

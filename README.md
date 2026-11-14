@@ -38,11 +38,11 @@ Dockhand Cards is in the default catalog of Home Assistant's **Marketplace**, bu
 1. Download every `.js` file from the [latest release](https://github.com/raetha/ha-dockhand-cards/releases): the cards (`ha-dockhand-cards.js`), their editors (`ha-dockhand-cards-editor.js`) and one `ha-dockhand-cards-i18n-<language>.js` per language
 2. Copy them all into the same folder, e.g. `<HA config>/www/`. The editor and language files are loaded automatically from beside the card file, so they don't need resources of their own (a missing language file just shows English)
 3. Add the card file as a dashboard resource: `/local/ha-dockhand-cards.js`, type **JavaScript Module**
-4. When updating, replace all the files and add or bump a version on the resource URL, e.g. `/local/ha-dockhand-cards.js?v=1.4.0`, so browsers load the new files
+4. When updating, replace all the files and add or bump a version on the resource URL, e.g. `/local/ha-dockhand-cards.js?v=2.0.0`, so browsers load the new files
 
 ### Test builds
 
-Upcoming changes are published as test builds (pre-releases such as `1.5.3-dev.42`) before they're released, for anyone willing to try them early:
+Upcoming changes are published as test builds (pre-releases such as `2.0.1-dev.42`) before they're released, for anyone willing to try them early:
 
 1. Turn on pre-releases for Dockhand Cards: in the Marketplace, open Dockhand Cards and use its **⋮** menu, or turn on the Dockhand Cards **Pre-release** switch (**Settings → Devices & services → Entities**; it's disabled by default, so enable it first). On HACS only the switch is there.
 2. The latest test build is then offered as an update; install it and refresh your browser
@@ -212,7 +212,7 @@ show_filtered_count: true # a "Hidden by filters" line under a filtered list
 
 Every container in one environment, several, or all of them, one compact row each: state, health, pending updates and CPU/memory (when container stats are enabled). Works like the Stacks card above, including **Row details** and **Show controls**.
 
-With ha-dockhand 1.11.0 or later, a newer version tag Dockhand has found shows as a tag pill, like Dockhand's own containers list: next to the update icon when there's also an update to install, or on its own when there isn't. A container pinned to a digest whose tag has moved on gets an orange pin in the update icon's place, and one whose update Dockhand is holding until the new image reaches its minimum image age gets a grey clock; hover either for the details. All of these are part of the **updates** row detail.
+A newer version tag Dockhand has found shows as a tag pill, like Dockhand's own containers list: next to the update icon when there's also an update to install, or on its own when there isn't. A container pinned to a digest whose tag has moved on gets an orange pin in the update icon's place, and one whose update Dockhand is holding until the new image reaches its minimum image age gets a grey clock; hover either for the details. All of these are part of the **updates** row detail.
 
 On a row too narrow for everything, the name stays readable: a version tag pill keeps just its icon (hover for the tag), and tags that don't all fit fold into one pill with their count (hover for their names). The Stacks and Updates cards do the same.
 
@@ -330,7 +330,7 @@ show_environments: true
 show_vulnerabilities: false # needs the Vulnerabilities sensor enabled per environment
 show_updates: false
 updates_hide_when_no_updates: false # hide an environment's Updates card when it has nothing pending
-show_schedules: false # each column shows its own environment's schedules (needs ha-dockhand 1.9.0+)
+show_schedules: false # each column shows its own environment's schedules
 show_stacks: false
 show_containers: false
 ```

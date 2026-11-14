@@ -304,6 +304,8 @@ function buildEnvironment(addDevice, addEntity, opts) {
         entity(`update.${slug}_${c.name}_update`, devId, null, 'on', {
           installed_version: 'a3f29e1',
           latest_version: 'b82d4f0',
+          // Install, which ha-dockhand offers where Dockhand would update it.
+          supported_features: 1,
           ...(c.newer ? { newer_version: c.newer, newer_version_bump: c.newerBump, newer_versions_count: c.newerCount } : {})
         })
       );
@@ -312,6 +314,7 @@ function buildEnvironment(addDevice, addEntity, opts) {
         entity(`update.${slug}_${c.name}_update`, devId, null, 'on', {
           installed_version: 'latest',
           latest_version: 'update-pending',
+          supported_features: 1,
           ...(c.newer ? { newer_version: c.newer, newer_version_bump: c.newerBump, newer_versions_count: c.newerCount } : {})
         })
       );
