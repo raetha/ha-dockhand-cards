@@ -14,7 +14,7 @@ That's the actual bar. Everything below this line is a self-imposed checklist bu
 
 - [x] `hacs.json` with `name` and `filename` (no `content_in_root` override — matches `custom-cards/boilerplate-card` exactly, since the bundle isn't in the repo tree at all, only ever delivered as a release asset; see `docs/development.md` → "Branches and releases" for how that's confirmed to be how HACS actually resolves it)
 - [x] Public GitHub repo, MIT `LICENSE`
-- [x] README with install instructions, a config reference, and screenshots for every card (via `scripts/screenshot-harness/` — real rendered output against fictional mock data, not a live instance)
+- [x] README with install instructions and a screenshot of every card, linking to each card's config reference in `docs/cards/` and the dashboard's in `docs/dashboard.md` (screenshots via `scripts/screenshot-harness/` — real rendered output against fictional mock data, not a live instance)
 - [ ] GitHub repo description + topics set (`home-assistant`, `hacs`, `lovelace`, `home-assistant-card`, `dockhand`) — set on GitHub itself, not in this repo
 - [x] Tagged GitHub releases with the bundle attached as a release asset (not committed to `main`)
 - [x] A `my.home-assistant.io` Marketplace badge in the README

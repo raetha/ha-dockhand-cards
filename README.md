@@ -59,349 +59,100 @@ Rather than placing cards yourself, you can let the [Dockhand dashboard](#dockha
 - **No entity setup.** Pick an environment, stack or container and the card finds its entities.
 - **Missing data is left out.** A disabled sensor or an older integration release hides that value rather than breaking the card; the editor tells you what to enable for more.
 - **Everything opens.** Any value backed by an entity opens that entity's details when clicked.
-- **Your icons and colors.** Entity icons follow your customizations, and colors follow your Home Assistant theme (see [Styling](docs/styling.md)).
+- **Your icons and colors.** Entity icons follow your customizations, and colors follow your Home Assistant theme (see [Styling](https://github.com/raetha/ha-dockhand-cards/blob/main/docs/styling.md)).
 
-The screenshots use made-up data.
+Singular names (Stack, Container) show one item; plural ones (Stacks, Containers) list every item across the environments you choose, and [choose environments and filter lists](https://github.com/raetha/ha-dockhand-cards/blob/main/docs/cards/lists.md) the same way. The screenshots use made-up data.
 
 ### Dockhand Environment Card
 
-```yaml
-type: custom:dockhand-environment-card
-device_id: <environment device>
-mode: standard # compact | standard | detailed | full | custom
-custom_sections: [container_counts, metrics, resources, events_summary] # only used when mode: custom
-name: null # optional — Composed (from the device's area/name/floor) or Custom (plain text);
-           # unset uses the device's own name, as on every card
-show_settings_link: true # link to open this environment in Dockhand
-```
+One environment at a glance, from a compact tile to its full details: container counts, CPU and memory, resources, events, disk usage and history, with header icons to turn its update checks, scanning and collection on and off. **[Options and details](https://github.com/raetha/ha-dockhand-cards/blob/main/docs/cards/environment.md)**
 
-Four built-in layouts, plus your own:
-
-- **Compact** — name, online status and container counts
-- **Standard** — adds CPU/memory, health, resource counts and events (Dockhand's own dashboard tile)
-- **Detailed** — adds the top containers by CPU and recent events
-- **Full** — adds a disk usage breakdown (the integration's Disk usage sensors, disabled by default) and a 15-minute CPU/memory history chart
-- **Custom** — pick exactly which of those sections to show
-
-Icons in the header show the environment's update checks (or auto-update, when on), vulnerability scanning, activity collection and metrics collection: colored when on, grey when off. Click one to change it; scanning opens the scanner choice.
-
-<p>
-  <img src="docs/images/env-standard.png" alt="Environment card, standard mode, dark theme" width="420">
-  <img src="docs/images/env-standard-light.png" alt="Environment card, standard mode, light theme" width="420">
-</p>
-
-<details>
-<summary>Compact, detailed, and full modes</summary>
-<p>
-  <img src="docs/images/env-compact.png" alt="Environment card, compact mode" width="420">
-  <img src="docs/images/env-detailed.png" alt="Environment card, detailed mode" width="420">
-  <img src="docs/images/env-full.png" alt="Environment card, full mode" width="420">
-</p>
-</details>
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="docs/images/env-standard-light.png">
+  <img src="docs/images/env-standard.png" alt="Environment card, standard mode" width="420">
+</picture>
 
 ### Dockhand Vulnerability Card
 
-```yaml
-type: custom:dockhand-vulnerability-card
-exclude_device_ids: [] # environments left out (all shown by default)
-environments_order: [] # order of the environments' rows
-name: null # optional — Composed (one environment) or Custom, same as the Environment card's own Name field
-show_settings_link: true # link to view vulnerabilities in Dockhand
-```
+Vulnerability findings by severity, for one environment or added up across several. **[Options and details](https://github.com/raetha/ha-dockhand-cards/blob/main/docs/cards/vulnerability.md)**
 
-With one environment shown: its total findings with a critical/high/medium/low breakdown, and how many images have been scanned. With more: their findings added up, and a row per environment with its critical, high, medium and low counts, lined up in columns (click a count for its sensor). Dockhand counts per environment, so an image running in two environments counts in both. Choose the environments at the top of the editor, as in the list cards. Needs each environment's **Vulnerabilities** sensor enabled in Home Assistant (it's disabled by default; so are **Critical**, **High**, **Medium** and **Low vulnerabilities** and **Scanned images**, which the card shows when they're on) and vulnerability scanning turned on for that environment in Dockhand.
-
-A card from before 2.0.0 with `device_id` keeps showing just that environment; the editor turns it into `exclude_device_ids` with your next change.
-
-<p>
-  <img src="docs/images/vulnerability.png" alt="Vulnerability card, dark theme" width="420">
-  <img src="docs/images/vulnerability-light.png" alt="Vulnerability card, light theme" width="420">
-</p>
-
-<p>
-  <img src="docs/images/vulnerability-rollup.png" alt="Vulnerability card across several environments, dark theme" width="420">
-  <img src="docs/images/vulnerability-rollup-light.png" alt="Vulnerability card across several environments, light theme" width="420">
-</p>
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="docs/images/vulnerability-light.png">
+  <img src="docs/images/vulnerability.png" alt="Vulnerability card" width="420">
+</picture>
 
 ### Dockhand Stack Card
 
-```yaml
-type: custom:dockhand-stack-card
-device_id: <stack device>
-name: null # optional — Composed or Custom, same as every other card's Name field
-icon: null # optional — custom header icon (e.g. mdi:layers-triple); defaults to mdi:layers
-show_settings_link: true # link to open this stack in Dockhand
-show_controls: true # start/stop/restart buttons in the header — off hides them
-visible_sections: [status, metrics, io, containers, git_sync] # which sections show, independent of each other
-```
+One stack: its status, resource use, containers and Git sync, with start, stop, restart and deploy buttons. **[Options and details](https://github.com/raetha/ha-dockhand-cards/blob/main/docs/cards/stack.md)**
 
-Under the header, the stack's Dockhand tags as coloured pills (when it has any). The stack's status, CPU/memory and network/disk I/O totals, its containers (each one a pill that opens that container), pending updates, and — for git stacks — sync status, last sync time and any sync error. The totals are Dockhand's own (the same numbers its Stacks page shows), from ha-dockhand 1.11.0's stack stats sensors — they need Dockhand 1.0.52 or later and ha-dockhand's **Enable container and stack stats** option; without them the card simply leaves those sections out. Like Dockhand, memory shows as usage over limit, where the limit is the largest single container limit (usually the host's memory).
-
-Buttons in the header start, stop or restart the stack, beside its **Redeploy** (internal stacks) or **Deploy / Sync from Git** (git stacks) button; each one's tooltip names it. Everything except Start asks for confirmation first. A stack containing a system container (Dockhand itself, or a Hawser agent) has no buttons, matching Dockhand.
-
-<p>
-  <img src="docs/images/stack.png" alt="Stack card, dark theme" width="420">
-  <img src="docs/images/stack-light.png" alt="Stack card, light theme" width="420">
-</p>
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="docs/images/stack-light.png">
+  <img src="docs/images/stack.png" alt="Stack card" width="420">
+</picture>
 
 ### Dockhand Container Card
 
-```yaml
-type: custom:dockhand-container-card
-device_id: <container device>
-name: null # optional — Composed or Custom, same as every other card's Name field
-icon: null # optional — custom header icon (e.g. mdi:server); defaults to mdi:docker
-show_settings_link: true # link to open this container in Dockhand
-show_controls: true # start/stop/restart buttons in the header — off hides them
-visible_sections: [state, metrics, io] # which sections show, independent of each other
-```
+One container: its state, health and resource use, with start, stop and restart buttons. **[Options and details](https://github.com/raetha/ha-dockhand-cards/blob/main/docs/cards/container.md)**
 
-Under the header, the container's Dockhand tags as coloured pills (when it has any). The container's state, health (when it has a healthcheck), CPU/memory and network/disk I/O. CPU, memory and I/O need ha-dockhand's **Enable container and stack stats** option; without it the card simply leaves them out, and its editor tells you what to enable.
-
-Buttons in the header start, stop or restart the container, asking for confirmation before Stop or Restart. System containers (Dockhand itself, or a Hawser agent) have no buttons, matching Dockhand.
-
-<p>
-  <img src="docs/images/container.png" alt="Container card, dark theme" width="420">
-  <img src="docs/images/container-light.png" alt="Container card, light theme" width="420">
-</p>
-
-> Singular card names (Stack, Container) show one item; plural ones (Stacks, Containers) list every
-> item across the environments you choose. Suggestions for what the single-item cards should show
-> are welcome — open an issue.
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="docs/images/container-light.png">
+  <img src="docs/images/container.png" alt="Container card" width="420">
+</picture>
 
 ### Dockhand Stacks Card
 
-```yaml
-type: custom:dockhand-stacks-card
-environments_order: [] # environment display order; all environments are included by default
-exclude_device_ids: [] # environments to leave out
-name: null # optional — Composed or Custom, same as every other card's Name field
-show_settings_link: true # link to view stacks in Dockhand
-show_controls: false # start/stop and restart buttons on each row
-visible_badges: [container_count, updates, type, tags] # per-row details; add `environment` for an environment pill
-group_by: environment # none | environment | status | type
-sort_by: name # name | status | containers (most first)
-filters: {} # which rows show — see [Filtering lists](#filtering-lists)
-show_filtered_count: true # a "Hidden by filters" line under a filtered list
-```
+Every stack in the environments you choose, a compact row each, grouped, sorted and filtered as you like. **[Options and details](https://github.com/raetha/ha-dockhand-cards/blob/main/docs/cards/stacks.md)**
 
-Every stack in one environment, several, or all of them, one compact row each: status, type, container count and pending updates. Each of those details can be turned off under **Row details** in the editor. Choosing environments works the same way on every multi-environment card — see [Choosing environments](#choosing-environments) below.
-
-**Show controls** adds start or stop, and restart while running, to each row, asking before stopping or restarting. It's off by default so a stray tap on a list can't stop anything. System stacks get none, as on the Stack card; redeploying stays on the Stack card.
-
-<p>
-  <img src="docs/images/stacks-list.png" alt="Stacks card, dark theme" width="420">
-  <img src="docs/images/stacks-list-light.png" alt="Stacks card, light theme" width="420">
-</p>
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="docs/images/stacks-list-light.png">
+  <img src="docs/images/stacks-list.png" alt="Stacks card" width="420">
+</picture>
 
 ### Dockhand Containers Card
 
-```yaml
-type: custom:dockhand-containers-card
-environments_order: [] # environment display order; all environments are included by default
-exclude_device_ids: [] # environments to leave out
-name: null # optional — Composed or Custom, same as every other card's Name field
-show_settings_link: true # link to view containers in Dockhand
-show_controls: false # start/stop and restart buttons on each row
-visible_badges: [health, updates, cpu, memory, tags] # per-row details; add `environment` for an environment pill
-group_by: environment # none | environment | status
-sort_by: name # name | status | cpu | memory (highest first)
-filters: {} # which rows show — see [Filtering lists](#filtering-lists)
-show_filtered_count: true # a "Hidden by filters" line under a filtered list
-```
+Every container in the environments you choose, a row each with its state, health, updates and CPU/memory, grouped, sorted and filtered as you like. **[Options and details](https://github.com/raetha/ha-dockhand-cards/blob/main/docs/cards/containers.md)**
 
-Every container in one environment, several, or all of them, one compact row each: state, health, pending updates and CPU/memory (when container stats are enabled). Works like the Stacks card above, including **Row details** and **Show controls**.
-
-A newer version tag Dockhand has found shows as a tag pill, like Dockhand's own containers list: next to the update icon when there's also an update to install, or on its own when there isn't. A container pinned to a digest whose tag has moved on gets an orange pin in the update icon's place, and one whose update Dockhand is holding until the new image reaches its minimum image age gets a grey clock; hover either for the details. All of these are part of the **updates** row detail.
-
-On a row too narrow for everything, the name stays readable: a version tag pill keeps just its icon (hover for the tag), and tags that don't all fit fold into one pill with their count (hover for their names). The Stacks and Updates cards do the same.
-
-<p>
-  <img src="docs/images/containers-list.png" alt="Containers card, dark theme" width="420">
-  <img src="docs/images/containers-list-light.png" alt="Containers card, light theme" width="420">
-</p>
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="docs/images/containers-list-light.png">
+  <img src="docs/images/containers-list.png" alt="Containers card" width="420">
+</picture>
 
 ### Dockhand Updates Card
 
-```yaml
-type: custom:dockhand-updates-card
-group_by: environment # none | environment
-environments_order: [] # environment display order; all environments are included by default
-exclude_device_ids: [] # environments to leave out
-name: null # optional — Composed or Custom, same as every other card's Name field
-hide_when_no_updates: false # hide the whole card when nothing is pending (still shown while editing)
-filters: {} # which rows show — see [Filtering lists](#filtering-lists)
-show_filtered_count: true # a "Hidden by filters" line under a filtered list
-```
+Every pending container update, with Check for updates and Update all. **[Options and details](https://github.com/raetha/ha-dockhand-cards/blob/main/docs/cards/updates.md)**
 
-Every pending container update across the environments you choose, with **Check for updates** and **Update all** buttons in the header. Update all installs every update the card lists that Home Assistant can install, as one Dockhand job per environment; like Dockhand's own Update all, that leaves out system containers, newer tags, pinned digests and held updates (the button is disabled, with a tooltip saying why, when that's everything listed). Click a row to open that container's update dialog and install just that one.
-
-A newer version tag (one you'd move to by changing the container's image tag rather than installing from Home Assistant) gets a grey tag icon in place of the update icon when it's the row's only update. When it's waiting behind an update that can be installed now, it shows as a tag pill alongside that update. Two more kinds of row, both as Dockhand's own containers list shows them: a container pinned to a digest (`image:tag@sha256:…`) whose tag has moved on gets an orange pin and "Pinned to a digest" (the update is changing the pin, so there's nothing to install), and an update Dockhand is holding until the new image reaches its minimum image age gets a grey clock and the hours left, so you can see it coming ("At next check" once the wait is over, until Dockhand's next update check offers it). Both count in the header, and keep the card showing when **Hide when no updates** is on. Needs ha-dockhand 1.11.0 or later.
-
-Updates are grouped by environment by default; `group_by: none` shows one combined list.
-
-With filters set, the header counts the updates listed, and while filters hide some updates the button reads **Update listed** and installs only those shown. **Hide when no updates** still goes by everything pending, so a filtered card with nothing to list stays, saying so.
-
-<p>
-  <img src="docs/images/updates.png" alt="Updates card, dark theme" width="420">
-  <img src="docs/images/updates-light.png" alt="Updates card, light theme" width="420">
-</p>
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="docs/images/updates-light.png">
+  <img src="docs/images/updates.png" alt="Updates card" width="420">
+</picture>
 
 ### Dockhand Schedules Card
 
-```yaml
-type: custom:dockhand-schedules-card
-group_by: environment # none | environment | type | status
-sort_by: status # name | next_run | status
-environments_order: [] # environment display order; all environments are included by default
-exclude_device_ids: [] # environments to leave out
-name: null # optional — Composed or Custom, same as every other card's Name field
-show_settings_link: true # link to view schedules in Dockhand
-show_stats: true # row of counts: success, failed, warning, running, queued, skipped, disabled, total
-show_controls: false # Run now and enable/disable buttons on each row
-visible_badges: [next_run, environment] # per-row details (the environment pill is hidden when grouped by environment)
-filters: {} # which rows show — see [Filtering lists](#filtering-lists)
-show_filtered_count: true # a "Hidden by filters" line under a filtered list
-```
+Every Dockhand schedule with its status and next run, and optional Run now and enable/disable buttons. **[Options and details](https://github.com/raetha/ha-dockhand-cards/blob/main/docs/cards/schedules.md)**
 
-Every Dockhand schedule — container auto-updates, git stack syncs, update checks, image prunes, backups and system jobs — for the environments you choose, with each one's status and next run. Grouping schedules by environment needs ha-dockhand 1.9.0 or later; on older releases every schedule shows regardless of the environments chosen.
-
-**Show controls** (off by default) adds **Run now**, which asks first, and an enable/disable toggle to each row, for the schedules Dockhand offers them on. Container update and Git stack sync schedules are turned on and off with the container's and stack's own switches instead, so they only get Run now. Needs ha-dockhand 2.0.0 or later.
-
-Global schedules (ones not tied to an environment) show by default; the **Where** filter shows only those, or leaves them out. Older configs with `include_global: false` keep leaving them out, and the editor rewrites them as that filter.
-
-<p>
-  <img src="docs/images/schedules.png" alt="Schedules card, dark theme" width="420">
-  <img src="docs/images/schedules-light.png" alt="Schedules card, light theme" width="420">
-</p>
-
-### Choosing environments
-
-Every multi-environment card (Stacks, Containers, Updates, Schedules and Overview) has the same **Environments** section in its editor:
-
-- **Drag** to reorder — sets the order of environment groups
-- **Eye icon** to include or leave out one environment
-- **Target icon** to show only that environment
-- **Show all / Clear** to include every environment, or start from none
-
-### Filtering lists
-
-The Stacks, Containers, Updates and Schedules cards have a **Filters** section in their editors. Each filter takes one or more values (a row matching any of them shows) and can be flipped to **is not**; set several filters and a row has to pass them all. For example, failed containers that aren't in a stack:
-
-```yaml
-filters:
-  state: [exited_error, dead]
-  stack: ["(none)"] # not in a stack
-  tags: { not: [infra] } # "is not"
-```
-
-**Always show problems**, under the filters on the Containers, Stacks and Schedules cards, keeps a row in view whatever the filters say when something's wrong with it, so you can filter out the routine rows without missing a failure. For example, hiding Git sync schedules except when one fails is **Type** is not Git sync, with **Always show problems** on. What counts as a problem:
-
-- **Containers** (`always_show_problems: true`): exited with an error (a non-zero exit code; ha-dockhand 2.0.0), dead, restarting, or unhealthy.
-- **Stacks**: stopped, partly running, restarting, or its Git sync failed.
-- **Schedules**: its last run failed.
-
-| Card | Filter | Values |
-| --- | --- | --- |
-| Containers | `state` | `running`, `paused`, `restarting`, `created`, `exited_ok`, `exited_error`, `dead` (the exited ones need ha-dockhand 2.0.0's `exit_code`) |
-| | `health` | `healthy`, `unhealthy`, `starting`, `(none)` for no health check |
-| | `stack` | a stack name, or `(none)` for containers not in a stack |
-| | `update` | `up_to_date`, `installable`, `tag` (newer tag), `pinned` (pinned digest), `held` |
-| | `tags` | a Dockhand tag, or `(none)` |
-| Stacks | `status` | `running`, `partial`, `restarting`, `stopped`, `created` |
-| | `type` | `internal`, `git`, `untracked` |
-| | `updates` | `available`, `none` |
-| | `git_sync` | `synced`, `syncing`, `pending`, `error` |
-| | `tags` | a Dockhand tag, or `(none)` |
-| Updates | `update`, `stack`, `tags` | as on the Containers card |
-| Schedules | `type` | a Dockhand schedule type, such as `container_update` or `image_prune` |
-| | `last_result` | `success`, `failed`, `warning`, `error`, `running`, `queued`, `skipped`, `cancelled`, `stale`, or `(none)` for never run |
-| | `enabled` | `enabled`, `disabled` |
-| | `origin` | `system` (Dockhand's own), `user` |
-| | `scope` | `environment`, `global` |
-
-A filtered card says when nothing matches, and shows how many rows filters hide unless `show_filtered_count: false`. In the Overview card, filters are set per section like its other settings.
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="docs/images/schedules-light.png">
+  <img src="docs/images/schedules.png" alt="Schedules card" width="420">
+</picture>
 
 ### Dockhand Overview Card
 
-```yaml
-type: custom:dockhand-overview-card
-show_environments: true
-show_vulnerabilities: false # needs the Vulnerabilities sensor enabled per environment
-show_updates: false
-updates_hide_when_no_updates: false # hide an environment's Updates card when it has nothing pending
-show_schedules: false # each column shows its own environment's schedules
-show_stacks: false
-show_containers: false
-```
-
-A whole dashboard in one card: one column per environment, each stacking the sections you turn on — the Environment, Vulnerability, Updates, Schedules, Stacks and Containers cards, in that order by default. Columns sit side by side on a wide screen and stack on a narrow one. Only environments are shown by default, since with everything on the card gets tall quickly.
-
-Both the environments and the sections can be dragged into a different order in the editor, and a pencil icon on each opens more settings:
-
-- **On a section** — defaults for that card type in every column, such as the Environment card's layout or which row details the Stacks and Containers cards show.
-- **On an environment** — settings for just that environment's column, including a different name, stored under `environments_overrides`.
+A whole dashboard in one card: a column per environment, with the cards you choose in each. **[Options and details](https://github.com/raetha/ha-dockhand-cards/blob/main/docs/cards/overview.md)**
 
 <img src="docs/images/overview.png" alt="Overview card: Environments + Stacks + Containers, light theme" width="920">
 
-*Environments, Stacks and Containers turned on, across two environments.*
+Suggestions for what the cards should show are welcome: open an issue.
 
 ## Dockhand dashboard
 
-A ready-made dashboard instead of building one card by card: in **Settings → Dashboards → Add dashboard**, pick **Dockhand** under Community dashboards. Home Assistant builds it from the cards above each time it opens, so it keeps up by itself as environments, stacks and containers come and go in Dockhand.
+A ready-made dashboard instead of building one card by card: in **Settings → Dashboards → Add dashboard**, pick **Dockhand** under Community dashboards. Home Assistant builds it from these cards each time it opens, so it keeps up by itself as environments, stacks and containers come and go in Dockhand.
 
-**The overview** shows your environments (in one column for one or two, two columns from three), with vulnerabilities across all environments, pending updates and schedules beside them. Click an environment's name to open its page.
+An overview of your environments, with vulnerabilities, updates and schedules beside them; a page for each environment with all its cards; and pages with a card for each of its stacks and containers. Columns, cards and each card's settings are chosen in the dashboard's own settings. **[Pages, settings and YAML](https://github.com/raetha/ha-dockhand-cards/blob/main/docs/dashboard.md)**
 
 <picture>
   <source media="(prefers-color-scheme: light)" srcset="docs/images/dashboard-overview-light.png">
   <img src="docs/images/dashboard-overview.png" alt="The Dockhand dashboard overview: four environments, vulnerabilities and updates across them, and schedules">
 </picture>
-
-**An environment's page** has all its cards, with a back arrow to the overview, below badges for its host platform, uptime, Hawser agent version and Docker version (each once that entity is turned on in the integration's options, and chosen in the dashboard's settings). With a single environment, its page is the whole dashboard.
-
-<picture>
-  <source media="(prefers-color-scheme: light)" srcset="docs/images/dashboard-environment-light.png">
-  <img src="docs/images/dashboard-environment.png" alt="An environment's page: its Environment card, vulnerabilities, updates, schedules, stacks and containers">
-</picture>
-
-**Stack details** and **Container details**, above its Stacks and Containers cards, open a page with a Stack card for each of the environment's stacks, or a Container card for each of its containers.
-
-<picture>
-  <source media="(prefers-color-scheme: light)" srcset="docs/images/dashboard-containers-light.png">
-  <img src="docs/images/dashboard-containers.png" alt="An environment's Containers page: a Container card for each container">
-</picture>
-
-To change it, open the dashboard's **⋮ → Edit dashboard**:
-
-- **Dockhand instance** (only with more than one): one instance's environments, or all of them.
-- **Environments**: their order, and which to leave out. With only one, the dashboard opens on that environment's page instead of an overview, which suits a dashboard per environment.
-- **Overview page** and **Environment pages**: up to four columns each; drag cards between columns, or to **Hide** to leave them out. On the overview, three or more environments take two columns, so the page is one column wider than the number set. A card's pencil opens its own settings, the same as in that card's editor. Every environment's page shares them: change the Containers card on one and it changes on all. The environment pages also choose which badges to show.
-- **Stacks and containers pages**: the settings of the Stack card on every Stacks page, and of the Container card on every Containers page.
-
-<p>
-  <img src="docs/images/dashboard-settings.png" alt="The Dockhand dashboard's settings, dark theme" width="420">
-  <img src="docs/images/dashboard-settings-light.png" alt="The Dockhand dashboard's settings, light theme" width="420">
-</p>
-
-The screenshots use made-up data; the page around the cards is drawn to look like Home Assistant's.
-
-Anything beyond that needs **Take control**, which turns it into a normal dashboard you edit like any other (it then stops updating itself). In YAML it's:
-
-```yaml
-strategy:
-  type: custom:dockhand
-  # Everything below is optional.
-  exclude_device_ids: [] # environments to leave out
-  overview_layout: [[environments], [vulnerabilities, updates], [schedules]]
-  environment_layout: [[environments], [vulnerabilities, updates, schedules], [stacks], [containers]]
-  cards: # each card's own settings, by page
-    overview:
-      schedules: { show_stats: true }
-    environment:
-      containers: { show_controls: true }
-    stack: { visible_sections: [status, metrics, containers] }
-    container: {}
-```
 
 ---
 
@@ -436,5 +187,5 @@ MIT
 ## Removal
 
 1. Remove the Dockhand cards from your dashboards.
-2. In **Settings → Marketplace** (or **HACS → Frontend** on 2026.10 and older), find **Dockhand Cards** and remove it; that removes its dashboard resource too. For a manual install, delete both files and remove the resource under **Settings → Dashboards → ⋮ → Resources**.
+2. In **Settings → Marketplace** (or **HACS → Frontend** on 2026.10 and older), find **Dockhand Cards** and remove it; that removes its dashboard resource too. For a manual install, delete its files and remove the resource under **Settings → Dashboards → ⋮ → Resources**.
 3. Refresh your browser.
