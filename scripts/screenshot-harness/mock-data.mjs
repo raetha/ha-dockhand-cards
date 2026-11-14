@@ -2,20 +2,36 @@
 // in a headless browser, with no real instance data at all — every name,
 // ID, and value below is made up for demonstration purposes.
 
-const ENTRY_ID = 'demo_entry';
+// A config entry id as Home Assistant makes them (a ULID).
+const ENTRY_ID = '01JDEMO0ENTRY000000000000';
 
+// Shaped like Home Assistant's own hass.devices entries (the device
+// registry, config/device_registry/list) and hass.entities entries (the
+// display registry, config/entity_registry/list_for_display, which holds
+// enabled entities only and leaves out absent fields).
 function device(id, identifiers, name, extra = {}) {
   return {
     id,
     name,
     name_by_user: null,
     model: extra.model ?? null,
+    model_id: null,
     manufacturer: 'Dockhand',
-    identifiers: identifiers.map((i) => ['dockhand', i]),
+    // ha-dockhand prefixes every identifier with its config entry's id.
+    identifiers: identifiers.map((i) => ['dockhand', `${ENTRY_ID}_${i}`]),
+    connections: [],
     config_entry_id: ENTRY_ID,
+    config_entries: [ENTRY_ID],
+    primary_config_entry: ENTRY_ID,
     configuration_url: extra.configuration_url ?? null,
+    sw_version: null,
     hw_version: extra.hw_version ?? null,
-    via_device_id: extra.via_device_id ?? null
+    serial_number: null,
+    via_device_id: extra.via_device_id ?? null,
+    area_id: null,
+    labels: [],
+    entry_type: extra.entry_type ?? null,
+    disabled_by: null
   };
 }
 
@@ -25,11 +41,9 @@ function entity(entityId, deviceId, translationKey, state, attributes = {}, extr
       entity_id: entityId,
       device_id: deviceId,
       platform: 'dockhand',
-      translation_key: translationKey,
-      unique_id: `${ENTRY_ID}_${entityId}`,
-      disabled_by: extra.disabled_by ?? null,
-      hidden_by: null,
-      entity_category: extra.entity_category ?? null
+      labels: [],
+      ...(translationKey ? { translation_key: translationKey } : {}),
+      ...(extra.entity_category ? { entity_category: extra.entity_category } : {})
     },
     state: {
       entity_id: entityId,
@@ -79,6 +93,11 @@ function buildEnvironment(addDevice, addEntity, opts) {
       hw_version: connectionType
     })
   );
+  // ha-dockhand's group devices: stacks sit under Stacks, and containers
+  // under their stack or, on their own, under Containers.
+  for (const group of ['Stacks', 'Containers']) {
+    addDevice(device(`env_${envId}_${group}`, [`env_${envId}_${group}`], `${name} – ${group}`, { model: 'Environment Group', via_device_id: envDeviceId }));
+  }
 
   const onlineAttrs = { icon: ONLINE_ICON[online] };
   if (hostPort) {
@@ -271,14 +290,14 @@ function buildEnvironment(addDevice, addEntity, opts) {
   for (const c of containers) {
     const devId = `container_${envId}_${c.name}`;
     addDevice(
-      device(devId, [`container_${envId}_${c.name}`], c.name, {
+      device(devId, [`container_${envId}_${c.name}`], `${name} – Containers – ${c.name}`, {
         model: 'Container',
         configuration_url: `http://${slug}.example.internal:2376/containers`,
-        via_device_id: stackOf[c.name] ? `stack_${envId}_${stackOf[c.name]}` : null
+        via_device_id: stackOf[c.name] ? `stack_${envId}_${stackOf[c.name]}` : `env_${envId}_Containers`
       })
     );
     addEntity(
-      entity(`sensor.${slug}_${c.name}_state`, devId, 'state', c.state, { type: 'Compose', image: c.image, exit_code: c.state === 'exited' ? (c.exitCode ?? 0) : null, system_container: null, ...mockTags(c.name) }, { friendly_name: c.name })
+      entity(`sensor.${slug}_${c.name}_state`, devId, 'state', c.state, { image: c.image, restart_count: null, exit_code: c.state === 'exited' ? (c.exitCode ?? 0) : null, networks: {}, system_container: Boolean(c.systemContainer), ...mockTags(c.name) }, { friendly_name: c.name })
     );
     if (c.health) {
       addEntity(entity(`sensor.${slug}_${c.name}_health`, devId, 'health', c.health));
@@ -364,7 +383,7 @@ function buildEnvironment(addDevice, addEntity, opts) {
 
   for (const s of stacks) {
     const devId = `stack_${envId}_${s.name}`;
-    addDevice(device(devId, [`stack_${envId}_${s.name}`], s.name, { model: `${s.type} Stack`, configuration_url: `http://${slug}.example.internal:2376/stacks` }));
+    addDevice(device(devId, [`stack_${envId}_${s.name}`], `${name} – Stacks – ${s.name}`, { model: `${s.type} Stack`, configuration_url: `http://${slug}.example.internal:2376/stacks`, via_device_id: `env_${envId}_Stacks` }));
     // Same as ha-dockhand: on while running or partially running.
     addEntity(entity(`switch.${slug}_stacks_${s.name}`, devId, null, s.status === 'running' || s.status === 'partial' ? 'on' : 'off', { name: s.name }, { friendly_name: s.name }));
     addEntity(entity(`button.${slug}_stacks_${s.name}_restart`, devId, 'restart', 'unknown'));

@@ -42,6 +42,14 @@ The individual steps (`npm run typecheck`, `npm run lint`, `npm test`, `npm run 
 
 Before changing entity resolution, editor components, CSS or container-query patterns, or the card-picker preview, read [architecture.md](architecture.md). Before opening a pull request, go through [quality.md](quality.md).
 
+### Test data looks like Home Assistant's
+
+Tests are only as good as their `hass`: build it the way Home Assistant does, from `test-fixtures.ts` or the harness's `mock-data.mjs`, and check new fields against Home Assistant's own source rather than assuming them (2026-11-14 audit):
+
+- **`hass.entities`** is the display registry (`config/entity_registry/list_for_display`): enabled entities only, with `labels`, and optional `device_id`, `translation_key` and `entity_category`; no `unique_id`, `disabled_by` or `hidden_by`. A disabled entity is simply absent; `disableEntities()` in `test-fixtures.ts` does that, and lists it where editors look for it.
+- **`hass.devices`** is the full device registry, including `config_entry_id` (Home Assistant 2026.8+); ha-dockhand's identifiers start with the config entry's id (`{entry_id}_stack_{env_id}_{name}`), names are "{environment} – Stacks – {name}", stacks sit under the environment's Stacks group device and stand-alone containers under its Containers group device.
+- **States and attributes** match what ha-dockhand sets for that `translation_key` (`sensor.py`, `binary_sensor.py`, `update.py`): the same attribute names, always present, and enum states from the integration's own options.
+
 ### Testing against a real Home Assistant
 
 `npm run watch` keeps `dist/ha-dockhand-cards.js` current. Point a Lovelace resource at it: with HA in a container and this repo bind-mounted, add a resource for wherever `dist/` ends up under `<config>/www/`; otherwise copy (or symlink once) `dist/ha-dockhand-cards.js` into `<config>/www/`. Hard-refresh the browser after each rebuild: Home Assistant caches Lovelace resources aggressively.
