@@ -123,9 +123,10 @@ describe('pause and resume', () => {
       makeEntity({ entity_id: 'sensor.web_state', device_id: DEVICE, translation_key: 'state' })
     ];
     const states = [makeState({ entity_id: 'switch.web', state: state === 'running' ? 'on' : 'off' }), makeState({ entity_id: 'sensor.web_state', state })];
-    if (pause !== 'none') {
-      entities.push(makeEntity({ entity_id: 'button.web_pause', device_id: DEVICE, translation_key: 'pause', disabled_by: pause === 'disabled' ? 'integration' : null }));
-      if (pause === 'enabled') states.push(makeState({ entity_id: 'button.web_pause', state: state === 'running' ? 'unknown' : 'unavailable' }));
+    // A disabled entity isn't in hass.entities at all.
+    if (pause === 'enabled') {
+      entities.push(makeEntity({ entity_id: 'button.web_pause', device_id: DEVICE, translation_key: 'pause' }));
+      states.push(makeState({ entity_id: 'button.web_pause', state: state === 'running' ? 'unknown' : 'unavailable' }));
     }
     return makeHass({ entities, states });
   };

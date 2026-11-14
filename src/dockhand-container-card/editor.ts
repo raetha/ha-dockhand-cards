@@ -1,3 +1,4 @@
+import { loadDisabledEntities } from '../common/disabled-entities';
 import { LitElement, html, type TemplateResult } from 'lit';
 import { property, state } from 'lit/decorators.js';
 import { fireEvent, type LovelaceCardEditor } from 'custom-card-helpers';
@@ -30,6 +31,8 @@ export class DockhandContainerCardEditor extends LitElement implements LovelaceC
 
   set hass(hass: HomeAssistant) {
     this._hass = hass;
+    // A disabled sensor is only in the full registry: load it to name it.
+    void loadDisabledEntities(hass).then((loaded) => loaded && this.requestUpdate());
   }
 
   setConfig(config: DockhandContainerCardConfig): void {

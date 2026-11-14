@@ -46,7 +46,6 @@ const card: Record<CardTranslationKey, string> = {
   msg_no_vulnerability_data: 'Derzeit keine Schwachstellen-Scandaten — der letzte Abruf von Dockhand ist fehlgeschlagen, oder für diese Umgebung wurde noch kein Scan ausgeführt.',
   msg_vulnerability_sensor_needed: 'Diese Karte benötigt den Sensor „Schwachstellen“ für diese Umgebung (standardmäßig aus — in den Entitätseinstellungen von Home Assistant aktivieren und sicherstellen, dass das Scannen nach Schwachstellen für diese Umgebung in Dockhand selbst eingeschaltet ist).',
   msg_no_vulnerability_scanning: 'Keine Umgebung hier hat das Scannen nach Schwachstellen eingerichtet, oder ihr Sensor „Schwachstellen“ ist deaktiviert.',
-  msg_requires_newer_integration: 'Erfordert eine aktuelle ha-dockhand-Version.',
   msg_git_sync_failed: 'Der letzte Synchronisierungs-/Bereitstellungsversuch ist fehlgeschlagen.',
   name_container: 'Container',
   name_stack: 'Stack',

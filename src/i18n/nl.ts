@@ -46,7 +46,6 @@ const card: Record<CardTranslationKey, string> = {
   msg_no_vulnerability_data: 'Momenteel geen gegevens van kwetsbaarheidsscans — het laatste ophalen uit Dockhand is mislukt, of er is nog geen scan uitgevoerd voor deze omgeving.',
   msg_vulnerability_sensor_needed: 'Deze kaart heeft de sensor “Kwetsbaarheden” nodig voor deze omgeving (standaard uitgeschakeld — schakel hem in via de entiteitsinstellingen van Home Assistant, en zorg dat kwetsbaarheidsscans voor deze omgeving in Dockhand zelf zijn ingeschakeld).',
   msg_no_vulnerability_scanning: 'Geen enkele omgeving hier heeft het scannen op kwetsbaarheden ingesteld, of de sensor ‘Kwetsbaarheden’ staat uit.',
-  msg_requires_newer_integration: 'Vereist een recente versie van ha-dockhand.',
   msg_git_sync_failed: 'De laatste synchronisatie-/implementatiepoging is mislukt.',
   name_container: 'Container',
   name_stack: 'Stack',

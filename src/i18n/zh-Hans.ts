@@ -46,7 +46,6 @@ const card: Record<CardTranslationKey, string> = {
   msg_no_vulnerability_data: '目前没有漏洞扫描数据——上次从 Dockhand 获取失败，或此环境尚未运行过扫描。',
   msg_vulnerability_sensor_needed: '此卡片需要为此环境启用“漏洞”传感器（默认关闭——请在 Home Assistant 的实体设置中启用，并确保在 Dockhand 中为此环境开启漏洞扫描）。',
   msg_no_vulnerability_scanning: '这里没有任何环境设置了漏洞扫描，或其“漏洞”传感器已关闭。',
-  msg_requires_newer_integration: '需要较新版本的 ha-dockhand。',
   msg_git_sync_failed: '上次同步/部署尝试失败。',
   name_container: '容器',
   name_stack: '堆栈',

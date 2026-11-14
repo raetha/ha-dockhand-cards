@@ -33,11 +33,8 @@ export interface DeviceRegistryEntry extends BaseDeviceRegistryEntry {
 
 /** An entry of `hass.entities`: Home Assistant's display registry, which
  * holds enabled entities only (`config/entity_registry/list_for_display`
- * skips disabled ones). `disabled_by` is never set there; it's declared
- * for entries read from the full registry. */
-export interface EntityRegistryEntry extends EntityRegistryDisplayEntry {
-  disabled_by?: string | null;
-}
+ * skips disabled ones; see disabled-entities.ts). */
+export type EntityRegistryEntry = EntityRegistryDisplayEntry;
 
 export interface HomeAssistant extends BaseHomeAssistant {
   devices: Record<string, DeviceRegistryEntry>;

@@ -34,3 +34,9 @@ import zhHans from './i18n/zh-Hans';
 for (const [lang, pack] of Object.entries({ de, es, fr, it, nb, nl, pl, pt, sv, 'zh-Hans': zhHans })) {
   registerLanguagePack(lang, pack);
 }
+
+// The disabled-entity list editors load is cached per page; each test starts
+// without one.
+import { beforeEach } from 'vitest';
+import { resetDisabledEntities } from './common/disabled-entities';
+beforeEach(() => resetDisabledEntities());

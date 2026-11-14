@@ -71,3 +71,21 @@ export function makeHass(opts: {
 
   return { devices, entities, states, formatEntityName: opts.formatEntityName } as unknown as HomeAssistant;
 }
+
+/** Turns entities off as Home Assistant does: gone from `hass.entities` and
+ * `hass.states`, and listed as disabled in the full registry editors load
+ * through `callWS`. */
+export function disableEntities(hass: HomeAssistant, entityIds: string[]): void {
+  const rows = entityIds.map((id) => ({ ...hass.entities[id], disabled_by: 'integration' }));
+  for (const id of entityIds) {
+    delete hass.entities[id];
+    delete hass.states[id];
+  }
+  hass.callWS = (async () => rows) as unknown as HomeAssistant['callWS'];
+}
+
+/** Lets an editor's registry load finish and the editor render again. */
+export async function settle(el: { updateComplete: Promise<unknown> }): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve));
+  await el.updateComplete;
+}

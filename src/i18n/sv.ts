@@ -46,7 +46,6 @@ const card: Record<CardTranslationKey, string> = {
   msg_no_vulnerability_data: 'Inga sårbarhetsskanningsdata just nu — den senaste hämtningen från Dockhand misslyckades, eller ingen skanning har körts för den här miljön ännu.',
   msg_vulnerability_sensor_needed: 'Det här kortet behöver sensorn ”Sårbarheter” aktiverad för den här miljön (den är av som standard — aktivera den i Home Assistants entitetsinställningar och se till att sårbarhetsskanning är påslagen för miljön i Dockhand).',
   msg_no_vulnerability_scanning: 'Ingen miljö här har sårbarhetsskanning konfigurerad, eller så är dess sensor ”Sårbarheter” avstängd.',
-  msg_requires_newer_integration: 'Kräver en nyare version av ha-dockhand.',
   msg_git_sync_failed: 'Det senaste försöket att synkronisera/distribuera misslyckades.',
   name_container: 'Container',
   name_stack: 'Stack',
