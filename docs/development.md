@@ -145,7 +145,7 @@ Then, on a push to `main`, the release and sync-dev jobs; on a push to `dev`, th
 
 ### Test builds
 
-Every push to `dev` publishes a GitHub pre-release with the built files, tagged `<expected next version>-dev.<run>` (for example `1.6.0-dev.43` while `dev` holds 1.6.0; right after a release, before `dev` moves on, `<next patch>-dev.<run>`), so it sorts above the installed release. Its notes are the `[Unreleased]` section, and the cards' console banner shows the test build's version. Older test builds are deleted, so there's only ever one.
+Every push to `dev` publishes a GitHub pre-release with the built files, tagged `<expected next version>-dev.<run>` (for example `2.0.0-dev.43` while `dev` holds 2.0.0; right after a release, before `dev` moves on, `<next patch>-dev.<run>`), so it sorts above the installed release. Its notes are the `[Unreleased]` section, and the cards' console banner shows the test build's version. Older test builds are deleted, so there's only ever one.
 
 To install one: turn on pre-releases for Dockhand Cards from its **⋮** menu in the Marketplace, or with the **Pre-release** switch entity the Marketplace (or HACS) adds for each repository, disabled by default (enable it under Settings → Entities); it then offers the test build as an update. To go back, turn pre-releases off and redownload the latest release (⋮ → Redownload).
 
