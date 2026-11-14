@@ -150,7 +150,8 @@ describe('Dockhand dashboard strategy', () => {
     expect((await generate(hass, aurora)).badges!.map((b) => b.entity)).toEqual(['sensor.aurora_host_platform', 'sensor.aurora_uptime', 'sensor.aurora_host_docker_version']);
 
     const entities = { ...hass.entities };
-    for (const id of Object.keys(entities)) if (id.startsWith('sensor.nebula_') && /platform|uptime|version/.test(id)) entities[id] = { ...entities[id], disabled_by: 'integration' };
+    // Turning them off takes them out of hass.entities.
+    for (const id of Object.keys(entities)) if (id.startsWith('sensor.nebula_') && /platform|uptime|version/.test(id)) delete entities[id];
     const off = { ...hass, entities } as HomeAssistant;
     expect((await generate(off, nebula)).badges).toBeUndefined();
     const view = { type: 'custom:dockhand-environment', device_id: nebula } as DockhandEnvironmentViewConfig;

@@ -46,7 +46,6 @@ const card: Record<CardTranslationKey, string> = {
   msg_no_vulnerability_data: 'Nenhum dado de verificação de vulnerabilidades no momento — a última busca no Dockhand falhou ou nenhuma verificação foi executada neste ambiente ainda.',
   msg_vulnerability_sensor_needed: 'Este cartão precisa do sensor “Vulnerabilidades” ativado para este ambiente (ele vem desativado — ative-o nas configurações da entidade no Home Assistant e verifique se a verificação de vulnerabilidades está ativada para este ambiente no próprio Dockhand).',
   msg_no_vulnerability_scanning: 'Nenhum ambiente aqui tem a análise de vulnerabilidades configurada, ou o seu sensor «Vulnerabilidades» está desativado.',
-  msg_requires_newer_integration: 'Requer uma versão recente do ha-dockhand.',
   msg_git_sync_failed: 'A última tentativa de sincronização/implantação falhou.',
   name_container: 'Contêiner',
   name_stack: 'Stack',

@@ -46,7 +46,6 @@ const card: Record<CardTranslationKey, string> = {
   msg_no_vulnerability_data: 'Al momento non ci sono dati di scansione delle vulnerabilità: l’ultimo recupero da Dockhand non è riuscito oppure non è ancora stata eseguita alcuna scansione per questo ambiente.',
   msg_vulnerability_sensor_needed: 'Questa scheda richiede che il sensore “Vulnerabilità” sia attivo per questo ambiente (è disattivato per impostazione predefinita: attivalo nelle impostazioni dell’entità di Home Assistant e assicurati che la scansione delle vulnerabilità sia attiva per questo ambiente in Dockhand).',
   msg_no_vulnerability_scanning: 'Nessun ambiente qui ha la scansione delle vulnerabilità configurata, oppure il suo sensore «Vulnerabilità» è disattivato.',
-  msg_requires_newer_integration: 'Richiede una versione recente di ha-dockhand.',
   msg_git_sync_failed: 'L’ultimo tentativo di sincronizzazione/distribuzione non è riuscito.',
   name_container: 'Container',
   name_stack: 'Stack',

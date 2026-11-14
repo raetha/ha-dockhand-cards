@@ -50,6 +50,7 @@ Some changes are breaking: update the Dockhand integration to 2.0.0 at the same 
 
 ### Fixed
 
+- **Card editors name the disabled sensors a card would use.** Home Assistant leaves disabled entities out of what cards can see, so the editors took a turned-off sensor for a missing one: the Environment and Stack editors said it needed a newer ha-dockhand, and the Container and Vulnerability editors didn't mention it at all. Editors now look the sensors up in Home Assistant's entity registry and list the ones to turn on. The Vulnerability card no longer says a newer ha-dockhand is needed when its sensor is off.
 - **Choosing another environment in the Container or Stack card's editor clears the container or stack**, instead of keeping the old one and showing its ID.
 - **Header buttons that can't be used** (such as an unavailable Dockhand link) are announced as unavailable by screen readers.
 - **The Containers, Stacks and Environment cards' "nothing found yet" messages are translated**; they showed in English whatever the dashboard's language.

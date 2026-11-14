@@ -5,6 +5,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { buildMockHass } from '../../scripts/screenshot-harness/mock-data.mjs';
 import '../render.dom.test-elements';
 import type { HomeAssistant } from '../common/ha-types';
+import { disableEntities, settle } from '../common/test-fixtures';
 
 type Lit = HTMLElement & { hass: HomeAssistant; setConfig(config: Record<string, unknown>): void; updateComplete: Promise<boolean> };
 
@@ -66,11 +67,12 @@ describe('Environment card counts', () => {
 
   it('names the sensors a mode needs that are turned off, in the editor', async () => {
     const hass = mockHass();
-    for (const key of ['disk_usage_images', 'activity_events_today']) {
-      const id = entityOf(hass, key);
-      hass.entities[id] = { ...hass.entities[id], disabled_by: 'integration' } as (typeof hass.entities)[string];
-    }
+    disableEntities(
+      hass,
+      ['disk_usage_images', 'activity_events_today'].map((key) => entityOf(hass, key))
+    );
     const el = await mount('dockhand-environment-card-editor', { mode: 'full' }, hass);
+    await settle(el);
     const forms = [...el.shadowRoot!.querySelectorAll('ha-form')] as (HTMLElement & { warning?: Record<string, string> })[];
     const warning = forms.map((f) => f.warning?.mode).find(Boolean)!;
     expect(warning).toContain('Activity events today');

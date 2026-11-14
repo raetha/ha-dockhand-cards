@@ -10,6 +10,7 @@ import {
   type ScheduleTranslationKey
 } from './const';
 import { getContainerName, getStackName } from './device-utils';
+import { disabledEntitiesForDevice } from './disabled-entities';
 import type { HomeAssistant, EntityRegistryEntry, DeviceRegistryEntry } from './ha-types';
 import type { HassEntity } from 'home-assistant-js-websocket';
 
@@ -42,11 +43,11 @@ function entitiesForDevice(hass: HomeAssistant, deviceId: string): EntityRegistr
  * documents that format as an internal detail that can change between
  * releases. translation_key is the stable, intentional contract.
  *
- * A disabled entity still has an entity registry entry (with no matching
- * hass.states entry), so it's reported distinctly from a translation_key
- * that doesn't exist at all (e.g. an older ha-dockhand release that
- * predates that entity, or — for git-only keys on a non-git stack — one
- * that Dockhand simply never creates for this particular device).
+ * `hass.entities` lists enabled entities only, so a disabled one is found
+ * through the full registry an editor has loaded (disabled-entities.ts);
+ * anything else missing is `not_found`: a key this device doesn't have
+ * (git keys on a non-git stack, stats with stats off), or a disabled
+ * entity outside an editor.
  */
 export function resolveEntities<K extends string>(
   hass: HomeAssistant,
@@ -64,12 +65,8 @@ export function resolveEntities<K extends string>(
     const registryEntry = byTranslationKey.get(translationKey);
 
     if (!registryEntry) {
-      unavailable.push({ key, entityId: null, reason: 'not_found' });
-      continue;
-    }
-
-    if (registryEntry.disabled_by) {
-      unavailable.push({ key, entityId: registryEntry.entity_id, reason: 'disabled' });
+      const disabled = disabledEntitiesForDevice(deviceId).find((e) => e.translation_key === translationKey);
+      unavailable.push(disabled ? { key, entityId: disabled.entity_id, reason: 'disabled' } : { key, entityId: null, reason: 'not_found' });
       continue;
     }
 
@@ -143,7 +140,7 @@ export function findPrimaryEntityByDomain(
   domain: string
 ): { entityId: string; state: HassEntity } | null {
   const entry = Object.values(hass.entities ?? {}).find(
-    (e) => e.device_id === deviceId && e.platform === DOCKHAND_DOMAIN && e.entity_id.startsWith(`${domain}.`) && !e.translation_key && !e.disabled_by
+    (e) => e.device_id === deviceId && e.platform === DOCKHAND_DOMAIN && e.entity_id.startsWith(`${domain}.`) && !e.translation_key
   );
   if (!entry) return null;
   const state = hass.states[entry.entity_id];

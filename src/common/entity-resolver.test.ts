@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   resolveEnvironmentEntities,
   resolveContainerEntities,
@@ -9,6 +9,8 @@ import {
   resolveScheduleEntities
 } from './entity-resolver';
 import { makeDevice, makeEntity, makeState, makeHass } from './test-fixtures';
+import { loadDisabledEntities, resetDisabledEntities } from './disabled-entities';
+import type { HomeAssistant } from './ha-types';
 
 const ENV_DEVICE_ID = 'env-device';
 
@@ -23,19 +25,33 @@ describe('resolveEnvironmentEntities', () => {
     expect(result.unavailable).toEqual([]);
   });
 
-  it('reports a disabled entity distinctly from a missing one', () => {
-    const disabled = makeEntity({
-      entity_id: 'sensor.cpu',
-      device_id: ENV_DEVICE_ID,
-      translation_key: 'cpu_usage',
-      disabled_by: 'user'
-    });
-    const hass = makeHass({ entities: [disabled] });
+  it('reports a disabled entity, from the full registry an editor loaded, distinctly from a missing one', async () => {
+    // Disabled entities aren't in hass.entities at all.
+    const hass = makeHass({});
+    hass.callWS = vi.fn().mockResolvedValue([
+      { entity_id: 'sensor.cpu', device_id: ENV_DEVICE_ID, platform: 'dockhand', translation_key: 'cpu_usage', disabled_by: 'user' },
+      { entity_id: 'sensor.other', device_id: ENV_DEVICE_ID, platform: 'other', translation_key: 'memory_usage', disabled_by: 'user' },
+      { entity_id: 'sensor.mem', device_id: ENV_DEVICE_ID, platform: 'dockhand', translation_key: 'memory_usage', disabled_by: null }
+    ]) as HomeAssistant['callWS'];
+    expect(resolveEnvironmentEntities(hass, ENV_DEVICE_ID, ['cpuUsage']).unavailable).toEqual([{ key: 'cpuUsage', entityId: null, reason: 'not_found' }]);
 
+    expect(await loadDisabledEntities(hass)).toBe(true);
     const result = resolveEnvironmentEntities(hass, ENV_DEVICE_ID, ['cpuUsage', 'memoryUsage']);
     expect(result.unavailable).toContainEqual({ key: 'cpuUsage', entityId: 'sensor.cpu', reason: 'disabled' });
     expect(result.unavailable).toContainEqual({ key: 'memoryUsage', entityId: null, reason: 'not_found' });
     expect(result.found).toEqual({});
+    // Loaded again only once it's old.
+    expect(await loadDisabledEntities(hass)).toBe(false);
+    expect(hass.callWS).toHaveBeenCalledTimes(1);
+    resetDisabledEntities();
+  });
+
+  it('carries on without disabled entities when the registry can’t be read (not an admin)', async () => {
+    const hass = makeHass({});
+    hass.callWS = vi.fn().mockRejectedValue(new Error('Unauthorized')) as HomeAssistant['callWS'];
+    expect(await loadDisabledEntities(hass)).toBe(false);
+    expect(resolveEnvironmentEntities(hass, ENV_DEVICE_ID, ['cpuUsage']).unavailable[0].reason).toBe('not_found');
+    resetDisabledEntities();
   });
 
   it('treats an enabled entity with no state yet as not_found, not disabled', () => {
@@ -115,12 +131,6 @@ describe('findPrimaryEntityByDomain', () => {
 
   it('returns null when no entity of that domain exists on the device', () => {
     const hass = makeHass({});
-    expect(findPrimaryEntityByDomain(hass, 'c1', 'update')).toBeNull();
-  });
-
-  it('ignores a disabled entity of that domain', () => {
-    const entity = makeEntity({ entity_id: 'update.web', device_id: 'c1', translation_key: null, disabled_by: 'user' });
-    const hass = makeHass({ entities: [entity] });
     expect(findPrimaryEntityByDomain(hass, 'c1', 'update')).toBeNull();
   });
 

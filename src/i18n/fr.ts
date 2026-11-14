@@ -46,7 +46,6 @@ const card: Record<CardTranslationKey, string> = {
   msg_no_vulnerability_data: 'Aucune donnée d’analyse de vulnérabilités pour le moment — la dernière récupération depuis Dockhand a échoué, ou aucune analyse n’a encore été effectuée pour cet environnement.',
   msg_vulnerability_sensor_needed: 'Cette carte nécessite que le capteur « Vulnérabilités » soit activé pour cet environnement (désactivé par défaut — activez-le dans les paramètres de l’entité de Home Assistant, et vérifiez que l’analyse des vulnérabilités est activée pour cet environnement dans Dockhand).',
   msg_no_vulnerability_scanning: 'Aucun environnement ici n’a l’analyse des vulnérabilités configurée, ou son capteur « Vulnérabilités » est désactivé.',
-  msg_requires_newer_integration: 'Nécessite une version récente de ha-dockhand.',
   msg_git_sync_failed: 'La dernière tentative de synchronisation/déploiement a échoué.',
   name_container: 'Conteneur',
   name_stack: 'Stack',
