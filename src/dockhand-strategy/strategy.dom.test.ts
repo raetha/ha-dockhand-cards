@@ -283,7 +283,7 @@ describe('Dockhand dashboard settings', () => {
     expect(hiddenTitle('environment_layout')).toBe('Hidden');
   });
 
-  it('starts with the layouts folded, and keeps one open on the way back from a card', async () => {
+  it('starts with every page’s panel folded, and keeps one open on the way back from a card', async () => {
     await mount({});
     const environments = root().querySelector('ha-expansion-panel:not([data-layout])')!;
     expect(environments.hasAttribute('expanded')).toBe(true);
@@ -291,6 +291,7 @@ describe('Dockhand dashboard settings', () => {
     const overview = () => panel('overview_layout') as HTMLElement & { expanded: boolean };
     expect(overview().expanded).toBe(false);
     expect((panel('environment_layout') as HTMLElement & { expanded: boolean }).expanded).toBe(false);
+    expect((panel('device_pages') as HTMLElement & { expanded: boolean }).expanded).toBe(false);
     overview().dispatchEvent(new CustomEvent('expanded-changed', { detail: { expanded: true } }));
     await el!.updateComplete;
     await open(overview().querySelector<HTMLElement>('.card-chip[data-card="updates"]')!);

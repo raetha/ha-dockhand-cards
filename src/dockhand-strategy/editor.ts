@@ -81,7 +81,7 @@ export class DockhandDashboardStrategyEditor extends LitElement {
   @state() private _config?: DockhandDashboardStrategyConfig;
   @state() private _hass?: HomeAssistant;
   @state() private _editing?: Editing;
-  /** The layout panels someone opened: closed at first, so every section
+  /** The page panels someone opened: all closed at first, so every section
    * fits on screen, and still open on the way back from a card's
    * settings. */
   @state() private _open = new Set<string>();
@@ -315,7 +315,7 @@ export class DockhandDashboardStrategyEditor extends LitElement {
   }
 
   private _renderDevicePages(): TemplateResult {
-    return html`<ha-expansion-panel outlined expanded data-layout="device_pages">
+    return html`<ha-expansion-panel outlined .expanded=${this._open.has('device_pages')} @expanded-changed=${this._panelToggled('device_pages')} data-layout="device_pages">
       <ha-icon slot="leading-icon" icon="mdi:layers-outline"></ha-icon>
       <h3 slot="header">${t(this._hass, 'dashboard_device_pages')}</h3>
       <div class="content">
