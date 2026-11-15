@@ -42,7 +42,9 @@ describe('Environment card status icons', () => {
     expect((await titles()).some((t) => t.includes('auto update'))).toBe(true);
     hass.states[auto] = { ...hass.states[auto], state: 'off' };
     expect((await titles()).some((t) => t.includes('update checks'))).toBe(true);
-    delete hass.entities[entityOf(hass, 'activity_logging')];
+    // Home Assistant replaces hass.entities when the registry changes.
+    const gone = entityOf(hass, 'activity_logging');
+    hass.entities = Object.fromEntries(Object.entries(hass.entities).filter(([id]) => id !== gone));
     expect(await titles()).toHaveLength(3);
   });
 });

@@ -34,6 +34,7 @@ Dockhand Cards 2.0 goes with the Dockhand integration 2.0, reading its new senso
 
 ### Changed
 
+- **Cards keep up on a large Home Assistant.** Home Assistant hands every card a new state whenever anything changes, and the cards searched every entity in Home Assistant for each device they show each time. They now look entities up from an index built once per registry change, and skip re-measuring their rows when nothing on them changed. With about 150 containers and 9,000 entities, the Updates card took half a second per state change and now takes about a millisecond; the Overview card went from over half a second to under 10 ms.
 - **Stack and Container cards: shorter names, controls in the header.** Unnamed, a card is now called "Orion – traefik" rather than its device's "Orion – Stacks – traefik", since the icon already says stack or container (a name you gave the device in Home Assistant still wins), and on the Dockhand dashboard's Stacks and Containers pages just "traefik", since the page names the environment. The start, stop, restart and deploy buttons are icons in the header now, beside the settings link, instead of a row under the status. They're in Dockhand's own order: a stack's deploy, then start, restart, pause and stop. As in Dockhand, a stopped container offers Restart as well as Start, a paused one Resume, and a running one Pause once its **Pause** entity is turned on (it's disabled by default in the integration).
 - **Counts open their own sensor** — the Environment card's container counts (running, stopped, paused, restarting, unhealthy, updates) and the Vulnerability card's severity counts each open their own sensor (ha-dockhand 2.0.0); the totals open the Containers and Vulnerabilities sensors. With one environment, only the Vulnerability card's total opens the Vulnerabilities sensor, rather than the whole card.
 - **The Environment card's header icons stay when a feature is off** — update checks, scanning, activity and metrics show grey instead of disappearing, and a click opens the control to turn them on or off (with ha-dockhand 2.0.0's switches; scanning opens the scanner choice).
@@ -67,6 +68,7 @@ Dockhand Cards 2.0 goes with the Dockhand integration 2.0, reading its new senso
 
 ### Internal
 
+- `scripts/screenshot-harness/bench.py` times each card's first render and its update on a state change at a large install's size, for the performance item of a full review.
 - Test build notes link the changelog's images and docs on `dev`, where they are until the release puts them on `main`.
 - Release and test build notes say to install from Home Assistant's Marketplace (HACS on older versions) and how to turn on pre-releases there, instead of adding a HACS custom repository.
 - The full review checklist (`docs/audits.md`) covers tests, tooling and comments.

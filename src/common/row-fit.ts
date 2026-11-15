@@ -1,4 +1,5 @@
 import type { ReactiveController, ReactiveControllerHost } from 'lit';
+import { DomChanges } from './dom-changes';
 
 /**
  * Keeps a list row's name readable on a narrow card. Dockhand tags that
@@ -17,6 +18,7 @@ import type { ReactiveController, ReactiveControllerHost } from 'lit';
  */
 export class RowFitController implements ReactiveController {
   private readonly observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(() => this.check());
+  private readonly dom = new DomChanges();
 
   constructor(private readonly host: ReactiveControllerHost & HTMLElement) {
     host.addController(this);
@@ -28,10 +30,12 @@ export class RowFitController implements ReactiveController {
 
   hostDisconnected(): void {
     this.observer?.disconnect();
+    this.dom.disconnect();
   }
 
   hostUpdated(): void {
-    this.check();
+    // A render that changed nothing leaves the layout as it was measured.
+    if (this.dom.changed(this.host)) this.check();
   }
 
   check(): void {
@@ -50,6 +54,7 @@ export class RowFitController implements ReactiveController {
     // Without the count pill, the version pill may have room after all.
     const stillSqueezed = overflowing.filter((row) => row.querySelector('.version-tag-pill') && isSqueezed(row));
     for (const row of stillSqueezed) row.classList.add('compact-version');
+    this.dom.forget();
   }
 }
 

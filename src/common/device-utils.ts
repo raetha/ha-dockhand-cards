@@ -1,5 +1,6 @@
 import { DOCKHAND_DOMAIN } from './const';
 import type { DeviceRegistryEntry, HomeAssistant } from './ha-types';
+import { entitiesOnDevice } from './registry-index';
 
 // ha-dockhand's environment device identifier format:
 //   Pre-1.9.0:  env_{env_id}                          (e.g. "env_1")
@@ -339,8 +340,7 @@ export function getEnvIdForScheduleDevice(hass: HomeAssistant, device: DeviceReg
  * not "whichever happened to register first"). Returns undefined if the
  * device has no entities yet. */
 export function getRepresentativeEntityId(hass: HomeAssistant, deviceId: string): string | undefined {
-  const candidates = Object.values(hass.entities ?? {})
-    .filter((e) => e.device_id === deviceId)
+  const candidates = entitiesOnDevice(hass, deviceId)
     .map((e) => e.entity_id)
     .sort();
   return candidates[0];

@@ -52,6 +52,14 @@ node extract-icons.mjs [path/to/ha-dockhand/custom_components/dockhand/icons.jso
 
 Regenerates `icon-paths.json` from every `mdi:` icon in `src/`, this harness and ha-dockhand's icons, and refreshes `entity-icons.json` from ha-dockhand's `icons.json` (a checkout next to this repo by default). Run it after adding an icon to the cards or when ha-dockhand's icons change; an icon missing from `@mdi/js` is reported.
 
+## Performance
+
+```bash
+python3 bench.py [--copies N] [--others N] [--updates N]
+```
+
+With the harness served as for screenshots: copies every container and stack `--copies` times (default 10), adds `--others` unrelated entities (default 5000) as a real Home Assistant has, mounts each card in `CARDS`, and prints its first render and its update on a new `hass` in which one entity elsewhere changed, in milliseconds. Home Assistant sends one of those whenever any state changes, so the update is the number to keep small.
+
 ## Limitations
 
 - The CPU and memory sparklines draw a generated wave (`hass.callApi` is stubbed).

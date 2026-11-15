@@ -11,6 +11,7 @@ import {
 } from './const';
 import { getContainerName, getStackName } from './device-utils';
 import { disabledEntitiesForDevice } from './disabled-entities';
+import { entitiesOnDevice } from './registry-index';
 import type { HomeAssistant, EntityRegistryEntry, DeviceRegistryEntry } from './ha-types';
 import type { HassEntity } from 'home-assistant-js-websocket';
 
@@ -32,9 +33,7 @@ export interface ResolutionResult<K extends string = string> {
 }
 
 function entitiesForDevice(hass: HomeAssistant, deviceId: string): EntityRegistryEntry[] {
-  return Object.values(hass.entities ?? {}).filter(
-    (e) => e.device_id === deviceId && e.platform === DOCKHAND_DOMAIN
-  );
+  return entitiesOnDevice(hass, deviceId).filter((e) => e.platform === DOCKHAND_DOMAIN);
 }
 
 /**
@@ -139,8 +138,8 @@ export function findPrimaryEntityByDomain(
   deviceId: string,
   domain: string
 ): { entityId: string; state: HassEntity } | null {
-  const entry = Object.values(hass.entities ?? {}).find(
-    (e) => e.device_id === deviceId && e.platform === DOCKHAND_DOMAIN && e.entity_id.startsWith(`${domain}.`) && !e.translation_key
+  const entry = entitiesOnDevice(hass, deviceId).find(
+    (e) => e.platform === DOCKHAND_DOMAIN && e.entity_id.startsWith(`${domain}.`) && !e.translation_key
   );
   if (!entry) return null;
   const state = hass.states[entry.entity_id];
