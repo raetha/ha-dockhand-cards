@@ -4,38 +4,38 @@ import { makeDevice } from './test-fixtures';
 
 const ENV_A = makeDevice({ id: 'a', identifiers: [['dockhand', 'env_1']], name: 'Aurora' });
 const ENV_B = makeDevice({ id: 'b', identifiers: [['dockhand', 'env_2']], name: 'Bifrost' });
-const ENV_C = makeDevice({ id: 'c', identifiers: [['dockhand', 'env_3']], name: 'Heimdall' });
+const ENV_C = makeDevice({ id: 'c', identifiers: [['dockhand', 'env_3']], name: 'Orion' });
 
 describe('resolveEnvironmentOrder', () => {
   const all = [ENV_A, ENV_B, ENV_C].map((d) => ({ deviceId: d.id, name: d.name! }));
 
   it('returns everything alphabetical when order is unset', () => {
-    expect(resolveEnvironmentOrder(all, undefined).map((e) => e.name)).toEqual(['Aurora', 'Bifrost', 'Heimdall']);
+    expect(resolveEnvironmentOrder(all, undefined).map((e) => e.name)).toEqual(['Aurora', 'Bifrost', 'Orion']);
   });
 
   it('respects a full custom order', () => {
-    expect(resolveEnvironmentOrder(all, ['c', 'a', 'b']).map((e) => e.name)).toEqual(['Heimdall', 'Aurora', 'Bifrost']);
+    expect(resolveEnvironmentOrder(all, ['c', 'a', 'b']).map((e) => e.name)).toEqual(['Orion', 'Aurora', 'Bifrost']);
   });
 
   it('appends environments missing from order after the named ones, alphabetically', () => {
-    expect(resolveEnvironmentOrder(all, ['c']).map((e) => e.name)).toEqual(['Heimdall', 'Aurora', 'Bifrost']);
+    expect(resolveEnvironmentOrder(all, ['c']).map((e) => e.name)).toEqual(['Orion', 'Aurora', 'Bifrost']);
   });
 
   it('ignores order entries that no longer match a known device id', () => {
-    expect(resolveEnvironmentOrder(all, ['nonexistent', 'a']).map((e) => e.name)).toEqual(['Aurora', 'Bifrost', 'Heimdall']);
+    expect(resolveEnvironmentOrder(all, ['nonexistent', 'a']).map((e) => e.name)).toEqual(['Aurora', 'Bifrost', 'Orion']);
   });
 });
 
 describe('resolveIncludedOrdered', () => {
-  const all = [{ deviceId: 'a', name: 'Aurora' }, { deviceId: 'b', name: 'Bifrost' }, { deviceId: 'c', name: 'Heimdall' }];
+  const all = [{ deviceId: 'a', name: 'Aurora' }, { deviceId: 'b', name: 'Bifrost' }, { deviceId: 'c', name: 'Orion' }];
 
   it('includes everything, alphabetical, when order/excluded are both unset', () => {
-    expect(resolveIncludedOrdered(all, undefined, undefined).map((e) => e.name)).toEqual(['Aurora', 'Bifrost', 'Heimdall']);
+    expect(resolveIncludedOrdered(all, undefined, undefined).map((e) => e.name)).toEqual(['Aurora', 'Bifrost', 'Orion']);
   });
 
   it('respects a custom order and excludes the listed device ids', () => {
     const result = resolveIncludedOrdered(all, ['c', 'a', 'b'], ['b']);
-    expect(result.map((e) => e.name)).toEqual(['Heimdall', 'Aurora']);
+    expect(result.map((e) => e.name)).toEqual(['Orion', 'Aurora']);
   });
 
   it('excluding everything leaves an empty list, not a fallback to "all"', () => {

@@ -21,15 +21,15 @@ describe('sortScheduleRows', () => {
 
   it('breaks a name tie by environment name — e.g. two environments each with a git stack called "myapp"', () => {
     const rows = [
-      row({ name: 'Git sync: myapp', environment: 'Heimdall' }),
+      row({ name: 'Git sync: myapp', environment: 'Orion' }),
       row({ name: 'Git sync: myapp', environment: 'Aurora' })
     ];
-    expect(sortScheduleRows(rows, 'name').map((r) => r.environment)).toEqual(['Aurora', 'Heimdall']);
+    expect(sortScheduleRows(rows, 'name').map((r) => r.environment)).toEqual(['Aurora', 'Orion']);
   });
 
   it('sorts a global schedule (no environment) ahead of a same-named environment-scoped one in a tie', () => {
-    const rows = [row({ name: 'Cleanup', environment: 'Heimdall' }), row({ name: 'Cleanup', environment: undefined })];
-    expect(sortScheduleRows(rows, 'name').map((r) => r.environment)).toEqual([undefined, 'Heimdall']);
+    const rows = [row({ name: 'Cleanup', environment: 'Orion' }), row({ name: 'Cleanup', environment: undefined })];
+    expect(sortScheduleRows(rows, 'name').map((r) => r.environment)).toEqual([undefined, 'Orion']);
   });
 
   it("doesn't let environment resolution order silently influence tie-breaking — only the schedule's own name/environment values matter, not array position", () => {
@@ -123,15 +123,15 @@ describe('groupScheduleRows', () => {
     // own order is really what's driving bucket order — not a separate
     // re-derived comparison.
     const rows = [
-      row({ name: 'a', environment: 'Heimdall', environmentDeviceId: 'env_heimdall' }),
+      row({ name: 'a', environment: 'Orion', environmentDeviceId: 'env_orion' }),
       row({ name: 'b', environment: 'Bifrost', environmentDeviceId: 'env_bifrost' }),
       row({ name: 'c', environment: undefined })
     ];
     const groups = groupScheduleRows(rows, 'environment', 'name', [
-      { deviceId: 'env_heimdall', name: 'Heimdall' },
+      { deviceId: 'env_orion', name: 'Orion' },
       { deviceId: 'env_bifrost', name: 'Bifrost' }
     ]);
-    expect(groups.map((g) => g.label)).toEqual(['Global', 'Heimdall', 'Bifrost']);
+    expect(groups.map((g) => g.label)).toEqual(['Global', 'Orion', 'Bifrost']);
   });
 
   it('does not confuse a real environment literally named "Global" with the global-schedules bucket', () => {

@@ -280,14 +280,14 @@ describe('names from the device', () => {
 });
 
 describe('defaultCardName', () => {
-  const env = makeDevice({ id: 'env', identifiers: [['dockhand', 'E_env_1']], name: 'Heimdall', config_entry_id: 'E' });
-  const stack = makeDevice({ id: 's', identifiers: [['dockhand', 'E_stack_1_traefik']], name: 'Heimdall – Stacks – traefik', config_entry_id: 'E' });
-  const container = makeDevice({ id: 'c', identifiers: [['dockhand', 'E_container_1_web']], name: 'Heimdall – Containers – web', config_entry_id: 'E' });
+  const env = makeDevice({ id: 'env', identifiers: [['dockhand', 'E_env_1']], name: 'Orion', config_entry_id: 'E' });
+  const stack = makeDevice({ id: 's', identifiers: [['dockhand', 'E_stack_1_traefik']], name: 'Orion – Stacks – traefik', config_entry_id: 'E' });
+  const container = makeDevice({ id: 'c', identifiers: [['dockhand', 'E_container_1_web']], name: 'Orion – Containers – web', config_entry_id: 'E' });
 
   it('names a stack or container after its environment and itself, leaving out what the icon says', () => {
     const hass = makeHass({ devices: [env, stack, container] });
-    expect(defaultCardName(hass, stack)).toBe('Heimdall – traefik');
-    expect(defaultCardName(hass, container)).toBe('Heimdall – web');
+    expect(defaultCardName(hass, stack)).toBe('Orion – traefik');
+    expect(defaultCardName(hass, container)).toBe('Orion – web');
   });
 
   it('keeps a name given in Home Assistant, and does without an environment it can’t find', () => {

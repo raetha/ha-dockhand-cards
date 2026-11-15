@@ -14,6 +14,13 @@ Quality, security and housekeeping reviews of the cards, their tooling and CI. R
 8. **Leftovers:** finished experiments, backward compatibility nobody needs (see `docs/backlog.md`'s 2.0.0 items), unused code, stale comments and docs (`CLAUDE.md`, `docs/development.md`, the README).
 9. **Record it:** a dated section below, and changelog lines for anything users notice.
 
+## 2026-11-15: final review for 2.0.0
+
+- Open pull requests: none. `npm audit`: only deepmerge, the known build-tooling alert; nothing that ships.
+- Changes since the 2026-11-14 review: the Environment page's cards no longer repeat the environment's name, theme-matched screenshots, shared DOM test helpers, the harness's mock data and icons, comments, and test build notes pointing at `dev`. Typecheck, lint, tests, build: pass.
+- Tests and tooling (the new checklist item): reviewed with the harness cleanup; the sample data's environment names are all made up now.
+- Changelog re-read as release notes; the dashboard screenshot shows the current cards in both themes.
+
 ## 2026-11-14: review before releasing 2.0.0
 
 - Open pull requests: none. `npm audit --omit=dev`: nothing. custom-card-helpers 2.1.0 came out today; left for Dependabot after the release rather than taking a day-old runtime dependency into it. TypeScript 7 still held (typescript-eslint 8.72.2 accepts below 6.1).
