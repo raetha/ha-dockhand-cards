@@ -54,7 +54,7 @@ Tests are only as good as their `hass`: build it the way Home Assistant does, fr
 
 `npm run watch` keeps `dist/ha-dockhand-cards.js` current. Point a Lovelace resource at it: with HA in a container and this repo bind-mounted, add a resource for wherever `dist/` ends up under `<config>/www/`; otherwise copy (or symlink once) `dist/ha-dockhand-cards.js` into `<config>/www/`. Hard-refresh the browser after each rebuild: Home Assistant caches Lovelace resources aggressively.
 
-The other way to try a change on a real install is the test build every push to `dev` publishes (see "Test builds").
+The other way to try a change on a real install is the test build a push to `dev` publishes (see "Test builds").
 
 ### Screenshots and the icon list
 
@@ -154,7 +154,7 @@ Then, on a push to `main`, the release and sync-dev jobs; on a push to `dev`, th
 
 ### Test builds
 
-Every push to `dev` publishes a GitHub pre-release with the built files, tagged `<expected next version>-dev.<run>` (for example `2.0.0-dev.43` while `dev` holds 2.0.0; right after a release, before `dev` moves on, `<next patch>-dev.<run>`), so it sorts above the installed release. Its notes are the `[Unreleased]` section, and the cards' console banner shows the test build's version. Older test builds are deleted, so there's only ever one.
+Every push to `dev` publishes a GitHub pre-release with the built files, tagged `<expected next version>-dev.<run>` (for example `2.0.0-dev.43` while `dev` holds 2.0.0; right after a release, before `dev` moves on, `<next patch>-dev.<run>`), so it sorts above the installed release. Its notes are the `[Unreleased]` section, and the cards' console banner shows the test build's version. Older test builds are deleted, so there's only ever one. A push that changes nothing users install publishes none: the test build job compares the push with the last test build and publishes only when `src/`, `package.json`, `package-lock.json`, `rollup.config.mjs`, `tsconfig.json` or `hacs.json` changed (or when GitHub can't say, or the comparison is too long to list). To publish one anyway, run the Build workflow by hand on `dev`.
 
 To install one: turn on pre-releases for Dockhand Cards from its **⋮** menu in the Marketplace, or with the **Pre-release** switch entity the Marketplace (or HACS) adds for each repository, disabled by default (enable it under Settings → Entities); it then offers the test build as an update. To go back, turn pre-releases off and redownload the latest release (⋮ → Redownload).
 
