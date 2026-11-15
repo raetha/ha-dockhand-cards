@@ -140,26 +140,6 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
      * themselves, matching HA's own edit/remove icon-button pair in
      * hui-heading-badges-editor, which has no gap between them either
      * (each button's own internal padding provides the breathing room). */
-    .detail-header {
-      display: flex;
-      align-items: center;
-      gap: var(--ha-space-2, 8px);
-      margin-bottom: var(--ha-space-1, 4px);
-    }
-    .detail-title {
-      display: flex;
-      align-items: center;
-      gap: var(--ha-space-2, 8px);
-      min-width: 0;
-      flex: 1;
-    }
-    .detail-name {
-      font-size: var(--ha-font-size-m, 14px);
-      font-weight: 600;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
     .detail-badge {
       flex-shrink: 0;
       /* Matches HA's own ha-automation-row-event-chip.ts convention for

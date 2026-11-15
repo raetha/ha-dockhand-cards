@@ -60,6 +60,7 @@ Some changes are breaking: update the Dockhand integration to 2.0.0 at the same 
 
 ### Internal
 
+- Styles: the Vulnerability card drops focus and pointer rules every clickable element already gets, and the Overview card's and the dashboard's editors share one header style for a card's own settings (the Overview editor's is now the same size as the dashboard's).
 - Every screenshot in the docs follows the reader's light or dark theme (the Overview card and the Environment card's other layouts were dark or light only), the Environment card's layouts are labelled instead of folded away, and the dashboard settings screenshot lists the badge choices one to a row, as Home Assistant does.
 - Test and screenshot data now look like Home Assistant's own: entity entries as the display registry sends them, devices with ha-dockhand's real identifiers, names and group devices, and container attributes as the integration sets them (`docs/development.md` → "Test data looks like Home Assistant's").
 - The README is shorter: one screenshot and a sentence per card, each linking to a page of its own under `docs/cards/` with its options and details, plus `docs/cards/lists.md` for choosing environments and filtering, and `docs/dashboard.md` for the Dockhand dashboard. Screenshots show the light or dark version to match the reader's GitHub theme instead of both side by side.

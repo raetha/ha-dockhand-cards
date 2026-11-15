@@ -54,6 +54,29 @@ export const editorFormStyles = css`
     display: block;
     margin-bottom: var(--ha-space-4, 16px);
   }
+  /* The header of a card's own settings, opened from a list (the Overview
+   * card's sections and environments, the dashboard's cards): a back
+   * button, the name, and anything beside it. */
+  .detail-header {
+    display: flex;
+    align-items: center;
+    gap: var(--ha-space-2, 8px);
+    margin-bottom: var(--ha-space-1, 4px);
+  }
+  .detail-title {
+    display: flex;
+    align-items: center;
+    gap: var(--ha-space-2, 8px);
+    min-width: 0;
+    flex: 1;
+  }
+  .detail-name {
+    font-size: var(--ha-font-size-l, 16px);
+    font-weight: var(--ha-font-weight-medium, 500);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 `;
 
 /**

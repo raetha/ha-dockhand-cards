@@ -162,8 +162,6 @@ export class DockhandDashboardStrategyEditor extends LitElement {
         flex-shrink: 0;
       }
       .hint {
-        color: var(--secondary-text-color);
-        font-size: var(--ha-font-size-s, 12px);
         margin-bottom: var(--ha-space-3, 12px);
       }
       ha-form.badges {
@@ -174,16 +172,6 @@ export class DockhandDashboardStrategyEditor extends LitElement {
         display: flex;
         align-items: center;
         justify-content: space-between;
-      }
-      .detail-header {
-        display: flex;
-        align-items: center;
-        gap: var(--ha-space-2, 8px);
-        margin-bottom: var(--ha-space-2, 8px);
-      }
-      .detail-name {
-        font-size: var(--ha-font-size-l, 16px);
-        font-weight: var(--ha-font-weight-medium, 500);
       }
     `
   ];
