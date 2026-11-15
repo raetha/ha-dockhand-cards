@@ -20,6 +20,9 @@ Both the environments and the sections can be dragged into a different order in 
 - **On a section** — defaults for that card type in every column, such as the Environment card's layout or which row details the Stacks and Containers cards show.
 - **On an environment** — settings for just that environment's column, including a different name, stored under `environments_overrides`.
 
-<img src="../images/overview.png" alt="Overview card: Environments + Stacks + Containers, light theme" width="920">
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="../images/overview-light.png">
+  <img src="../images/overview.png" alt="Overview card: Environments, Stacks and Containers" width="920">
+</picture>
 
 *Environments, Stacks and Containers turned on, across two environments.*

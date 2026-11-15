@@ -34,8 +34,8 @@ CARDS = [
         # Overview is the one card with text outside a card body (its column
         # titles), which is unreadable on a transparent PNG once the README's
         # page background doesn't match the theme. Render it on HA's own
-        # dashboard background instead, in the light theme.
-        {"theme": "light", "backdrop": True},
+        # dashboard background instead.
+        {"backdrop": True},
     ),
 ]
 
@@ -92,15 +92,9 @@ async def main():
 
         for tag, config, filename, width, height, *extra in CARDS:
             opts = extra[0] if extra else {}
-            if "theme" in opts:
-                # Fixed theme: produced once, only by the default (dark) run.
-                if LIGHT:
-                    continue
-                light = opts["theme"] == "light"
-            else:
-                light = LIGHT
-                if LIGHT:
-                    filename = filename.replace(".png", "-light.png")
+            light = LIGHT
+            if LIGHT:
+                filename = filename.replace(".png", "-light.png")
             if light not in pages:
                 pages[light] = await _open_page(browser, light)
             page = pages[light]

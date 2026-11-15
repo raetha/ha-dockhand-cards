@@ -289,6 +289,98 @@ class HaButton extends HTMLElement {
 // selector/schema shapes this repo's own ha-form-types.ts declares
 // (select, boolean, text, multi_select) — extend alongside that file if a
 // new shape is ever added there, not preemptively.
+// ha-form's look, carried in what it renders: editors put their ha-form in
+// a shadow root, which the page's own styles don't reach.
+const FORM_CSS = `
+  .shim-form-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 4px;
+    border-bottom: 1px solid var(--divider-color);
+    flex-wrap: wrap;
+  }
+  .shim-form-row:last-child {
+    border-bottom: none;
+  }
+  .shim-expansion-panel {
+    border: 1px solid var(--divider-color, #444);
+    border-radius: 8px;
+    margin: 16px 0;
+    overflow: hidden;
+  }
+  .shim-expansion-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 8px;
+    font-weight: 500;
+  }
+  .shim-expansion-content {
+    padding: 4px 8px 8px;
+    border-top: 1px solid var(--divider-color, #444);
+  }
+  .shim-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px;
+  }
+  .shim-grid-cell .shim-form-row {
+    border-bottom: none;
+  }
+  .shim-form-label-col {
+    flex: 1;
+    min-width: 0;
+  }
+  .shim-form-label {
+    font-size: 0.95em;
+  }
+  .shim-form-helper {
+    font-size: 0.8em;
+    color: var(--secondary-text-color);
+    margin-top: 2px;
+  }
+  .shim-form-warning {
+    flex-basis: 100%;
+    font-size: 0.8em;
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.1);
+    padding: 6px 8px;
+    border-radius: 6px;
+  }
+  .shim-select,
+  .shim-textfield {
+    background: var(--primary-background-color);
+    color: var(--primary-text-color);
+    border: 1px solid var(--divider-color);
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 0.9em;
+    min-width: 160px;
+  }
+  .shim-form-row-stacked {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .shim-multiselect {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .shim-checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 0;
+  }
+  .shim-checkbox-row input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary-color);
+  }
+`;
+
 class HaForm extends HTMLElement {
   set hass(h) {
     this._hass = h;
@@ -351,7 +443,7 @@ class HaForm extends HTMLElement {
         widget = `<div class="shim-multiselect">${Object.entries(opts)
           .map(([k, v]) => {
             const checked = Array.isArray(value) && value.includes(k);
-            return `<label class="shim-checkbox-row"><input type="checkbox" ${checked ? 'checked' : ''} disabled><span>${v}</span></label>`;
+            return `<label class="shim-checkbox-row"><input type="checkbox" ${checked ? 'checked' : ''} tabindex="-1" onclick="return false"><span>${v}</span></label>`;
           })
           .join('')}</div>`;
       } else if (field.selector?.boolean !== undefined) {
@@ -376,8 +468,11 @@ class HaForm extends HTMLElement {
       }
       const helperText = helper(field);
       const warningText = warning(field);
+      // HA lists a multi_select's few options as checkboxes, one a row,
+      // under its label.
+      const stacked = field.type === 'multi_select' ? ' shim-form-row-stacked' : '';
       return `
-        <div class="shim-form-row">
+        <div class="shim-form-row${stacked}">
           <div class="shim-form-label-col">
             <div class="shim-form-label">${label(field)}${field.required ? ' *' : ''}</div>
             ${helperText ? `<div class="shim-form-helper">${helperText}</div>` : ''}
@@ -388,7 +483,7 @@ class HaForm extends HTMLElement {
       `;
     };
 
-    this.innerHTML = this._schema.map(renderField).join('');
+    this.innerHTML = `<style>${FORM_CSS}</style>` + this._schema.map(renderField).join('');
   }
 }
 

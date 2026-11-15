@@ -15,7 +15,7 @@ That's the actual bar. Everything below this line is a self-imposed checklist bu
 - [x] `hacs.json` with `name` and `filename` (no `content_in_root` override — matches `custom-cards/boilerplate-card` exactly, since the bundle isn't in the repo tree at all, only ever delivered as a release asset; see `docs/development.md` → "Branches and releases" for how that's confirmed to be how HACS actually resolves it)
 - [x] Public GitHub repo, MIT `LICENSE`
 - [x] README with install instructions and a screenshot of every card, linking to each card's config reference in `docs/cards/` and the dashboard's in `docs/dashboard.md` (screenshots via `scripts/screenshot-harness/` — real rendered output against fictional mock data, not a live instance)
-- [ ] GitHub repo description + topics set (`home-assistant`, `hacs`, `lovelace`, `home-assistant-card`, `dockhand`) — set on GitHub itself, not in this repo
+- [x] GitHub repo description and topics set — on GitHub itself, not in this repo
 - [x] Tagged GitHub releases with the bundle attached as a release asset (not committed to `main`)
 - [x] A `my.home-assistant.io` Marketplace badge in the README
 
@@ -41,9 +41,9 @@ That's the actual bar. Everything below this line is a self-imposed checklist bu
 - [x] Graceful degradation: disabled/missing entities never throw or render a broken layout — either the specific value shows a neutral placeholder, or (for whole sections with no backing data, like detailed mode's top-containers/recent-events) the section is omitted entirely rather than shown empty. The one exception — a card with genuinely nothing else to show (device not found, core sensor missing) — always pairs its message with a warning icon (`.core-message` in shared-styles.ts) rather than showing unstyled text
 - [x] Respects HA theme variables — no hardcoded light/dark assumptions in `ha-card` chrome
 - [x] Theme-overridable status/severity colors via documented CSS custom properties, and a stable class-name structure for card_mod — see `docs/styling.md`
-- [ ] Keyboard navigation manually tested in a real browser (implemented via `tabindex`/`role`/ `@keydown`, not yet verified against a screen reader)
-- [ ] Tested against both light and dark default HA themes on a live instance
-- [ ] Tested at narrow (mobile) card widths
+- [ ] Keyboard navigation and a screen reader tested by hand (implemented via `tabindex`/`role`/`@keydown`, and axe-core passes in both themes; not planned unless someone reports a problem)
+- [x] Tested against both light and dark default HA themes on a live instance
+- [x] Tested at narrow (mobile) card widths
 
 ## Known gaps (tracked, not blocking)
 

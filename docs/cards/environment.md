@@ -22,16 +22,30 @@ Four built-in layouts, plus your own:
 
 Icons in the header show the environment's update checks (or auto-update, when on), vulnerability scanning, activity collection and metrics collection: colored when on, grey when off. Click one to change it; scanning opens the scanner choice.
 
+**Compact**
+
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="../images/env-compact-light.png">
+  <img src="../images/env-compact.png" alt="Environment card, compact mode" width="420">
+</picture>
+
+**Standard**
+
 <picture>
   <source media="(prefers-color-scheme: light)" srcset="../images/env-standard-light.png">
   <img src="../images/env-standard.png" alt="Environment card, standard mode" width="420">
 </picture>
 
-<details>
-<summary>Compact, detailed, and full modes</summary>
-<p>
-  <img src="../images/env-compact.png" alt="Environment card, compact mode" width="420">
+**Detailed**
+
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="../images/env-detailed-light.png">
   <img src="../images/env-detailed.png" alt="Environment card, detailed mode" width="420">
+</picture>
+
+**Full**
+
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="../images/env-full-light.png">
   <img src="../images/env-full.png" alt="Environment card, full mode" width="420">
-</p>
-</details>
+</picture>

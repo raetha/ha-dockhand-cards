@@ -139,7 +139,10 @@ Every Dockhand schedule with its status and next run, and optional Run now and e
 
 A whole dashboard in one card: a column per environment, with the cards you choose in each. **[Options and details](https://github.com/raetha/ha-dockhand-cards/blob/main/docs/cards/overview.md)**
 
-<img src="docs/images/overview.png" alt="Overview card: Environments + Stacks + Containers, light theme" width="920">
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="docs/images/overview-light.png">
+  <img src="docs/images/overview.png" alt="Overview card: Environments, Stacks and Containers" width="920">
+</picture>
 
 Suggestions for what the cards should show are welcome: open an issue.
 
