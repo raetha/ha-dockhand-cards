@@ -11,8 +11,9 @@ Quality, security and housekeeping reviews of the cards, their tooling and CI. R
 5. **Security of the design:** the cards only read Home Assistant state (never Dockhand's API); nothing a card renders is inserted as raw HTML; links built from entity data (release notes, configuration URLs) are safe to open.
 6. **Workflows:** `contents: read` at the top, write only on the jobs that release or push; actions pinned to commit SHAs; no `${{ }}` expansions inside `run:` scripts; no secrets used on pull requests.
 7. **Tests and tooling:** test data and the screenshot harness's `mock-data.mjs` shaped like ha-dockhand's current entities (translation keys, states and attributes checked against its code, counts agreeing with the data; `docs/development.md` → "Test data looks like Home Assistant's"); `entity-icons.json` and `icon-paths.json` refreshed (`extract-icons.mjs`); DOM tests use `common/mount.test-helpers.ts`; the harness README describes how it works now; screenshots regenerated in both themes after any visible change. Comments in the code, tests and harness explain why, never history.
-8. **Leftovers:** finished experiments, backward compatibility nobody needs (see `docs/backlog.md`'s 2.0.0 items), unused code, stale comments and docs (`CLAUDE.md`, `docs/development.md`, the README).
-9. **Record it:** a dated section below, and changelog lines for anything users notice.
+8. **Performance:** measure, don't just read. Serve the harness and run `scripts/screenshot-harness/bench.py` (`--copies`, `--others` set the size): each card's first render and its update when an unrelated state changes, which Home Assistant sends many times a second. Look for work that grows with devices × entities, and for work an update repeats when nothing the card shows changed. Also the shipped bundle's size.
+9. **Leftovers:** finished experiments, backward compatibility nobody needs (see `docs/backlog.md`'s 2.0.0 items), unused code, stale comments and docs (`CLAUDE.md`, `docs/development.md`, the README).
+10. **Record it:** a dated section below, and changelog lines for anything users notice.
 
 ## 2026-11-15: final review for 2.0.0
 
@@ -20,6 +21,7 @@ Quality, security and housekeeping reviews of the cards, their tooling and CI. R
 - Changes since the 2026-11-14 review: the Environment page's cards no longer repeat the environment's name, theme-matched screenshots, shared DOM test helpers, the harness's mock data and icons, comments, and test build notes pointing at `dev`. Typecheck, lint, tests, build: pass.
 - Tests and tooling (the new checklist item): reviewed with the harness cleanup; the sample data's environment names are all made up now.
 - Changelog re-read as release notes; the dashboard screenshot shows the current cards in both themes.
+- Missed, then found after ha-dockhand#96: the checklist had no performance item. Measured with `bench.py` (377 devices, 9,318 entities): every card searched all of `hass.entities` per device on every render, so the Updates card took 460 ms and the Overview card 560 ms per state change anywhere in Home Assistant. Now indexed per registry object (1 ms and 9 ms), and the row and grid fitting skips renders that changed nothing. Screenshots pixel-identical, axe clean.
 
 ## 2026-11-14: review before releasing 2.0.0
 

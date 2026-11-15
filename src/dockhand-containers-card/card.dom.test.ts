@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import { DockhandContainersCard } from './card';
 import { makeDevice, makeEntity, makeHass, makeState } from '../common/test-fixtures';
 import type { HomeAssistant } from '../common/ha-types';
@@ -109,6 +109,25 @@ describe('Containers card on a narrow row', () => {
     Object.defineProperty(el, 'scrollWidth', { configurable: true, get: scroll });
     Object.defineProperty(el, 'clientWidth', { configurable: true, get: client });
   };
+  // The card re-measures when it's resized (jsdom has no ResizeObserver).
+  const resized: Array<() => void> = [];
+  const resize = (): void => resized.forEach((callback) => callback());
+  beforeEach(() => {
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(callback: () => void) {
+          resized.push(callback);
+        }
+        observe(): void {}
+        disconnect(): void {}
+      }
+    );
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    resized.length = 0;
+  });
 
   it('drops the version pill’s text, then folds the tags, only while the name would be cut', async () => {
     const hass = hassWithContainer({ state: 'on', latest: '17.6', newer: '15-vectorchord1.1.1' });
@@ -122,21 +141,18 @@ describe('Containers card on a narrow row', () => {
     // The name is cut until the pill gives up its text; the tags never fit.
     width(row.querySelector('.item-name')!, () => 120, () => (narrow && !row.classList.contains('compact-version') ? 60 : 120));
     width(row.querySelector('.tag-pills')!, () => 80, () => (narrow ? 0 : 80));
-    card.hass = { ...hass };
-    await card.updateComplete;
+    resize();
     expect([...row.classList]).toEqual(expect.arrayContaining(['compact-version', 'compact-tags']));
 
     // Even the count pill doesn't fit: the tags are left out, and the
     // version pill is checked again without them.
     width(row.querySelector('.row-left')!, () => (row.classList.contains('compact-tags') ? 100 : 50), () => 50);
-    card.hass = { ...hass };
-    await card.updateComplete;
+    resize();
     expect([...row.classList]).toEqual(expect.arrayContaining(['compact-version', 'no-tags']));
     expect(row.classList.contains('compact-tags')).toBe(false);
 
     narrow = false;
-    card.hass = { ...hass };
-    await card.updateComplete;
+    resize();
     for (const cls of ['compact-version', 'compact-tags', 'no-tags']) expect(row.classList.contains(cls)).toBe(false);
   });
 });
