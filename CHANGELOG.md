@@ -68,6 +68,7 @@ Dockhand Cards 2.0 goes with the Dockhand integration 2.0, reading its new senso
 
 ### Internal
 
+- `docs/backlog.md` records why the cards aren't shipped inside the integration.
 - `scripts/screenshot-harness/bench.py` times each card's first render and its update on a state change at a large install's size, for the performance item of a full review.
 - Test build notes link the changelog's images and docs on `dev`, where they are until the release puts them on `main`.
 - Release and test build notes say to install from Home Assistant's Marketplace (HACS on older versions) and how to turn on pre-releases there, instead of adding a HACS custom repository.
