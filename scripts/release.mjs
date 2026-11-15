@@ -78,16 +78,16 @@ export function notes(changelog, version, testBuild) {
   const body = sections(changelog).get(version);
   if (body === undefined) throw new Error(`CHANGELOG.md has no section for ${version}`);
   const install =
-    `**Install** with HACS (search for Dockhand Cards, or add \`${REPO}\` as a custom ` +
-    'repository of type Dashboard), then reload your browser. Needs the ' +
+    "**Install** from Home Assistant's Marketplace (2026.11 and later; HACS on older versions): " +
+    'find Dockhand Cards, install it, then reload your browser. Needs the ' +
     '[ha-dockhand](https://github.com/raetha/ha-dockhand) integration.\n\n' +
     `More: [README](${REPO}#readme)`;
   const parts = [];
   if (testBuild !== undefined) {
     parts.push(
-      `**Test build ${testBuild}** from \`dev\`, for trying what's coming. To get it, enable and turn on the ` +
-        "Dockhand Cards **Pre-release** switch HACS adds (disabled by default); HACS then offers it " +
-        'as an update. The changes since the last release:'
+      `**Test build ${testBuild}** from \`dev\`, for trying what's coming. To get it, turn on pre-releases ` +
+        "for Dockhand Cards (in the Marketplace, its ⋮ menu; or its **Pre-release** switch, disabled by " +
+        "default) and it's offered as an update. The changes since the last release:"
     );
   }
   parts.push(body || '_No changes listed yet._', install);

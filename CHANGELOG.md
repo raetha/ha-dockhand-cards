@@ -10,9 +10,16 @@ and [Unreleased] is the notes of the current test build.
 
 ## [Unreleased]
 
-Dockhand Cards 2.0 goes with the Dockhand integration 2.0: the cards now read its new count and size sensors instead of attributes, and use the controls it adds. There's a **Dockhand dashboard** that lays out every environment for you, **filters** and **controls** on the list cards, Dockhand's **tags**, and an Updates card that installs exactly what it lists. The cards also download faster, each language now being its own file.
+Dockhand Cards 2.0 goes with the Dockhand integration 2.0, reading its new sensors and using the controls it adds.
 
-Some changes are breaking: update the Dockhand integration to 2.0.0 at the same time, read **Removed**, and re-save an Updates card that hides itself when there's nothing to update.
+- **A Dockhand dashboard** lays out every environment, stack and container for you, with no cards to place.
+- **Filters and controls on the list cards**, and Dockhand's **tags** as coloured pills.
+- **An Updates card that installs exactly what it lists.**
+- **Faster downloads**: each language is its own file.
+
+![The Dockhand dashboard's overview page](https://raw.githubusercontent.com/raetha/ha-dockhand-cards/main/docs/images/dashboard-overview.png)
+
+**Before you upgrade:** update the Dockhand integration to 2.0.0 at the same time, read **Removed**, and re-save an Updates card that hides itself when there's nothing to update.
 
 ### Added
 
@@ -60,6 +67,7 @@ Some changes are breaking: update the Dockhand integration to 2.0.0 at the same 
 
 ### Internal
 
+- Release and test build notes say to install from Home Assistant's Marketplace (HACS on older versions) and how to turn on pre-releases there, instead of adding a HACS custom repository.
 - The full review checklist (`docs/audits.md`) covers tests, tooling and comments.
 - The screenshot harness's mock data matches ha-dockhand 2.0: attributes as the integration sets them (always present, no `icon` or `name` attributes it doesn't set), real host values, Home Assistant's update entity attributes, and counts worked out from the listed containers and stacks. Its `ha-state-icon` stand-in resolves icons from ha-dockhand's own icon translations, so screenshots show the icons Home Assistant does; the screenshots are regenerated.
 - DOM tests share one mock Home Assistant and one way to mount and wait for a card (`src/common/mount.test-helpers.ts`), and test comments say what each test protects rather than how bugs were found; comments in the cards' own code likewise explain why, not their history.
