@@ -10,8 +10,9 @@ Quality, security and housekeeping reviews of the cards, their tooling and CI. R
 4. **Quality bar:** every item in `docs/quality.md` still true of the code.
 5. **Security of the design:** the cards only read Home Assistant state (never Dockhand's API); nothing a card renders is inserted as raw HTML; links built from entity data (release notes, configuration URLs) are safe to open.
 6. **Workflows:** `contents: read` at the top, write only on the jobs that release or push; actions pinned to commit SHAs; no `${{ }}` expansions inside `run:` scripts; no secrets used on pull requests.
-7. **Leftovers:** finished experiments, backward compatibility nobody needs (see `docs/backlog.md`'s 2.0.0 items), unused code, stale comments and docs (`CLAUDE.md`, `docs/development.md`, the README).
-8. **Record it:** a dated section below, and changelog lines for anything users notice.
+7. **Tests and tooling:** test data and the screenshot harness's `mock-data.mjs` shaped like ha-dockhand's current entities (translation keys, states and attributes checked against its code, counts agreeing with the data; `docs/development.md` → "Test data looks like Home Assistant's"); `entity-icons.json` and `icon-paths.json` refreshed (`extract-icons.mjs`); DOM tests use `common/mount.test-helpers.ts`; the harness README describes how it works now; screenshots regenerated in both themes after any visible change. Comments in the code, tests and harness explain why, never history.
+8. **Leftovers:** finished experiments, backward compatibility nobody needs (see `docs/backlog.md`'s 2.0.0 items), unused code, stale comments and docs (`CLAUDE.md`, `docs/development.md`, the README).
+9. **Record it:** a dated section below, and changelog lines for anything users notice.
 
 ## 2026-11-14: review before releasing 2.0.0
 
