@@ -30,10 +30,10 @@ describe('computeDonutSegments', () => {
     expect(segments[2].endAngle).toBeCloseTo(TAU);
   });
 
-  it('handles a genuinely tiny segment (the actual proportions that surfaced real bugs this session) without producing a negative or inverted span', () => {
-    // Images 60%, Containers 1.95%, Volumes 32.5%, Build cache 5.55% —
-    // the real mock-data proportions that exposed the gap-distribution
-    // and corner-radius bugs found and fixed this session.
+  it('handles a tiny segment without producing a negative or inverted span', () => {
+    // Images 60%, Containers 1.95%, Volumes 32.5%, Build cache 5.55%: the
+    // mock data's proportions, where a small segment is narrower than the
+    // gaps and corner radius around it.
     const segments = computeDonutSegments([
       { color: 'images', bytes: 12884901888 },
       { color: 'containers', bytes: 419430400 },

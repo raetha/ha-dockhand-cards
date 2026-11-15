@@ -3,12 +3,9 @@ import { describe, it, expect, vi } from 'vitest';
 import { DockhandUpdatesCard } from './card';
 import { makeDevice, makeEntity, makeHass, makeState } from '../common/test-fixtures';
 import type { HomeAssistant } from '../common/ha-types';
+import { mount as mountTag, type Lit } from '../common/mount.test-helpers';
 
-type UpdatesCardElement = HTMLElement & {
-  hass: HomeAssistant;
-  setConfig(config: Record<string, unknown>): void;
-  updateComplete: Promise<boolean>;
-};
+type UpdatesCardElement = Lit;
 
 /** A hass whose callService stays pending until the test resolves it, so
  * the card can be inspected mid-request. */
@@ -42,14 +39,7 @@ function setup() {
 const TAG = 'dockhand-updates-card-under-test';
 if (!customElements.get(TAG)) customElements.define(TAG, DockhandUpdatesCard);
 
-async function mount(hass: HomeAssistant): Promise<UpdatesCardElement> {
-  const card = document.createElement(TAG) as UpdatesCardElement;
-  card.setConfig({ type: 'custom:dockhand-updates-card' });
-  card.hass = hass;
-  document.body.appendChild(card);
-  await card.updateComplete;
-  return card;
-}
+const mount = (hass: HomeAssistant) => mountTag<UpdatesCardElement>(TAG, { type: 'custom:dockhand-updates-card' }, hass);
 
 function headerButton(card: UpdatesCardElement, title: RegExp): HTMLElement {
   const buttons = [...card.shadowRoot!.querySelectorAll<HTMLElement>('.header-right .header-icon')];
@@ -91,7 +81,6 @@ describe.each([
     expect(restored.className).toContain('clickable');
     expect(restored.getAttribute('tabindex')).toBe('0');
     expect(restored.querySelector('.spinner')).toBeNull();
-    card.remove();
   });
 
   it('ignores a second click while the first request is still running', async () => {
@@ -105,7 +94,6 @@ describe.each([
 
     expect(callService).toHaveBeenCalledTimes(1);
     finish();
-    card.remove();
   });
 
   it('returns to normal without an unhandled rejection when the request fails', async () => {
@@ -122,7 +110,6 @@ describe.each([
     expect(headerButton(card, idle).getAttribute('tabindex')).toBe('0');
     expect(unhandled).not.toHaveBeenCalled();
     nodeProcess.off('unhandledRejection', unhandled);
-    card.remove();
   });
 });
 
@@ -163,7 +150,6 @@ describe('Updates card version-tag pill', () => {
     const icon = row(card, 'nextcloud').querySelector('.update-icon')!;
     expect(icon.getAttribute('icon')).toBe('mdi:arrow-up-circle');
     expect(icon.classList.contains('tag')).toBe(false);
-    card.remove();
   });
 
   it('shows no pill, just the tag icon and the version text, when the newer tag is the only update', async () => {
@@ -174,7 +160,6 @@ describe('Updates card version-tag pill', () => {
     const icon = r.querySelector('.update-icon')!;
     expect(icon.getAttribute('icon')).toBe('mdi:tag-arrow-up-outline');
     expect(icon.classList.contains('tag')).toBe(true);
-    card.remove();
   });
 
   it('marks a moved digest on a pinned image with the pin, in the update color, and says why', async () => {
@@ -185,7 +170,6 @@ describe('Updates card version-tag pill', () => {
     expect(icon.classList.contains('pinned')).toBe(true);
     expect(r.querySelector('.row-right')!.textContent?.trim()).toBe('Pinned to a digest');
     expect(icon.getAttribute('title')).toContain('Update the digest in the compose file');
-    card.remove();
   });
 
   it('lists an update held by the minimum image age with the hours left, in grey', async () => {
@@ -197,19 +181,16 @@ describe('Updates card version-tag pill', () => {
     expect(r.querySelector('.row-right')!.textContent?.trim()).toBe('12 h left');
     expect(icon.getAttribute('title')).toBe('Update held: 12 h left of the minimum image age');
     expect(card.shadowRoot!.textContent).not.toContain('Everything up to date');
-    card.remove();
   });
 
   it('says when a held update will be offered once the wait is over', async () => {
     const card = await mount(hassWithUpdates([{ name: 'cache', installed: 'redis:8', latest: 'update-pending', extra: { update_held_hours: 0 } }]));
     expect(row(card, 'cache').querySelector('.row-right')!.textContent?.trim()).toBe('At next check');
-    card.remove();
   });
 
   it('leaves out a container whose update entity is off', async () => {
     const card = await mount(hassWithUpdates([{ name: 'idle', installed: 'x', latest: 'x', state: 'off' }]));
     expect(card.shadowRoot!.querySelector('.update-row')).toBeNull();
-    card.remove();
   });
 
   it('renders rows without newer_version exactly as before (older ha-dockhand)', async () => {
@@ -218,7 +199,6 @@ describe('Updates card version-tag pill', () => {
     expect(r.querySelector('.version-tag-pill')).toBeNull();
     expect(r.querySelector('.row-right')!.textContent?.trim()).toBe('a3f29e1 → b82d4f0');
     expect(r.querySelector('.update-icon')!.getAttribute('icon')).toBe('mdi:arrow-up-circle');
-    card.remove();
   });
 });
 
@@ -230,7 +210,6 @@ describe('Updates card Update all', () => {
     const button = headerButton(card, /^Nothing listed can be installed/);
     expect(button.textContent).toContain('Update all');
     expect(button.getAttribute('tabindex')).toBeNull();
-    card.remove();
   });
 
   it('installs only the listed updates when filters hide some, and says so', async () => {
@@ -250,7 +229,6 @@ describe('Updates card Update all', () => {
     button.click();
     expect(callService).toHaveBeenCalledWith('update', 'install', {}, { entity_id: ['update.web'] });
     finish();
-    card.remove();
   });
 
   it('is absent when nothing is pending', async () => {
@@ -259,6 +237,5 @@ describe('Updates card Update all', () => {
     const card = await mount(hass);
     expect(card.shadowRoot!.querySelector('.header-icon.filled')).toBeNull();
     expect(card.shadowRoot!.querySelector('.card-message')?.textContent).toContain('up to date');
-    card.remove();
   });
 });

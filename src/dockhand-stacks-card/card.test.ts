@@ -48,13 +48,9 @@ describe('groupStackRows', () => {
   });
 
   it('groups by environment, ordered exactly as envDevices is passed in — not re-derived from any separate order array', () => {
-    // envDevices is the same already-ordered list _buildRows() produces
-    // (via resolveIncludedOrderedWithLegacy) — groupStackRows no longer
-    // does its own order lookup at all, so there's no separate array to
-    // get out of sync with it. Deliberately passed in an order that
-    // doesn't match either device-id or name alphabetical, so this only
-    // passes if envDevices' own order is really what's driving bucket
-    // order.
+    // envDevices is the ordered list _buildRows() makes
+    // (resolveIncludedOrderedWithLegacy), and groupStackRows follows it.
+    // It's in neither ID nor name order, so only that order can pass.
     const rows = [row({ environment: 'Aurora', environmentDeviceId: 'env_a' }), row({ environment: 'Vega', environmentDeviceId: 'env_v' })];
     const groups = groupStackRows(rows, 'environment', 'name', [env('env_v', 'Vega'), env('env_a', 'Aurora')]);
     expect(groups.map((g) => g.label)).toEqual(['Vega', 'Aurora']);

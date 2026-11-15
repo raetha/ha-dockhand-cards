@@ -33,11 +33,9 @@ describe('sortScheduleRows', () => {
   });
 
   it("doesn't let environment resolution order silently influence tie-breaking — only the schedule's own name/environment values matter, not array position", () => {
-    // Same names, same environments, but rows arrive in the opposite order
-    // from what an environment-order-based iteration would naturally
-    // produce — result should be identical either way, since the tiebreak
-    // is now explicit rather than incidentally preserving input order
-    // (Array.sort is stable, so this used to matter).
+    // The same rows in opposite orders sort the same: the environment is
+    // an explicit tiebreak, not left to the input order a stable sort
+    // would keep.
     const forward = [row({ name: 'Backup', environment: 'Aurora' }), row({ name: 'Backup', environment: 'Bifrost' })];
     const reversed = [row({ name: 'Backup', environment: 'Bifrost' }), row({ name: 'Backup', environment: 'Aurora' })];
     const forwardResult = sortScheduleRows(forward, 'name').map((r) => r.environment);

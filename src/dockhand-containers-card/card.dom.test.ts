@@ -3,12 +3,9 @@ import { describe, it, expect } from 'vitest';
 import { DockhandContainersCard } from './card';
 import { makeDevice, makeEntity, makeHass, makeState } from '../common/test-fixtures';
 import type { HomeAssistant } from '../common/ha-types';
+import { mount as mountTag, type Lit } from '../common/mount.test-helpers';
 
-type ContainersCardElement = HTMLElement & {
-  hass: HomeAssistant;
-  setConfig(config: Record<string, unknown>): void;
-  updateComplete: Promise<boolean>;
-};
+type ContainersCardElement = Lit;
 
 const TAG = 'dockhand-containers-card-under-test';
 if (!customElements.get(TAG)) customElements.define(TAG, DockhandContainersCard);
@@ -31,14 +28,7 @@ function hassWithContainer(update: { state: string; latest?: string; newer?: str
   return makeHass({ devices: [env, container], entities, states });
 }
 
-async function mount(hass: HomeAssistant, config: Record<string, unknown> = {}): Promise<ContainersCardElement> {
-  const card = document.createElement(TAG) as ContainersCardElement;
-  card.setConfig({ type: 'custom:dockhand-containers-card', ...config });
-  card.hass = hass;
-  document.body.appendChild(card);
-  await card.updateComplete;
-  return card;
-}
+const mount = (hass: HomeAssistant, config: Record<string, unknown> = {}) => mountTag<ContainersCardElement>(TAG, { type: 'custom:dockhand-containers-card', ...config }, hass);
 
 function rightItems(card: ContainersCardElement): Element[] {
   return [...card.shadowRoot!.querySelector('.row .row-right')!.children];
@@ -56,28 +46,24 @@ describe('Containers card version-tag pill', () => {
     expect(pill.textContent?.trim()).toBe('17.6');
     expect(items.indexOf(pill)).toBe(0);
     expect(items[1]).toBe(updateIcon(card));
-    card.remove();
   });
 
   it('shows the pill instead of the update icon when the newer tag is the only update', async () => {
     const card = await mount(hassWithContainer({ state: 'on', latest: '17.6', newer: '17.6' }));
     expect(card.shadowRoot!.querySelector('.version-tag-pill')).not.toBeNull();
     expect(updateIcon(card)).toBeUndefined();
-    card.remove();
   });
 
   it('keeps just the update icon with older ha-dockhand (no newer_version)', async () => {
     const card = await mount(hassWithContainer({ state: 'on', latest: 'update-pending' }));
     expect(card.shadowRoot!.querySelector('.version-tag-pill')).toBeNull();
     expect(updateIcon(card)).toBeDefined();
-    card.remove();
   });
 
   it('hides the pill along with the update icon when the updates badge is turned off', async () => {
     const card = await mount(hassWithContainer({ state: 'on', latest: 'update-pending', newer: '17.6' }), { visible_badges: ['health'] });
     expect(card.shadowRoot!.querySelector('.version-tag-pill')).toBeNull();
     expect(updateIcon(card)).toBeUndefined();
-    card.remove();
   });
 
   it('opens the update entity, not the row’s state entity, when the pill is clicked', async () => {
@@ -86,7 +72,6 @@ describe('Containers card version-tag pill', () => {
     card.addEventListener('hass-more-info', (e) => events.push((e as CustomEvent<{ entityId: string }>).detail.entityId));
     (card.shadowRoot!.querySelector('.version-tag-pill') as HTMLElement).click();
     expect(events).toEqual(['update.postgres']);
-    card.remove();
   });
 });
 
@@ -102,7 +87,6 @@ describe('Containers card pinned digest and held update', () => {
     expect(pin.className).toContain('warn');
     expect(pin.getAttribute('title')).toContain('Pinned to a digest');
     expect(updateIcon(card)).toBeUndefined();
-    card.remove();
   });
 
   it('shows a grey clock for an update held by the minimum image age', async () => {
@@ -111,14 +95,12 @@ describe('Containers card pinned digest and held update', () => {
     expect(clock).toBeDefined();
     expect(clock.className).toContain('neutral');
     expect(clock.getAttribute('title')).toBe('Update held: 3 h left of the minimum image age');
-    card.remove();
   });
 
   it('shows nothing for an up-to-date container', async () => {
     const card = await mount(hassWithContainer({ state: 'off' }));
     expect(iconNamed(card, 'mdi:clock-outline')).toBeUndefined();
     expect(updateIcon(card)).toBeUndefined();
-    card.remove();
   });
 });
 
@@ -156,6 +138,5 @@ describe('Containers card on a narrow row', () => {
     card.hass = { ...hass };
     await card.updateComplete;
     for (const cls of ['compact-version', 'compact-tags', 'no-tags']) expect(row.classList.contains(cls)).toBe(false);
-    card.remove();
   });
 });

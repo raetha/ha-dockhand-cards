@@ -7,10 +7,10 @@
  * empty config, another language. Catches render code that throws or draws
  * nothing, which the screenshots only show when someone looks.
  */
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { buildMockHass } from '../scripts/screenshot-harness/mock-data.mjs';
+import { describe, it, expect } from 'vitest';
 import { CARDS, EDITORS, type Card } from './render.dom.test-elements';
 import type { HomeAssistant } from './common/ha-types';
+import { harnessHass, mount } from './common/mount.test-helpers';
 
 type Element_ = HTMLElement & {
   hass: HomeAssistant;
@@ -19,40 +19,6 @@ type Element_ = HTMLElement & {
   getCardSize?: () => number | Promise<number>;
   getGridOptions?: () => unknown;
 };
-
-function mockHass(language = 'en'): HomeAssistant {
-  const { devices, entities, states } = buildMockHass();
-  return {
-    devices,
-    entities,
-    states,
-    language,
-    locale: { language, number_format: 'language', time_format: 'language' },
-    themes: { darkMode: true },
-    callApi: vi.fn().mockResolvedValue([]),
-    callService: vi.fn().mockResolvedValue(undefined),
-    callWS: vi.fn().mockResolvedValue({})
-  } as unknown as HomeAssistant;
-}
-
-const mounted: HTMLElement[] = [];
-afterEach(() => {
-  while (mounted.length) mounted.pop()!.remove();
-});
-
-async function mount(tag: string, config: Record<string, unknown>, hass: HomeAssistant): Promise<Element_> {
-  const el = document.createElement(tag) as Element_;
-  el.setConfig({ type: `custom:${tag.replace(/-editor$/, '')}`, ...config });
-  el.hass = hass;
-  document.body.appendChild(el);
-  mounted.push(el);
-  await el.updateComplete;
-  // The Overview card's sub-cards render in their own updates.
-  for (const child of el.shadowRoot?.querySelectorAll<Element_>('[class*="dockhand"], dockhand-environment-card, dockhand-stacks-card, dockhand-containers-card, dockhand-updates-card, dockhand-schedules-card, dockhand-vulnerability-card') ?? []) {
-    await child.updateComplete;
-  }
-  return el;
-}
 
 const CASES: [Card, Record<string, unknown>][] = [
   ['environment', { device_id: 'env_2', mode: 'compact' }],
@@ -96,7 +62,7 @@ const CASES: [Card, Record<string, unknown>][] = [
 
 describe('every card renders', () => {
   it.each(CASES)('%s %j', async (card, config) => {
-    const el = await mount(`dockhand-${card}-card`, config, mockHass());
+    const el = await mount<Element_>(`dockhand-${card}-card`, config, harnessHass({ darkMode: true }));
     const root = el.shadowRoot!;
     expect(root.innerHTML.length).toBeGreaterThan(0);
     expect(root.querySelector('.card-message.error')).toBeNull();
@@ -106,41 +72,35 @@ describe('every card renders', () => {
 
   it.each(Object.keys(CARDS) as Card[])('%s in another language', async (card) => {
     const config = CASES.find(([c]) => c === card)![1];
-    const el = await mount(`dockhand-${card}-card`, config, mockHass('de'));
+    const el = await mount(`dockhand-${card}-card`, config, harnessHass({ darkMode: true, language: 'de' }));
     expect(el.shadowRoot!.innerHTML.length).toBeGreaterThan(0);
   });
 
   it.each(['environment', 'vulnerability', 'stack', 'container'] as Card[])('%s for a device that is gone', async (card) => {
-    const el = await mount(`dockhand-${card}-card`, { device_id: 'no-such-device' }, mockHass());
+    const el = await mount(`dockhand-${card}-card`, { device_id: 'no-such-device' }, harnessHass({ darkMode: true }));
     expect(el.shadowRoot!.textContent).not.toBe('');
   });
 });
 
 describe('every editor renders', () => {
   it.each(CASES.filter(([card], i) => CASES.findIndex(([c]) => c === card) === i))('%s', async (card, config) => {
-    const el = await mount(`dockhand-${card}-card-editor`, config, mockHass());
+    const el = await mount(`dockhand-${card}-card-editor`, config, harnessHass({ darkMode: true }));
     expect(el.shadowRoot!.innerHTML.length).toBeGreaterThan(0);
   });
 
   it.each(Object.keys(EDITORS) as Card[])('%s with an empty config', async (card) => {
-    const el = await mount(`dockhand-${card}-card-editor`, {}, mockHass('fr'));
+    const el = await mount(`dockhand-${card}-card-editor`, {}, harnessHass({ darkMode: true, language: 'fr' }));
     expect(el.shadowRoot!.innerHTML.length).toBeGreaterThan(0);
   });
 });
 
 describe('Stacks card update count', () => {
   it('comes from the stack’s Pending updates sensor', async () => {
-    const { devices, entities, states } = buildMockHass();
-    const hass = { devices, entities, states, language: 'en', locale: { language: 'en' }, themes: { darkMode: false } } as unknown as HomeAssistant;
+    const hass = harnessHass();
     const core = Object.values(hass.entities).find((e) => e.device_id === 'stack_1_core' && e.translation_key === 'stack_pending_updates')!;
     hass.states[core.entity_id] = { ...hass.states[core.entity_id], state: '7' };
-    const el = document.createElement('dockhand-stacks-card') as HTMLElement & { hass: HomeAssistant; setConfig(c: Record<string, unknown>): void; updateComplete: Promise<boolean> };
-    el.setConfig({ type: 'custom:dockhand-stacks-card', visible_badges: ['updates'] });
-    el.hass = hass;
-    document.body.appendChild(el);
-    await el.updateComplete;
+    const el = await mount('dockhand-stacks-card', { visible_badges: ['updates'] }, hass);
     const badges = [...el.shadowRoot!.querySelectorAll('[title]')].map((n) => n.textContent!.trim()).filter((t) => /^\d+$/.test(t));
     expect(badges).toContain('7');
-    el.remove();
   });
 });

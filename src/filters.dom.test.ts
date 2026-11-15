@@ -4,47 +4,13 @@
  * which rows each filter keeps, the "hidden by filters" line, the
  * nothing-matches message, and the editors' Filters section.
  */
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { buildMockHass } from '../scripts/screenshot-harness/mock-data.mjs';
+import { describe, it, expect } from 'vitest';
 import './render.dom.test-elements';
-import type { HomeAssistant } from './common/ha-types';
 import { migrateIncludeGlobal } from './dockhand-schedules-card/editor';
+import { harnessHass, mount as mountTag, type Lit } from './common/mount.test-helpers';
 
-type Lit = HTMLElement & {
-  hass: HomeAssistant;
-  setConfig(config: Record<string, unknown>): void;
-  updateComplete: Promise<boolean>;
-};
-
-function mockHass(): HomeAssistant {
-  const { devices, entities, states } = buildMockHass();
-  return {
-    devices,
-    entities,
-    states,
-    language: 'en',
-    locale: { language: 'en', number_format: 'language', time_format: 'language' },
-    themes: { darkMode: false },
-    callApi: vi.fn().mockResolvedValue([]),
-    callService: vi.fn().mockResolvedValue(undefined),
-    callWS: vi.fn().mockResolvedValue({})
-  } as unknown as HomeAssistant;
-}
-
-const mounted: HTMLElement[] = [];
-afterEach(() => {
-  while (mounted.length) mounted.pop()!.remove();
-});
-
-async function mount(card: string, config: Record<string, unknown>, editor = false): Promise<Lit> {
-  const el = document.createElement(`dockhand-${card}-card${editor ? '-editor' : ''}`) as Lit;
-  el.setConfig({ type: `custom:dockhand-${card}-card`, ...config });
-  el.hass = mockHass();
-  document.body.appendChild(el);
-  mounted.push(el);
-  await el.updateComplete;
-  return el;
-}
+/** A card, or its editor, configured as that card. */
+const mount = (card: string, config: Record<string, unknown>, editor = false) => mountTag(`dockhand-${card}-card${editor ? '-editor' : ''}`, { type: `custom:dockhand-${card}-card`, ...config });
 
 const names = (el: Lit): string[] => [...el.shadowRoot!.querySelectorAll('.item-name')].map((n) => n.textContent!.trim());
 const note = (el: Lit): string | undefined => el.shadowRoot!.querySelector('.filtered-note')?.textContent?.trim();
@@ -194,16 +160,11 @@ describe('Filters section in the editors', () => {
   });
 
   it('offers Dockhand’s tags, not image tags', async () => {
-    const el = document.createElement('dockhand-stacks-card-editor') as Lit;
-    el.setConfig({ type: 'custom:dockhand-stacks-card' });
-    const hass = mockHass();
+    const hass = harnessHass();
     // An image sensor's `tags` are its image tags, which no stack has.
     hass.entities['sensor.nginx_image'] = { entity_id: 'sensor.nginx_image', platform: 'dockhand', translation_key: 'image', device_id: 'env_1' } as (typeof hass.entities)[string];
     hass.states['sensor.nginx_image'] = { entity_id: 'sensor.nginx_image', state: 'latest', attributes: { tags: ['nginx:latest'] } } as unknown as (typeof hass.states)[string];
-    el.hass = hass;
-    document.body.appendChild(el);
-    mounted.push(el);
-    await el.updateComplete;
+    const el = await mountTag('dockhand-stacks-card-editor', { type: 'custom:dockhand-stacks-card' }, hass);
     const schema = JSON.stringify(filterForm(el).schema);
     expect(schema).toContain('"critical"');
     expect(schema).not.toContain('nginx:latest');
@@ -213,10 +174,10 @@ describe('Filters section in the editors', () => {
     const el = document.createElement('dockhand-schedules-card-editor') as Lit & { cardIsEmbedded: boolean };
     el.cardIsEmbedded = true;
     el.setConfig({ type: 'custom:dockhand-schedules-card' });
-    el.hass = mockHass();
+    el.hass = harnessHass();
     document.body.appendChild(el);
-    mounted.push(el);
     await el.updateComplete;
     expect(JSON.stringify(filterForm(el).schema)).not.toContain('filter_scope');
+    el.remove();
   });
 });
