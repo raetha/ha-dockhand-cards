@@ -58,7 +58,7 @@ describe('Stacks card filters', () => {
     expect(names(await mount('stacks', { ...one, filters: { type: ['git'] } }))).toEqual(['core']);
     expect(names(await mount('stacks', { ...one, filters: { status: ['partial'] } }))).toEqual(['monitoring']);
     expect(names(await mount('stacks', { ...one, filters: { git_sync: ['pending'], tags: ['critical'] } }))).toEqual(['core']);
-    expect(names(await mount('stacks', { ...one, filters: { updates: ['none'] } }))).toEqual([]);
+    expect(names(await mount('stacks', { ...one, filters: { updates: ['none'] } }))).toEqual(['monitoring']);
   });
 });
 
