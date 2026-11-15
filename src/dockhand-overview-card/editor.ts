@@ -131,7 +131,7 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
       opacity: 0.5;
     }
     /* ha-expansion-panel margin/padding and .row-action-btn/.row-actions/
-     * .order-row's own gap all come from the shared sortableRowStyles now.
+     * .order-row's own gap come from the shared sortableRowStyles.
      * Two notes on choices that aren't obvious from the shared CSS alone:
      * the icon-buttons are deliberately NOT sized down to match the live
      * cards' compact .header-icon pattern — this is config UI, not a

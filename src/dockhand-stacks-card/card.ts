@@ -125,14 +125,9 @@ export function groupStackRows(
 ): { label: string | null; rows: StackRow[] }[] {
   if (!groupBy || groupBy === 'none') return [{ label: null, rows: sortStackRows(rows, sortBy) }];
 
-  // 'environment' groups by iterating envDevices directly — already in
-  // the right order (call resolveIncludedOrdered before this,
-  // same as every other use of it) — rather than deriving a key per row
-  // and re-sorting buckets against a separate order array afterward,
-  // which can drift out of sync with the actual, already-correct order.
-  // See environment-scope.ts's groupRowsByEnvironment for the full
-  // reasoning — this is the same structural fix Schedules/Containers
-  // both use, not a Stacks-specific patch.
+  // 'environment' groups in envDevices' own order (already resolved by
+  // resolveIncludedOrdered), like groupRowsByEnvironment in
+  // environment-scope.ts, which the Schedules and Containers cards use.
   if (groupBy === 'environment') {
     return groupRowsByEnvironment(rows, envDevices, (bucketRows) => sortStackRows(bucketRows, sortBy));
   }

@@ -74,28 +74,17 @@ export function orderedSections(saved: OverviewSection[] | undefined): OverviewS
  * value", not "use a blank one".
  *
  * Derived from each card's own config type (everything except
- * type/device_id, which don't apply to an override) rather than
- * hand-declared separately, on purpose: a hand-declared parallel
- * interface is exactly the kind of duplication that silently broke
- * per-environment visible_badges overrides for a while (see
- * docs/architecture.md §3) — that specific bug was in the *runtime*
- * extraction handlers, already fixed by making those generic, but the
- * *type* had the same duplication risk sitting right next to it, just
- * without a way to fail loudly yet. `Omit<..., 'type' | 'device_id'>`
- * means adding a field to e.g. DockhandStacksCardConfig automatically
- * makes it a valid override field too, with nothing here to remember to
- * touch. `EnvironmentOverrideUpdates` is deliberately NOT built this way
- * — DockhandUpdatesCardConfig has scope/visibility fields that aren't
- * override-appropriate, so Omit alone doesn't produce the right shape
- * there; it stays hand-declared, the same exception `updates` already
- * is everywhere else in this design. */
+ * type/device_id, which don't apply to an override) rather than declared
+ * again, so a field added to e.g. DockhandStacksCardConfig is a valid
+ * override with nothing here to change (a parallel copy drifts:
+ * docs/architecture.md §3). `EnvironmentOverrideUpdates` is declared by
+ * hand: DockhandUpdatesCardConfig's scope and visibility fields don't
+ * apply to an override, so Omit alone wouldn't give the right shape. */
 export type EnvironmentOverrideEnvironment = Omit<DockhandEnvironmentCardConfig, 'type' | 'device_id'>;
 export type EnvironmentOverrideVulnerabilities = Omit<DockhandVulnerabilityCardConfig, 'type' | 'device_id'>;
-/** `environments_order`/`exclude_device_ids` also omitted, alongside the
- * pre-existing `type`/`device_id` — not override-appropriate now that
- * Stacks supports multiple environments: Overview already owns which
- * environment(s) each generated card represents, same reasoning as
- * EnvironmentOverrideSchedules' own comment. */
+/** `environments_order` and `exclude_device_ids` are omitted too:
+ * Overview decides which environment each generated card shows, as for
+ * EnvironmentOverrideSchedules. */
 export type EnvironmentOverrideStacks = Omit<DockhandStacksCardConfig, 'type' | 'device_id' | 'environments_order' | 'exclude_device_ids'>;
 export type EnvironmentOverrideContainers = Omit<DockhandContainersCardConfig, 'type' | 'device_id' | 'environments_order' | 'exclude_device_ids'>;
 /** Updates and Schedules also leave out the keys a column decides for

@@ -1,8 +1,8 @@
 import type { EnvironmentDeviceOption } from './device-utils';
 
 /** Every known environment, in environments_order's configured order
- * first, then any not listed (a newly-added environment, or before this
- * has ever been touched) appended alphabetically after — same "unlisted
+ * first, then any not listed (a newly added environment, or none set)
+ * appended alphabetically after — same "unlisted
  * sorts after" convention as Overview's own environments_order and this
  * card's own badge_order. Exported separately from resolveIncludedOrdered
  * because the editor needs the *full* list (including excluded
@@ -24,21 +24,13 @@ export function resolveIncludedOrdered(all: EnvironmentDeviceOption[], order: st
 }
 
 /**
- * Buckets rows by environment, ordered the same way `envDevices` already
- * is — no separate "look up each bucket's position in environmentOrder"
- * step at all, which is exactly the mechanism that broke twice this
- * session (Schedules once, Stacks/Containers once): a derived key or
- * order array that could drift out of sync with the actual, already-
- * correct order `resolveEnvironmentOrder`/`resolveIncludedOrdered`
- * produce. The Updates card never had this bug, for exactly this
- * reason — it just iterates its own already-ordered device list
- * directly, one group per environment, and this function generalizes
- * that same approach for any card whose rows carry a device id.
+ * Buckets rows by environment in `envDevices`' own order, rather than
+ * looking each bucket up in a separate order array, which can drift
+ * from the order `resolveEnvironmentOrder`/`resolveIncludedOrdered`
+ * give.
  *
- * `envDevices` must already be in the desired display order (call
- * resolveIncludedOrdered first, the
- * same way every card already does before this) — this function only
- * groups and filters, it doesn't re-derive order from anything.
+ * `envDevices` must already be in display order (call
+ * resolveIncludedOrdered first): this function only groups and filters.
  * `sortWithinGroup` runs on each bucket's own rows afterward (whatever
  * sort_by means for that card — name, status, and so on), independent
  * of the bucket ordering itself.

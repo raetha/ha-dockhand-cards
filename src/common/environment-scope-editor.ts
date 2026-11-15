@@ -47,13 +47,9 @@ export function renderEnvironmentOrderSection(opts: {
    * support being hidden this way, whether or not it's actually embedded
    * in Overview yet. */
   hidden?: boolean;
-  /** Defaults to 'mdi:sort' — the header icon this section has always
-   * used, since it was originally framed purely around ordering. Callers
-   * whose heading no longer centers on ordering (e.g. a plain
-   * "Environments" heading) can override with something that better
-   * matches the new heading text — see label_environments' own usage in
-   * the Schedules card editor for why "sort" stopped fitting once the
-   * heading itself stopped being about sorting specifically. */
+  /** Defaults to 'mdi:sort', for a heading about order. A heading that
+   * isn't (the Schedules editor's plain "Environments") passes an icon
+   * that fits it. */
   icon?: string;
   order: string[] | undefined;
   excluded: string[] | undefined;

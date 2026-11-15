@@ -80,14 +80,8 @@ export const editorFormStyles = css`
 `;
 
 /**
- * Generic drag-to-reorder + eye-icon-to-hide row list, pairs with HA's own
- * `<ha-sortable>` element. Extracted from the Overview card editor's
- * env-order-row pattern (still using its own locally-scoped classes there
- * as of this writing — not yet migrated to share these, to avoid touching
- * already-working, already-shipped editor code as a side effect of adding
- * a second, unrelated use case). Generic naming (not "env-" prefixed)
- * since the Schedules card editor's row-detail-order list is the second
- * user of this exact pattern, and it isn't ordering environments.
+ * Drag-to-reorder and eye-icon-to-hide row lists, with HA's own
+ * `<ha-sortable>`: every editor's environment, section and badge lists.
  */
 export const sortableRowStyles = css`
   ha-expansion-panel {
@@ -137,16 +131,9 @@ export const sortableRowStyles = css`
    * every bit of inter-row spacing lives on the container as a single
    * gap, not spread across N rows' own margins.
    *
-   * var(--ha-space-N, fallback) throughout, not a bare pixel value —
-   * these are real HA design tokens (confirmed against
-   * resources/theme/core.globals.ts), and using them means this
-   * automatically tracks whatever HA's own spacing scale resolves to on
-   * a person's actual install, including if HA changes those values in
-   * a future release, rather than this repo's own copy silently
-   * drifting from HA's current one. The fallback is only ever a safety
-   * net for an HA version old enough to predate these tokens — the
-   * design intent is still "use HA's own current value," not "use this
-   * fallback." */
+   * HA's spacing tokens (resources/theme/core.globals.ts) rather than
+   * pixels, so this follows HA's scale; the fallbacks are for versions
+   * without them. */
   .order-list {
     display: flex;
     flex-direction: column;

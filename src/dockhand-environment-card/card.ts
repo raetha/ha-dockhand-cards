@@ -441,29 +441,16 @@ export class DockhandEnvironmentCard extends LitElement implements LovelaceCard 
     const total = items.reduce((sum, i) => sum + i.bytes, 0);
     const id = s.diskUsage.entityId;
 
-    // Donut chart via d3-shape's own arc generator (innerRadius,
-    // outerRadius, cornerRadius) rather than a hand-rolled path — after
-    // three real bugs in a row in this repo's own hand-derived version,
-    // this delegates the genuinely hard part (a corner rounded
-    // correctly across two different radii, which needs different
-    // treatment at each one, not the same radius applied identically)
-    // to a battle-tested implementation instead of re-deriving it a
-    // fourth time. innerRadius 0.5 (50% hole) matches Dockhand's own
-    // dashboard-disk-usage.svelte (confirmed directly from their
-    // source, which itself uses the layerchart library's own Pie/Arc
-    // components — layerchart's own Arc is a thin wrapper over
-    // d3-shape's, the same library used here).
+    // Donut chart from d3-shape's arc generator (innerRadius, outerRadius,
+    // cornerRadius): a corner rounded across two radii needs different
+    // treatment at each, which d3 gets right. innerRadius 0.5 matches
+    // Dockhand's dashboard-disk-usage.svelte, whose layerchart Arc wraps
+    // the same d3-shape.
     //
-    // No padAngle here — d3's own padAngle is angular, the same
-    // wedge-shaped-gap limitation Dockhand's own version has (confirmed
-    // from their source: narrower at the ring's own inner edge, wider
-    // at the outer, since the same angle sweeps a shorter physical
-    // distance closer to the center). The gap is a separate, later
-    // step: a thin "eraser" line at each boundary's own angle, in the
-    // card's own background color, at a genuinely constant pixel width
-    // regardless of radius — much lower-risk geometry (a straight line,
-    // not a curve) than continuing to bake a constant-pixel gap into
-    // the wedge shape itself.
+    // No padAngle: an angular gap is narrower at the inner edge than the
+    // outer, as in Dockhand. The gap is drawn afterwards instead, as a
+    // line at each boundary in the card's background color, the same
+    // width at every radius.
     const SIZE = 64;
     const CENTER = SIZE / 2;
     const OUTER_R = CENTER - 1; // 1px margin so the arc's own edge doesn't clip against the viewBox

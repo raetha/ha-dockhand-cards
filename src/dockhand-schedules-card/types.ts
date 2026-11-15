@@ -72,11 +72,8 @@ export interface DockhandSchedulesCardConfig extends LovelaceCardConfig {
   always_show_problems?: boolean;
 }
 
-/** Context-sensitive default for visible_badges — matches what
- * show_environment_pill/show_next_run's own defaults were before this
- * became one array field: 'next_run' always included, 'environment'
- * included except specifically when grouped by environment (redundant
- * with the group header there). Only applied when the person hasn't
+/** The default for visible_badges: 'next_run' always, and 'environment'
+ * unless grouped by environment (the group header already says it). Only applied when the person hasn't
  * explicitly set visible_badges themselves at all — an explicit array
  * (including a deliberately empty one, hiding both) is respected as-is,
  * not silently overridden the next time group_by changes. This is the

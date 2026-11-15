@@ -85,14 +85,9 @@ export class DockhandSchedulesCardEditor extends LitElement implements LovelaceC
 
   private _rootSchema(): HaFormSchema[] {
     return [
-      // Moved out of Content — unlike show_stats/show_settings_link/
-      // visible_badges (reasonable defaults few people will want to
-      // touch), group_by/sort_by are something a person is likely to
-      // want to set the moment they add this card to a dashboard, not
-      // leave at the default. Requiring an extra click into a collapsed
-      // panel for that isn't the "less used options in an accordion"
-      // trade this repo's own rule 0 is built on — these aren't the
-      // less-used options.
+      // Outside Content: unlike show_stats, show_settings_link and
+      // visible_badges, group_by and sort_by are what people set as soon
+      // as they add the card, so they aren't hidden in a collapsed panel.
       {
         name: 'group_by',
         default: this.cardIsEmbedded ? 'none' : 'environment',

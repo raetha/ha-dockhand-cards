@@ -886,15 +886,8 @@ export const sharedStyles = css`
     font-size: var(--ha-font-size-s, 12px);
     font-weight: 500;
   }
-  /* Found identically redeclared locally on several different cards
-   * (Container's own .update-chip, plus two others, since eliminated,
-   * on Environment and Stack — all real modifier classes layered on
-   * top of .status-banner for local layout needs, but each also
-   * carrying its own copy of this exact icon-size rule) before being
-   * moved here once. .section-title/.stats-row's own icons folded in
-   * the same way once this session's icon-size baseline change
-   * (13px/14px → 16px) landed all three on the identical value —
-   * restating one declaration three times stopped being justified. */
+  /* One icon size for section titles, stat rows and status banners
+   * (and the modifier classes layered on .status-banner). */
   .section-title ha-icon,
   .stats-row .stat ha-icon,
   .status-banner ha-icon {

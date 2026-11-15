@@ -33,11 +33,8 @@ type RenderIconBaseOpts = {
    * `.row-icon` (16px
    * — the shape for a compact icon+optional-text badge, positioned by
    * whichever ancestor row/group it sits in, not by this class itself
-   * — a `.row-icon` badge nested inside an outer `.row-right` wrapper,
-   * grouping several such badges together on a row's own right side,
-   * is an established, already-shipped pattern — see Environment
-   * card's own "Top containers by CPU" section for the precedent this
-   * follows), `.card-badge` (a card's own fixed 28×28 header icon,
+   * — several can sit in a `.row-right` wrapper on a row's right side,
+   * as in the Environment card's "Top containers by CPU"), `.card-badge` (a card's own fixed 28×28 header icon,
    * always static), or `.stat` (a small icon+count summary badge,
    * always static, its own color usually set per-instance via `color`
    * rather than a shared modifier, since each one's own semantic
@@ -92,16 +89,6 @@ type RenderIconBaseOpts = {
  * fire for) — `static` never had click behavior as a concept at all,
  * so it intercepts nothing, letting a click pass through untouched to
  * whatever it happens to sit inside.
- *
- * A third, different "present but nothing to do" state did exist once
- * (Stacks' own container-count badge, shown but not clickable when its
- * own dedicated entity wasn't available on an older ha-dockhand
- * release) but has since been removed — the fallback that produced it
- * was dropped once relying on that dedicated entity always being
- * present became a safe assumption. `static` is not a reintroduction
- * of that case: that one was a data-availability gap on an otherwise
- * genuinely-clickable icon; `static` is for icons that were never
- * clickable in the first place, by design, regardless of data.
  */
 export function renderIcon(
   opts: RenderIconBaseOpts &

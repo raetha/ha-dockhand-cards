@@ -19,14 +19,9 @@ export interface DonutSegment {
  * a separate concern (an "eraser" spoke drawn on top at each
  * boundary's own angle, in the card's own background color, at a
  * genuinely constant pixel width — see _renderDiskUsage), not baked
- * into the wedge angles themselves. Keeping this function this simple
- * is deliberate: the wedge shape (including rounded corners) is
- * delegated entirely to d3-shape's own arc generator, which already
- * correctly handles the part this repo's own hand-rolled version got
- * wrong three times in a row — the different curvature of the inner
- * and outer radii needing different treatment for a visually
- * consistent rounded corner, not just the same corner radius applied
- * identically to both.
+ * into the wedge angles themselves. The wedge shape, rounded corners
+ * included, is left to d3-shape's arc generator, which treats the inner
+ * and outer radii's different curvature correctly.
  *
  * Zero-byte items are expected to already be filtered out by the
  * caller (this repo's own convention, matching Dockhand's own

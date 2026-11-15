@@ -78,23 +78,12 @@ export function multiEnvCardNameFallback(envDevices: { name: string }[], cardTyp
  * ourselves; HA already has this exact logic, correctly handling RTL text
  * direction and separator rules this repo has no reason to reimplement.
  *
- * `fallback` is deliberately a plain string the caller computes itself,
- * not something this function derives — every card that had a title
- * before this field existed already had its own "what to show when
- * nothing's configured" answer (the single-device cards' own
- * `device.name_by_user || device.name`, Schedules' own generic
- * "Schedules"), and that answer needs to keep meaning exactly what it did
- * before. This function only ever calls into formatEntityName when the
- * person has *actually* set something — an unset `name` skips it
- * entirely and returns `fallback` directly, rather than defaulting to
- * some composed value (e.g. `[{ type: 'device' }]`) that would run
- * through a different code path than the one that's always produced a
- * card's default title. A plain string value (Custom mode, or a config
- * carried over before this field existed) also resolves without needing
- * hass/entityId — formatEntityName handles that case directly, but
- * skipping the call when there's obviously no state object to pass
- * avoids a pointless "entity not found" lookup on every render for the
- * common case of a plain custom title.
+ * `fallback` is a plain string each card computes (the single-device
+ * cards' `device.name_by_user || device.name`, the Schedules card's
+ * "Schedules"): an unset `name` returns it without calling
+ * formatEntityName, so a card's default title has one code path. A plain
+ * string (Custom mode, or YAML) is returned as it is, skipping a lookup
+ * with no state object on every render.
  */
 export function resolveCardName(
   hass: HomeAssistant,

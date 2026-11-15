@@ -13,13 +13,10 @@ export interface DockhandUpdatesCardConfig extends LovelaceCardConfig {
    * environments_order. */
   environments_order?: string[];
   exclude_device_ids?: string[];
-  /** Defaults to 'environment' when unset (not 'none', unlike Schedules'
-   * own default) — this card grouped by environment automatically,
-   * unconditionally, before this field existed, so an already-saved
-   * config with no group_by needs to keep doing exactly that rather
-   * than silently switching to a flat list. 'none' is the new option:
-   * every pending update across every included environment in one flat
-   * list, sorted by name — there's no other meaningful sort available
+  /** Defaults to 'environment' when unset (unlike the Schedules card), so
+   * a saved config without group_by keeps its groups. 'none' is one flat
+   * list of every pending update in the included environments, sorted
+   * by name — there's no other meaningful sort available
    * here (unlike Stacks/Containers/Schedules' own name/status/etc.
    * choices), so this is really just "grouped or not," not a fuller
    * sort_by-style control. */
