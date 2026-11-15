@@ -16,7 +16,7 @@ import { getContainerDevicesForEnvironment, getContainerName, getEnvironmentDevi
 import { resolveIncludedOrdered } from '../common/environment-scope';
 import { resolveEnvironmentEntities } from '../common/entity-resolver';
 import { loadEditor } from '../common/editor-loader';
-import { t } from '../common/i18n-card';
+import { t, type CardTranslationKey } from '../common/i18n-card';
 import type { EnvTranslationKey } from '../common/const';
 import type { OverviewSection } from '../dockhand-overview-card/types';
 
@@ -144,6 +144,16 @@ export function excludedEnvironments(hass: HomeAssistant, settings: DockhandDash
   return [...new Set([...(settings.exclude_device_ids ?? []), ...other])];
 }
 
+/** The environment page's own name for each list card: the page already
+ * names the environment, as the stacks and containers pages do. */
+const PAGE_NAME: Record<Exclude<OverviewSection, 'environments'>, CardTranslationKey> = {
+  vulnerabilities: 'name_vulnerabilities',
+  stacks: 'name_stacks',
+  containers: 'name_containers',
+  updates: 'name_updates',
+  schedules: 'name_schedules'
+};
+
 const CARD: Record<OverviewSection, string> = {
   environments: 'environment',
   vulnerabilities: 'vulnerability',
@@ -176,7 +186,7 @@ function environmentCard(hass: HomeAssistant, settings: DockhandDashboardSetting
   if (which === 'environments') return card(CARD[which], { ...own, device_id: deviceId });
   // Global schedules belong to no environment.
   const global = which === 'schedules' && !alone ? { include_global: false } : {};
-  return card(CARD[which], { ...own, exclude_device_ids: others, ...global });
+  return card(CARD[which], { name: t(hass, PAGE_NAME[which]), ...own, exclude_device_ids: others, ...global });
 }
 
 /** An environment's Stacks and Containers pages: subviews, built only when

@@ -178,6 +178,8 @@ describe('Dockhand environment view', () => {
     expect(sections[2].cards[0]).toMatchObject({ heading: 'Stack details', tap_action: { action: 'navigate', navigation_path: `${view.path}-stacks` } });
     expect(sections[3].cards[0]).toMatchObject({ heading: 'Container details', tap_action: { navigation_path: `${view.path}-containers` } });
     for (const c of sections.flatMap((s) => s.cards).filter((c) => 'exclude_device_ids' in c)) expect(c.exclude_device_ids).toEqual(['env_2', 'env_3', 'env_4']);
+    // The page names the environment, so only its own card repeats it.
+    expect(sections.flatMap((s) => s.cards).map((c) => c.name)).toEqual([undefined, 'Vulnerabilities', 'Updates', 'Schedules', undefined, 'Stacks', undefined, 'Containers']);
   });
 
   it('follows the layout and the environment pages’ card settings', async () => {
