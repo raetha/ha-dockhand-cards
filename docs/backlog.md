@@ -1,6 +1,6 @@
 # Backlog
 
-Ideas and gaps already evaluated and deliberately deferred, and why — check here before re-proposing something that might already be covered. This file is for what's **not done yet** only. Once an item ships, remove it — the shipped behavior is what the code and `CHANGELOG.md` already describe; this file doesn't need to also carry its history. Genuinely reusable technical gotchas (not "this got fixed", but "here's a pattern worth remembering") belong in `docs/architecture.md` instead.
+Ideas and gaps already evaluated and deliberately deferred or rejected, and why — check here before re-proposing something that might already be covered. This file is for what's **not done yet** only. Once an item ships, remove it — the shipped behavior is what the code and `CHANGELOG.md` already describe; this file doesn't need to also carry its history. Genuinely reusable technical gotchas (not "this got fixed", but "here's a pattern worth remembering") belong in `docs/architecture.md` instead.
 
 ## Environment Card
 
@@ -17,7 +17,6 @@ Ideas and gaps already evaluated and deliberately deferred, and why — check he
 
 ## Cross-card
 
-- **Shipping the cards inside the integration (one Marketplace/HACS install).** Considered and rejected (2026-11-15) unless Home Assistant adds a supported way for an integration to provide cards, which the Marketplace may bring. Integrations that do it today (Alarmo, Browser Mod, Bambu Lab) serve the JavaScript from their own path and either add a dashboard resource through Lovelace's internal data or load it on every page with `add_extra_js_url`; both rely on internals that have broken bundled cards before, leave YAML dashboards and cache busting (the phone apps especially) to us, turn every card fix into an integration update and a restart, and would make every current card user uninstall the plugin first or get duplicate custom elements. The gain (one install, no version skew) is mostly covered by releasing both together with matching versions. Revisit if Home Assistant adds that support.
 - **A section strategy per environment** for the Dockhand dashboard (§22): Home Assistant after 2026.8 lets a registered section strategy be picked under "Automatic section", with a preview (`getStubConfig`) and an editor (`getConfigElement`, needed there); 2026.8 has no picker, so it would be YAML-only until the minimum moves. Set aside: with settings it comes close to an Overview card limited to one environment, which already works in any dashboard.
 - **Free layout in the Dockhand dashboard** (dragging its sections and cards around): a strategy writes the layout each time, so that's what **Take control** is for. Its settings cover which sections, their order and their settings.
 
@@ -53,3 +52,8 @@ Considered adding Tile's own Interactions pattern (a native `type: 'expandable'`
 
 Worth reconsidering if: a real user asks for it, or a future card design genuinely centers on one navigable target the way Tile's `entity` does. If revisited, the shape to build is already worked out above — `type: 'expandable'`, `ui_action` selector with `actions` filtered to exclude `more-info`/`toggle`, `handleAction`/`hasAction` from `custom-card-helpers` for execution — this doesn't need re-researching, just implementing.
 
+## Rejected
+
+Ideas decided against, kept so they aren't proposed again without the reason having changed; each says what would change it.
+
+- **Shipping the cards inside the integration (one Marketplace/HACS install).** Considered and rejected (2026-11-15) unless Home Assistant adds a supported way for an integration to provide cards, which the Marketplace may bring. Integrations that do it today (Alarmo, Browser Mod, Bambu Lab) serve the JavaScript from their own path and either add a dashboard resource through Lovelace's internal data or load it on every page with `add_extra_js_url`; both rely on internals that have broken bundled cards before, leave YAML dashboards and cache busting (the phone apps especially) to us, turn every card fix into an integration update and a restart, and would make every current card user uninstall the plugin first or get duplicate custom elements. The gain (one install, no version skew) is mostly covered by releasing both together with matching versions. Revisit if Home Assistant adds that support.
