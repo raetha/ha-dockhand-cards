@@ -67,7 +67,7 @@ Dockhand Cards 2.0 goes with the Dockhand integration 2.0, reading its new senso
 
 ### Internal
 
-- Test build notes show the changelog's images from `dev`, where they are until the release puts them on `main`.
+- Test build notes link the changelog's images and docs on `dev`, where they are until the release puts them on `main`.
 - Release and test build notes say to install from Home Assistant's Marketplace (HACS on older versions) and how to turn on pre-releases there, instead of adding a HACS custom repository.
 - The full review checklist (`docs/audits.md`) covers tests, tooling and comments.
 - The screenshot harness's mock data matches ha-dockhand 2.0: attributes as the integration sets them (always present, no `icon` or `name` attributes it doesn't set), real host values, Home Assistant's update entity attributes, and counts worked out from the listed containers and stacks. Its `ha-state-icon` stand-in resolves icons from ha-dockhand's own icon translations, so screenshots show the icons Home Assistant does; the screenshots are regenerated.

@@ -18,8 +18,9 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const REPO = 'https://github.com/raetha/ha-dockhand-cards';
-const RAW_MAIN = 'https://raw.githubusercontent.com/raetha/ha-dockhand-cards/main/';
-const RAW_DEV = 'https://raw.githubusercontent.com/raetha/ha-dockhand-cards/dev/';
+// The changelog links docs and images on main, where they land with the
+// release; a test build's notes link dev's, where they are until then.
+const ON_MAIN = /(https:\/\/github\.com\/raetha\/ha-dockhand-cards\/blob\/|https:\/\/raw\.githubusercontent\.com\/raetha\/ha-dockhand-cards\/)main\//g;
 
 /** Changelog sections by heading, e.g. "Unreleased" or "1.5.0". Older sections use an em dash
  * before the date; both separators are accepted. */
@@ -92,9 +93,7 @@ export function notes(changelog, version, testBuild) {
         "default) and it's offered as an update. The changes since the last release:"
     );
   }
-  // The changelog links images on main, where they land with the release; a
-  // test build's are on dev until then.
-  const shown = testBuild === undefined ? body : body.replaceAll(RAW_MAIN, RAW_DEV);
+  const shown = testBuild === undefined ? body : body.replace(ON_MAIN, '$1dev/');
   parts.push(shown || '_No changes listed yet._', install);
   return parts.join('\n\n') + '\n';
 }
