@@ -58,4 +58,11 @@ describe('release tool', () => {
     expect(notes(CHANGELOG, 'Unreleased', 7)).toMatch(/^\*\*Test build 7\*\*/);
     expect(() => notes(CHANGELOG, '9.9.9')).toThrow();
   });
+
+  it('points a test build\u2019s images at dev, where they are until the release', () => {
+    const img = '![x](https://raw.githubusercontent.com/raetha/ha-dockhand-cards/main/docs/images/x.png)';
+    const changelog = CHANGELOG.replace('- New thing.', `- New thing.\n\n${img}`).replace('- A fix.', `- A fix.\n\n${img}`);
+    expect(notes(changelog, 'Unreleased', 7)).toContain('/ha-dockhand-cards/dev/docs/images/x.png');
+    expect(notes(changelog, '1.1.0')).toContain('/ha-dockhand-cards/main/docs/images/x.png');
+  });
 });
