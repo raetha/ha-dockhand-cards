@@ -3,24 +3,13 @@
 <head>
 <meta charset="utf-8">
 <title>ha-dockhand-cards preview</title>
-<!-- Real, self-hosted Roboto (via @fontsource/roboto, harness-only
-     dependency — see package.json) rather than relying on the browser's
-     font-family fallback chain, which silently resolved to whatever
-     system font this sandbox happens to have installed (DejaVu Sans,
-     not Roboto) since Google Fonts isn't a reachable domain here. Real
-     HA loads real Roboto, and different fonts have genuinely different
-     line-height/glyph metrics — a screenshot rendered with the wrong
-     font can show an alignment discrepancy that doesn't exist in the
-     actual product, or hide one that does. Only the weights this repo
-     actually uses (400 default, 500, 600 — confirmed by grepping every
-     font-weight declaration in src/, not guessed). -->
+<!-- Roboto, as Home Assistant loads it: another font's metrics would move
+     text and alignment in the screenshots. Only the weights the cards use. -->
 <link rel="stylesheet" href="node_modules/@fontsource/roboto/400.css">
 <link rel="stylesheet" href="node_modules/@fontsource/roboto/500.css">
 <link rel="stylesheet" href="node_modules/@fontsource/roboto/600.css">
 <script>
-  // Read before any rendering happens, so there's no flash of the wrong
-  // theme — .light on <html> only ever needs to be present or absent by
-  // the time CSS starts applying, not toggled dynamically afterward.
+  // Set before anything renders, so nothing is drawn in the wrong theme.
   if (new URLSearchParams(location.search).get('theme') === 'light') {
     document.documentElement.classList.add('light');
   }
@@ -44,13 +33,8 @@
     --info-color: #039be5;
     --ha-card-border-radius: 12px;
     --ha-card-box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-    /* Real HA typography tokens (px-based, scaled by
-       --ha-font-size-scale in production — not em; see
-       docs/architecture.md §12) rather than leaving these undefined,
-       which would exercise only this repo's own CSS fallback values
-       instead of the actual, real-token code path a production HA
-       dashboard uses. Values from HA's own frontend source
-       (src/resources/styles.ts: h1=2xl, h2=xl, h3=l, body=m). */
+    /* Home Assistant's typography tokens (src/resources/styles.ts), so
+       the cards use them rather than their fallbacks. */
     --ha-font-size-xs: 10px;
     --ha-font-size-s: 12px;
     --ha-font-size-m: 14px;
@@ -58,10 +42,7 @@
     --ha-font-size-xl: 20px;
     --ha-font-size-2xl: 24px;
   }
-  /* HA's own real light-theme defaults — genuinely additive on top of
-   * the dark :root block above (which stays the harness's own
-   * default), not a restructure. Font-size tokens are theme-
-   * independent (already correct above), so nothing to override there. */
+  /* Home Assistant's light theme, over the dark default above. */
   html.light {
     color-scheme: light;
     --primary-background-color: #fafafa;
@@ -95,12 +76,6 @@
     border-radius: 8px;
     padding: 16px;
   }
-  /* Styling for HaForm's own shimmed output (ha-shims.mjs) — deliberately
-   * plain/utilitarian, not trying to pixel-match HA's real ha-form/
-   * ha-selector widgets exactly. The goal is "readable enough to judge
-   * spacing and layout," not a pixel-perfect HA clone — see this
-   * directory's README for why that distinction is fine for what this
-   * harness is actually for. */
   /* Stand-in for Home Assistant's sections view (mountDashboard). */
   .dashboard {
     background: var(--primary-background-color);
@@ -203,8 +178,8 @@
     entities,
     states,
     language: 'en',
-    locale: { language: 'en' },
-    themes: { darkMode: true },
+    locale: { language: 'en', number_format: 'language', time_format: 'language' },
+    themes: { darkMode: !document.documentElement.classList.contains('light') },
     callApi: async (method, path) => {
       // Fake 24h-ish history for the CPU/Memory sparklines: a short,
       // gently varying series so the chart has something to draw.
@@ -241,11 +216,8 @@
 
   window.__mount = mount;
 
-  // Editor classes are only registered lazily, via each card class's own
-  // getConfigElement() (a dynamic import() under the hood) — exactly how
-  // HA itself instantiates an editor, never document.createElement on the
-  // editor tag directly, since nothing else ever triggers that import to
-  // actually run.
+  // Editors load through each card's getConfigElement(), as Home
+  // Assistant loads them: nothing else imports the editor bundle.
   async function mountEditor(tag, config, width) {
     const wrap = document.createElement('div');
     wrap.className = 'editor-slot';

@@ -4,9 +4,11 @@
 // HA frontend replacement.
 
 let iconPaths = {};
+let ENTITY_ICONS = {};
 export async function loadIconPaths() {
-  const res = await fetch('./icon-paths.json');
-  iconPaths = await res.json();
+  const [paths, entityIcons] = await Promise.all(['./icon-paths.json', './entity-icons.json'].map((f) => fetch(f).then((r) => r.json())));
+  iconPaths = paths;
+  ENTITY_ICONS = entityIcons;
 }
 
 function iconSvg(mdiName, size = 24, color = 'currentColor') {
@@ -40,6 +42,27 @@ class HaIcon extends HTMLElement {
   }
 }
 
+// Home Assistant's own icons for the entities ha-dockhand leaves to it.
+const DOMAIN_ICONS = {
+  switch: { on: 'mdi:toggle-switch-variant', off: 'mdi:toggle-switch-variant-off' },
+  update: { on: 'mdi:package-up', off: 'mdi:package' },
+  button: { default: 'mdi:button-pointer' }
+};
+
+/** An entity's icon as Home Assistant resolves it: the entity's own, then
+ * the integration's icon translation for its state (entity-icons.json,
+ * ha-dockhand's icons.json), then the domain's. */
+function stateIcon(state, hass) {
+  if (!state) return 'mdi:help-circle-outline';
+  if (state.attributes?.icon) return state.attributes.icon;
+  const domain = state.entity_id.split('.')[0];
+  const key = hass?.entities?.[state.entity_id]?.translation_key;
+  const translated = key ? ENTITY_ICONS[domain]?.[key] : undefined;
+  if (translated) return translated.state?.[state.state] ?? translated.default;
+  const fallback = DOMAIN_ICONS[domain];
+  return fallback?.[state.state] ?? fallback?.default ?? 'mdi:help-circle-outline';
+}
+
 class HaStateIcon extends HTMLElement {
   set stateObj(state) {
     this._stateObj = state;
@@ -56,11 +79,7 @@ class HaStateIcon extends HTMLElement {
   }
   render() {
     if (!this.isConnected) return;
-    const state = this._stateObj;
-    // Real ha-state-icon resolves via icon translations (icons.json's
-    // per-state mapping) + hass. We don't have that pipeline here, so
-    // the mock data includes an explicit `icon` attribute as a shortcut.
-    const icon = state?.attributes?.icon || 'mdi:help-circle-outline';
+    const icon = stateIcon(this._stateObj, this._hass);
     const size = getComputedStyle(this).getPropertyValue('--mdc-icon-size').trim() || '24px';
     this.style.display = 'inline-flex';
     this.style.width = size;
@@ -161,12 +180,8 @@ class HaIconButton extends HTMLElement {
     this.style.display = 'inline-flex';
     this.style.alignItems = 'center';
     this.style.justifyContent = 'center';
-    // Real ha-icon-button reads --ha-icon-button-size (default 48px) —
-    // this shim previously hard-coded 40px regardless, which meant any
-    // CSS setting that custom property had zero visible effect in a
-    // screenshot even though it worked correctly in real HA. Read via
-    // getComputedStyle so an ancestor rule (e.g. .row-action-btn) is
-    // respected the same way it would be for the real component.
+    // Like the real one, sized by --ha-icon-button-size (default 48px),
+    // so the cards' own setting (e.g. .row-action-btn) shows.
     const size = getComputedStyle(this).getPropertyValue('--ha-icon-button-size').trim() || '48px';
     this.style.width = size;
     this.style.height = size;
@@ -259,14 +274,8 @@ class HaButton extends HTMLElement {
       this.style.background = 'transparent';
       this.style.color = 'var(--primary-text-color)';
       this.style.border = 'none';
-      // Not part of the real component itself — this shim has no real
-      // shadow DOM/parts to apply an external ::part(base) rule against,
-      // so this reproduces this session's own real, external CSS
-      // override (shared-styles.ts) directly here instead, purely so a
-      // screenshot reflects the intended final result. The actual
-      // ::part(base) mechanism itself is confirmed only by reading the
-      // real component's own source (it exposes part="base"), not
-      // verified end-to-end through this harness.
+      // The cards color it through ::part(base) (shared-styles.ts),
+      // which a shim without shadow parts can't receive: applied here.
       const variantOverrideColor = { success: 'var(--dockhand-status-ok-color)', warning: 'var(--dockhand-status-warn-color)', danger: 'var(--dockhand-status-error-color)' }[variant];
       if (variantOverrideColor) this.style.color = variantOverrideColor;
     } else {

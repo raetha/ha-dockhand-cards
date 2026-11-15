@@ -60,6 +60,7 @@ Some changes are breaking: update the Dockhand integration to 2.0.0 at the same 
 
 ### Internal
 
+- The screenshot harness's mock data matches ha-dockhand 2.0: attributes as the integration sets them (always present, no `icon` or `name` attributes it doesn't set), real host values, Home Assistant's update entity attributes, and counts worked out from the listed containers and stacks. Its `ha-state-icon` stand-in resolves icons from ha-dockhand's own icon translations, so screenshots show the icons Home Assistant does; the screenshots are regenerated.
 - DOM tests share one mock Home Assistant and one way to mount and wait for a card (`src/common/mount.test-helpers.ts`), and test comments say what each test protects rather than how bugs were found; comments in the cards' own code likewise explain why, not their history.
 - Styles: the Vulnerability card drops focus and pointer rules every clickable element already gets, and the Overview card's and the dashboard's editors share one header style for a card's own settings (the Overview editor's is now the same size as the dashboard's).
 - Every screenshot in the docs follows the reader's light or dark theme (the Overview card and the Environment card's other layouts were dark or light only), the Environment card's layouts are labelled instead of folded away, and the dashboard settings screenshot lists the badge choices one to a row, as Home Assistant does.
