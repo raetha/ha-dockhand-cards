@@ -8,73 +8,16 @@
  * produce the event it promises (config-changed from an editor; more-info,
  * an action or a service call from a card).
  */
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { buildMockHass } from '../scripts/screenshot-harness/mock-data.mjs';
+import { describe, it, expect, vi } from 'vitest';
 import './render.dom.test-elements';
-import type { HomeAssistant } from './common/ha-types';
+import { deep, harnessHass, mount, rendered } from './common/mount.test-helpers';
 
-type Lit = HTMLElement & {
-  hass: HomeAssistant;
-  setConfig(config: Record<string, unknown>): void;
-  updateComplete: Promise<boolean>;
-};
 type Form = HTMLElement & {
   schema: unknown[];
   data: Record<string, unknown>;
   computeLabel?: (schema: unknown) => string;
   computeHelper?: (schema: unknown) => string | undefined;
 };
-
-function mockHass(): HomeAssistant {
-  const { devices, entities, states } = buildMockHass();
-  return {
-    devices,
-    entities,
-    states,
-    language: 'en',
-    locale: { language: 'en', number_format: 'language', time_format: 'language' },
-    themes: { darkMode: true },
-    callApi: vi.fn().mockResolvedValue([]),
-    callService: vi.fn().mockResolvedValue(undefined),
-    callWS: vi.fn().mockResolvedValue({})
-  } as unknown as HomeAssistant;
-}
-
-const mounted: HTMLElement[] = [];
-afterEach(() => {
-  while (mounted.length) mounted.pop()!.remove();
-});
-
-async function mount(tag: string, config: Record<string, unknown>, hass = mockHass()): Promise<Lit> {
-  const el = document.createElement(tag) as Lit;
-  el.setConfig({ type: `custom:${tag.replace(/-editor$/, '')}`, ...config });
-  el.hass = hass;
-  document.body.appendChild(el);
-  mounted.push(el);
-  await settle(el);
-  return el;
-}
-
-/** Waits for an element and every Lit element inside it to finish
- * rendering. */
-async function settle(root: Element): Promise<void> {
-  for (let pass = 0; pass < 3; pass++) {
-    const all = [root, ...deep(root, '*')] as Partial<Lit>[];
-    await Promise.all(all.map((e) => e.updateComplete));
-  }
-}
-
-/** querySelectorAll through every shadow root below `root`. */
-function deep(root: Element | ShadowRoot, selector: string): Element[] {
-  const out: Element[] = [];
-  const visit = (node: Element | ShadowRoot): void => {
-    out.push(...node.querySelectorAll(selector));
-    for (const el of node.querySelectorAll('*')) if (el.shadowRoot) visit(el.shadowRoot);
-  };
-  if (root instanceof Element && root.shadowRoot) visit(root.shadowRoot);
-  else visit(root);
-  return out;
-}
 
 function fields(schema: unknown[]): Record<string, unknown>[] {
   return (schema as Record<string, unknown>[]).flatMap((s) => [s, ...(Array.isArray(s.schema) ? fields(s.schema) : [])]);
@@ -122,14 +65,14 @@ describe('editors', () => {
       for (const field of fields(form.schema ?? []).filter((f) => typeof f.name === 'string' && !f.type?.toString().includes('expandable'))) {
         const name = field.name as string;
         form.dispatchEvent(new CustomEvent('value-changed', { detail: { value: { ...form.data, [name]: changed(field, form.data?.[name]) } }, bubbles: true, composed: true }));
-        await settle(el);
+        await rendered(el);
       }
     }
 
     // Sortable lists: move the first item to the end.
     for (const list of deep(el, 'ha-sortable')) {
       list.dispatchEvent(new CustomEvent('item-moved', { detail: { oldIndex: 0, newIndex: 1 }, bubbles: true, composed: true }));
-      await settle(el);
+      await rendered(el);
     }
 
     // Embedded editors (the Overview's) pass their changes up.
@@ -141,7 +84,7 @@ describe('editors', () => {
     for (let round = 0; round < 3; round++) {
       for (const button of deep(el, 'button, ha-icon-button, [role="button"], .clickable')) {
         (button as HTMLElement).click();
-        await settle(el);
+        await rendered(el);
       }
     }
     expect(el.shadowRoot!.innerHTML.length).toBeGreaterThan(0);
@@ -165,7 +108,7 @@ const CARD_CASES: [string, Record<string, unknown>][] = [
 
 describe('cards', () => {
   it.each(CARD_CASES)('%s %j: every control does something', async (card, config) => {
-    const hass = mockHass();
+    const hass = harnessHass({ darkMode: true });
     const el = await mount(`dockhand-${card}-card`, config, hass);
     const events = vi.fn();
     for (const type of ['hass-more-info', 'hass-action', 'show-dialog', 'location-changed']) el.addEventListener(type, events);
@@ -177,11 +120,11 @@ describe('cards', () => {
       target.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, composed: true }));
       target.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, composed: true }));
     }
-    await settle(el);
+    await rendered(el);
     expect(events.mock.calls.length + vi.mocked(hass.callService).mock.calls.length).toBeGreaterThan(0);
     // A change of state re-renders without trouble.
     el.hass = { ...hass, states: { ...hass.states } };
-    await settle(el);
+    await rendered(el);
     expect(el.shadowRoot!.innerHTML.length).toBeGreaterThan(0);
   });
 });

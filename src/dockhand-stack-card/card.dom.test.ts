@@ -3,12 +3,9 @@ import { describe, it, expect } from 'vitest';
 import { DockhandStackCard } from './card';
 import { makeDevice, makeEntity, makeHass, makeState } from '../common/test-fixtures';
 import type { HomeAssistant } from '../common/ha-types';
+import { mount as mountTag, type Lit } from '../common/mount.test-helpers';
 
-type StackCardElement = HTMLElement & {
-  hass: HomeAssistant;
-  setConfig(config: Record<string, unknown>): void;
-  updateComplete: Promise<boolean>;
-};
+type StackCardElement = Lit;
 
 const TAG = 'dockhand-stack-card-under-test';
 if (!customElements.get(TAG)) customElements.define(TAG, DockhandStackCard);
@@ -36,14 +33,8 @@ function hassWithStack(withStats: boolean) {
   return makeHass({ devices: [stack], entities, states });
 }
 
-async function mount(hass: HomeAssistant, config: Record<string, unknown> = {}): Promise<StackCardElement> {
-  const card = document.createElement(TAG) as StackCardElement;
-  card.setConfig({ type: 'custom:dockhand-stack-card', device_id: 'stack-dev', show_controls: false, ...config });
-  card.hass = hass;
-  document.body.appendChild(card);
-  await card.updateComplete;
-  return card;
-}
+const mount = (hass: HomeAssistant, config: Record<string, unknown> = {}) =>
+  mountTag<StackCardElement>(TAG, { type: 'custom:dockhand-stack-card', device_id: 'stack-dev', show_controls: false, ...config }, hass);
 
 describe('Stack card resource stats', () => {
   it('shows the CPU and memory bars and the network/disk grid from the stack totals', async () => {
@@ -51,7 +42,6 @@ describe('Stack card resource stats', () => {
     const root = card.shadowRoot!;
     expect(root.querySelectorAll('.bar-track')).toHaveLength(2);
     expect(root.querySelectorAll('.grid-2 .row')).toHaveLength(4);
-    card.remove();
   });
 
   it('opens the CPU entity when its row is clicked', async () => {
@@ -60,7 +50,6 @@ describe('Stack card resource stats', () => {
     card.addEventListener('hass-more-info', (e) => events.push((e as CustomEvent<{ entityId: string }>).detail.entityId));
     (card.shadowRoot!.querySelector('.stacked-pair .row') as HTMLElement).click();
     expect(events).toEqual(['sensor.core_stack_cpu_percent']);
-    card.remove();
   });
 
   it('shows memory as usage over limit with no percentage, and opens the usage entity', async () => {
@@ -75,21 +64,18 @@ describe('Stack card resource stats', () => {
     card.addEventListener('hass-more-info', (e) => events.push((e as CustomEvent<{ entityId: string }>).detail.entityId));
     memoryRow.click();
     expect(events).toEqual(['sensor.core_stack_memory_usage']);
-    card.remove();
   });
 
   it('adds nothing when ha-dockhand has no stack stats (older release, or stats off)', async () => {
     const card = await mount(hassWithStack(false));
     expect(card.shadowRoot!.querySelector('.bar-track')).toBeNull();
     expect(card.shadowRoot!.querySelector('.grid-2')).toBeNull();
-    card.remove();
   });
 
   it('hides the sections that are turned off', async () => {
     const card = await mount(hassWithStack(true), { visible_sections: ['status', 'io'] });
     expect(card.shadowRoot!.querySelector('.bar-track')).toBeNull();
     expect(card.shadowRoot!.querySelectorAll('.grid-2 .row')).toHaveLength(4);
-    card.remove();
   });
 });
 
@@ -135,6 +121,5 @@ describe('Stack card container pills', () => {
     expect(icon('cache').getAttribute('icon')).toBe('mdi:clock-outline');
     expect(icon('cache').getAttribute('title')).toBe('Update held: 6 h left of the minimum image age');
     expect(pills.find((p) => p.textContent?.trim() === 'idle')!.querySelector('ha-icon')).toBeNull();
-    card.remove();
   });
 });

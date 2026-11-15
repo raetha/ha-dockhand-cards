@@ -207,10 +207,8 @@ describe('schedule device resolution', () => {
   });
 
   it('getGlobalScheduleDevices collects global schedules across every configured Dockhand instance, not just one', () => {
-    // Two separate hubs (two config entries), each with their own genuinely
-    // global schedule — both must show up, not just whichever hub happened
-    // to be enumerated first (docs/backlog.md's now-fixed "Schedules card"
-    // entry).
+    // Two hubs (two config entries), each with a global schedule: both
+    // show, not only the first hub found.
     const hubA = makeDevice({ id: 'hubA', identifiers: [['dockhand', 'entryA_schedules_hub']], config_entry_id: 'entryA' });
     const hubB = makeDevice({ id: 'hubB', identifiers: [['dockhand', 'entryB_schedules_hub']], config_entry_id: 'entryB' });
     const s1 = makeDevice({ id: 's1', identifiers: [['dockhand', 'entryA_schedule_1_system_cleanup']], via_device_id: 'hubA' });

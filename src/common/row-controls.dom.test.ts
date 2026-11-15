@@ -5,12 +5,9 @@ import { DockhandStacksCard } from '../dockhand-stacks-card/card';
 import { DockhandSchedulesCard } from '../dockhand-schedules-card/card';
 import { makeDevice, makeEntity, makeHass, makeState } from './test-fixtures';
 import type { HomeAssistant } from './ha-types';
+import { mount as mountTag, type Lit } from './mount.test-helpers';
 
-type CardElement = HTMLElement & {
-  hass: HomeAssistant;
-  setConfig(config: Record<string, unknown>): void;
-  updateComplete: Promise<boolean>;
-};
+type CardElement = Lit;
 
 const TAGS = {
   containers: 'row-controls-containers-card',
@@ -37,14 +34,7 @@ function hassWithDevice(kind: 'container' | 'stack', running: boolean, opts: { s
   return makeHass({ devices: [env, device], entities, states });
 }
 
-async function mount(tag: string, type: string, hass: HomeAssistant, config: Record<string, unknown> = {}): Promise<CardElement> {
-  const card = document.createElement(tag) as CardElement;
-  card.setConfig({ type: `custom:${type}`, ...config });
-  card.hass = hass;
-  document.body.appendChild(card);
-  await card.updateComplete;
-  return card;
-}
+const mount = (tag: string, type: string, hass: HomeAssistant, config: Record<string, unknown> = {}) => mountTag<CardElement>(tag, { type: `custom:${type}`, ...config }, hass);
 
 function controlTitles(card: CardElement): string[] {
   return [...card.shadowRoot!.querySelectorAll('.row-control')].map((e) => e.getAttribute('title') ?? '');
@@ -64,7 +54,6 @@ describe.each([
     const card = await mount(tag, type, hassWithDevice(kind, true));
     expect(controlTitles(card)).toEqual([]);
     expect(card.shadowRoot!.querySelector('.row-actions')).toBeNull();
-    card.remove();
   });
 
   it('sit in their own column with a fixed slot each, so they line up', async () => {
@@ -89,7 +78,6 @@ describe.each([
       ['switch.turn_off', 'switch.web', 'Stop web?']
     ]);
     expect(moreInfo).not.toHaveBeenCalled();
-    card.remove();
   });
 
   it('offer start while stopped, without asking, and restart too for a container, as Dockhand does', async () => {
@@ -99,7 +87,6 @@ describe.each([
     card.shadowRoot!.querySelector<HTMLElement>('.row-control')!.click();
     expect(fired.mock.calls[0][0]).toMatchObject({ perform_action: 'switch.turn_on', target: { entity_id: 'switch.web' } });
     expect(fired.mock.calls[0][0].confirmation).toBeUndefined();
-    card.remove();
   });
 
   it('are absent for a system one, which has no running switch', async () => {
@@ -107,7 +94,6 @@ describe.each([
     expect(controlTitles(card)).toEqual([]);
     // The column is still there, empty, so the row's values stay aligned.
     expect(card.shadowRoot!.querySelector('.row-actions')!.children.length).toBe(0);
-    card.remove();
   });
 });
 
@@ -127,7 +113,6 @@ describe('row controls beyond start, restart and stop', () => {
     expect(controlTitles(card)).toEqual(['Redeploy', 'Restart', 'Stop']);
     expect(card.shadowRoot!.querySelector('.row-actions')!.children.length).toBe(3);
     expect(card.shadowRoot!.querySelector<HTMLElement>('ha-card')!.style.getPropertyValue('--row-control-slots')).toBe('3');
-    card.remove();
   });
 
   it('offers Pause between Restart and Stop while a container runs, without asking', async () => {
@@ -137,13 +122,11 @@ describe('row controls beyond start, restart and stop', () => {
     card.shadowRoot!.querySelectorAll<HTMLElement>('.row-control')[1].click();
     expect(fired.mock.calls[0][0]).toMatchObject({ perform_action: 'button.press', target: { entity_id: 'button.web_pause' } });
     expect(fired.mock.calls[0][0].confirmation).toBeUndefined();
-    card.remove();
   });
 
   it('offers Resume for a paused container, as Dockhand does', async () => {
     const card = await mount(TAGS.containers, 'dockhand-containers-card', hassWith('container', 'paused', 'pause'), { show_controls: true });
     expect(controlTitles(card)).toEqual(['Resume', 'Restart']);
-    card.remove();
   });
 });
 
@@ -169,7 +152,6 @@ describe('Schedules card row controls', () => {
   it('are hidden unless show_controls is set', async () => {
     const card = await mountSchedules(hassWithSchedule({ run: 'unknown', enabled: 'on' }));
     expect(controlTitles(card)).toEqual([]);
-    card.remove();
   });
 
   it('offer Run now (asking first) and disable for an enabled schedule', async () => {
@@ -181,13 +163,11 @@ describe('Schedules card row controls', () => {
       ['switch.turn_off', 'switch.prune_enabled', undefined],
       ['button.press', 'button.prune_run', 'Run Prune now?']
     ]);
-    card.remove();
   });
 
   it('offer enable for a disabled schedule', async () => {
     const card = await mountSchedules(hassWithSchedule({ enabled: 'off' }), { show_controls: true });
     expect(controlTitles(card)).toEqual(['Enable schedule']);
-    card.remove();
   });
 
   it('leave out unavailable or missing entities, and the row stays a single keyboard target', async () => {
@@ -196,6 +176,5 @@ describe('Schedules card row controls', () => {
     const row = card.shadowRoot!.querySelector('.row.clickable')!;
     expect(row.getAttribute('role')).toBeNull();
     expect(row.querySelector('.row-target')?.getAttribute('role')).toBe('button');
-    card.remove();
   });
 });

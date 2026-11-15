@@ -8,12 +8,9 @@ import { DockhandStackCard } from '../dockhand-stack-card/card';
 import { entityTags, renderTagPill } from './tag-pills';
 import { makeDevice, makeEntity, makeHass, makeState } from './test-fixtures';
 import type { HomeAssistant } from './ha-types';
+import { mount as mountTag, type Lit } from './mount.test-helpers';
 
-type CardElement = HTMLElement & {
-  hass: HomeAssistant;
-  setConfig(config: Record<string, unknown>): void;
-  updateComplete: Promise<boolean>;
-};
+type CardElement = Lit;
 
 const CARDS = {
   containers: ['tag-pills-containers-card', DockhandContainersCard],
@@ -67,15 +64,8 @@ function hassWith(kind: 'container' | 'stack', attributes: Record<string, unknow
   });
 }
 
-async function mount(card: keyof typeof CARDS, hass: HomeAssistant, config: Record<string, unknown> = {}): Promise<CardElement> {
-  const [tag] = CARDS[card];
-  const el = document.createElement(tag) as CardElement;
-  el.setConfig({ type: `custom:dockhand-${card}-card`, ...config });
-  el.hass = hass;
-  document.body.appendChild(el);
-  await el.updateComplete;
-  return el;
-}
+const mount = (card: keyof typeof CARDS, hass: HomeAssistant, config: Record<string, unknown> = {}) =>
+  mountTag<CardElement>(CARDS[card][0], { type: `custom:dockhand-${card}-card`, ...config }, hass);
 
 function pills(el: CardElement): string[] {
   return [...el.shadowRoot!.querySelectorAll('.tag-pill')].map((p) => p.textContent ?? '');

@@ -5,53 +5,14 @@
  * back into the Overview's own config.
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { buildMockHass } from '../../scripts/screenshot-harness/mock-data.mjs';
 import '../render.dom.test-elements';
-import type { HomeAssistant } from '../common/ha-types';
+import { harnessHass, mount as mountTag, rendered, type Lit } from '../common/mount.test-helpers';
 
-type Lit = HTMLElement & {
-  hass: HomeAssistant;
-  setConfig(config: Record<string, unknown>): void;
-  updateComplete: Promise<boolean>;
-};
+const mount = (tag: string, config: Record<string, unknown>) => mountTag(tag, { type: 'custom:dockhand-overview-card', ...config });
 
-function mockHass(): HomeAssistant {
-  const { devices, entities, states } = buildMockHass();
-  return {
-    devices,
-    entities,
-    states,
-    language: 'en',
-    locale: { language: 'en', number_format: 'language', time_format: 'language' },
-    themes: { darkMode: false },
-    callApi: vi.fn().mockResolvedValue([]),
-    callService: vi.fn().mockResolvedValue(undefined),
-    callWS: vi.fn().mockResolvedValue({})
-  } as unknown as HomeAssistant;
-}
-
-const mounted: HTMLElement[] = [];
 afterEach(() => {
-  while (mounted.length) mounted.pop()!.remove();
   vi.unstubAllGlobals();
 });
-
-async function mount(tag: string, config: Record<string, unknown>): Promise<Lit> {
-  const el = document.createElement(tag) as Lit;
-  el.setConfig({ type: 'custom:dockhand-overview-card', ...config });
-  el.hass = mockHass();
-  document.body.appendChild(el);
-  mounted.push(el);
-  await settle(el);
-  return el;
-}
-
-async function settle(el: Element): Promise<void> {
-  for (let pass = 0; pass < 3; pass++) {
-    const all = [el, ...(el.shadowRoot?.querySelectorAll('*') ?? [])] as Partial<Lit>[];
-    await Promise.all(all.map((e) => e.updateComplete));
-  }
-}
 
 const ALL_SECTIONS = { show_environments: true, show_vulnerabilities: true, show_stacks: true, show_containers: true, show_updates: true, show_schedules: true };
 
@@ -102,7 +63,7 @@ describe('Overview card column alignment', () => {
     const el = await mount('dockhand-overview-card', ALL_SECTIONS);
     frames.splice(0).forEach((f) => f(0));
     el.setConfig({ type: 'custom:dockhand-overview-card', ...ALL_SECTIONS, align_columns: false });
-    await settle(el);
+    await rendered(el);
     expect(el.shadowRoot!.querySelector('.overview.no-align')).not.toBeNull();
     expect(el.shadowRoot!.querySelector<HTMLElement>('.section-wrapper')?.style.minHeight ?? '').toBe('');
   });
@@ -132,17 +93,17 @@ describe('Overview editor detail views', () => {
     for (let i = 0; i < 6; i++) {
       const rows = [...el.shadowRoot!.querySelectorAll('.section-order-row')];
       (rows[i].querySelector('.row-action-btn') as HTMLElement).click();
-      await settle(el);
+      await rendered(el);
       const inner = el.shadowRoot!.querySelector(EMBEDDED)!;
       expect(inner).not.toBeNull();
       emit(inner, { type: 'custom:x', device_id: '', group_by: 'none', sort_by: undefined, stacks_group_by: undefined });
       (el.shadowRoot!.querySelector('.detail-header .row-action-btn') as HTMLElement).click();
-      await settle(el);
+      await rendered(el);
     }
     expect(seen.length).toBe(6);
     expect(seen[seen.length - 1]).not.toHaveProperty('type', 'custom:x');
     // Every embedded editor follows later hass updates.
-    el.hass = mockHass();
+    el.hass = harnessHass();
   });
 
   it('keeps per-environment overrides and prunes empty ones', async () => {
@@ -153,10 +114,10 @@ describe('Overview editor detail views', () => {
     const seen = changes(el);
     const edit = el.shadowRoot!.querySelector<HTMLElement>('.order-row:not(.section-order-row) .row-action-btn')!;
     edit.click();
-    await settle(el);
+    await rendered(el);
     const inners = [...el.shadowRoot!.querySelectorAll(EMBEDDED)];
     expect(inners.length).toBe(6);
-    el.hass = mockHass();
+    el.hass = harnessHass();
     for (const inner of inners) emit(inner, { type: 'custom:x', device_id: 'env_1', show_settings_link: false });
     for (const inner of inners) emit(inner, { type: 'custom:x', device_id: 'env_1', name: '', visible_badges: [] });
     // The first environment listed is another one: its overrides come and
@@ -166,7 +127,7 @@ describe('Overview editor detail views', () => {
     expect(seen[seen.length - 1]!.environments_overrides).toEqual({ env_1: { stacks: { group_by: 'status' } } });
 
     (el.shadowRoot!.querySelector('.detail-header .row-action-btn') as HTMLElement).click();
-    await settle(el);
+    await rendered(el);
     expect(el.shadowRoot!.querySelector('.detail-header')).toBeNull();
   });
 
@@ -174,7 +135,7 @@ describe('Overview editor detail views', () => {
     const el = await mount('dockhand-overview-card-editor', ALL_SECTIONS);
     const seen = changes(el);
     el.shadowRoot!.querySelector<HTMLElement>('.order-row:not(.section-order-row) .row-action-btn')!.click();
-    await settle(el);
+    await rendered(el);
     const inner = el.shadowRoot!.querySelector(EMBEDDED)!;
     emit(inner, { type: 'custom:x', show_settings_link: false });
     emit(inner, { type: 'custom:x' });
@@ -184,10 +145,10 @@ describe('Overview editor detail views', () => {
   it('falls back to the list when the environment being edited disappears', async () => {
     const el = await mount('dockhand-overview-card-editor', ALL_SECTIONS);
     el.shadowRoot!.querySelector<HTMLElement>('.order-row:not(.section-order-row) .row-action-btn')!.click();
-    await settle(el);
+    await rendered(el);
     expect(el.shadowRoot!.querySelector('.detail-header')).not.toBeNull();
-    el.hass = { ...mockHass(), devices: {} };
-    await settle(el);
+    el.hass = { ...harnessHass(), devices: {} };
+    await rendered(el);
     expect(el.shadowRoot!.querySelector('.detail-header')).toBeNull();
   });
 });

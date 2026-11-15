@@ -1,18 +1,13 @@
 // @vitest-environment jsdom
 /** The card picker's entity suggestions, registered by index.ts. */
-import { describe, it, expect, vi } from 'vitest';
-import { buildMockHass } from '../scripts/screenshot-harness/mock-data.mjs';
+import { describe, it, expect } from 'vitest';
 import type { HomeAssistant } from './common/ha-types';
-
-function mockHass(): HomeAssistant {
-  const { devices, entities, states } = buildMockHass();
-  return { devices, entities, states, language: 'en', locale: { language: 'en' }, callApi: vi.fn() } as unknown as HomeAssistant;
-}
+import { harnessHass } from './common/mount.test-helpers';
 
 describe('card picker suggestions', () => {
   it('suggests a card for every Dockhand entity, and none for others', async () => {
     await import('./index');
-    const hass = mockHass();
+    const hass = harnessHass();
     const suggesters = window.customCards.filter((c) => c.getEntitySuggestion);
     expect(suggesters.length).toBeGreaterThan(0);
     let suggested = 0;

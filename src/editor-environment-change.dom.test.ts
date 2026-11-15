@@ -1,26 +1,12 @@
 // @vitest-environment jsdom
 /** The Container and Stack card editors clear the chosen container or stack
  * when the environment changes: it belongs to the old one. */
-import { describe, it, expect, afterEach } from 'vitest';
-import { buildMockHass } from '../scripts/screenshot-harness/mock-data.mjs';
+import { describe, it, expect } from 'vitest';
 import './render.dom.test-elements';
-import type { HomeAssistant } from './common/ha-types';
-
-type Editor = HTMLElement & { hass: HomeAssistant; setConfig(config: Record<string, unknown>): void; updateComplete: Promise<boolean> };
-
-const mounted: HTMLElement[] = [];
-afterEach(() => {
-  while (mounted.length) mounted.pop()!.remove();
-});
+import { mount } from './common/mount.test-helpers';
 
 async function edit(tag: string, config: Record<string, unknown>, change: Record<string, unknown>): Promise<Record<string, unknown>> {
-  const { devices, entities, states } = buildMockHass();
-  const el = document.createElement(tag) as Editor;
-  el.hass = { devices, entities, states, language: 'en', locale: { language: 'en' } } as unknown as HomeAssistant;
-  el.setConfig(config);
-  document.body.appendChild(el);
-  mounted.push(el);
-  await el.updateComplete;
+  const el = await mount(tag, config);
   let saved: Record<string, unknown> = {};
   el.addEventListener('config-changed', (ev) => (saved = (ev as CustomEvent).detail.config));
   el.shadowRoot!.querySelector('ha-form')!.dispatchEvent(new CustomEvent('value-changed', { detail: { value: { ...config, ...change } } }));

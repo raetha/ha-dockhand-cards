@@ -44,7 +44,7 @@ Before changing entity resolution, editor components, CSS or container-query pat
 
 ### Test data looks like Home Assistant's
 
-Tests are only as good as their `hass`: build it the way Home Assistant does, from `test-fixtures.ts` or the harness's `mock-data.mjs`, and check new fields against Home Assistant's own source rather than assuming them (2026-11-14 audit):
+Tests are only as good as their `hass`: build it the way Home Assistant does, from `test-fixtures.ts` or the harness's `mock-data.mjs` (`harnessHass()` in `common/mount.test-helpers.ts`, which DOM tests use with its `mount()` and `rendered()` rather than their own), and check new fields against Home Assistant's own source rather than assuming them (2026-11-14 audit):
 
 - **`hass.entities`** is the display registry (`config/entity_registry/list_for_display`): enabled entities only, with `labels`, and optional `device_id`, `translation_key` and `entity_category`; no `unique_id`, `disabled_by` or `hidden_by`. A disabled entity is simply absent; `disableEntities()` in `test-fixtures.ts` does that, and lists it where editors look for it.
 - **`hass.devices`** is the full device registry, including `config_entry_id` (Home Assistant 2026.8+); ha-dockhand's identifiers start with the config entry's id (`{entry_id}_stack_{env_id}_{name}`), names are "{environment} – Stacks – {name}", stacks sit under the environment's Stacks group device and stand-alone containers under its Containers group device.

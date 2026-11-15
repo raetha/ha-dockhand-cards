@@ -39,10 +39,8 @@ describe('joinWithDividers', () => {
   });
 
   it('correctly handles whichever section is genuinely first, regardless of its own identity', () => {
-    // Regression case for the real bug: a section that isn't always
-    // first in a card's own fixed order (e.g. Environment's own Custom
-    // mode) must not carry its own leading divider when it happens to
-    // render first.
+    // A section that isn't always first (the Environment card's Custom
+    // mode) has no divider above it when it does come first.
     const el = renderToDom(joinWithDividers([nothing, html`<div class="metrics">metrics</div>`, html`<div class="resources">resources</div>`]));
     const children = [...el.children];
     expect(children[0].className).toBe('metrics');

@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { buildMockHass } from '../../scripts/screenshot-harness/mock-data.mjs';
 import '../render.dom.test-elements';
 import { DockhandDashboardStrategy, DockhandDevicesViewStrategy, DockhandEnvironmentViewStrategy, type DockhandDevicesViewConfig, type DockhandEnvironmentViewConfig } from './strategy';
 import './editor';
 import type { HomeAssistant } from '../common/ha-types';
+import { harnessHass } from '../common/mount.test-helpers';
 
 vi.mock('../common/editor-loader', () => ({ loadEditor: vi.fn().mockResolvedValue(undefined), editorUrl: (u: string) => u }));
 
@@ -12,28 +12,13 @@ type Card = Record<string, unknown> & { cards?: Card[] };
 type Section = Card & { cards: Card[] };
 type View = { title: string; path: string; subview?: boolean; back_path?: string; max_columns?: number; strategy?: DockhandEnvironmentViewConfig | DockhandDevicesViewConfig; sections?: Section[] };
 
-function mockHass(): HomeAssistant {
-  const { devices, entities, states } = buildMockHass();
-  return {
-    devices,
-    entities,
-    states,
-    language: 'en',
-    locale: { language: 'en', number_format: 'language', time_format: 'language' },
-    themes: { darkMode: false },
-    callApi: vi.fn().mockResolvedValue([]),
-    callService: vi.fn().mockResolvedValue(undefined),
-    callWS: vi.fn().mockResolvedValue({})
-  } as unknown as HomeAssistant;
-}
-
-const dashboard = async (config: Record<string, unknown> = {}, hass = mockHass()) =>
+const dashboard = async (config: Record<string, unknown> = {}, hass = harnessHass()) =>
   ((await DockhandDashboardStrategy.generate({ type: 'custom:dockhand', ...config }, hass)) as { views: View[] }).views;
 
-const environmentView = async (view: View, hass = mockHass()) =>
+const environmentView = async (view: View, hass = harnessHass()) =>
   ((await DockhandEnvironmentViewStrategy.generate(view.strategy as DockhandEnvironmentViewConfig, hass)) as { sections: Section[] }).sections;
 
-const devicesView = async (view: View, hass = mockHass()) =>
+const devicesView = async (view: View, hass = harnessHass()) =>
   (await DockhandDevicesViewStrategy.generate(view.strategy as DockhandDevicesViewConfig, hass)) as { max_columns: number; sections: Section[] };
 
 const environmentViews = (views: View[]) => views.filter((v) => v.strategy?.type === 'custom:dockhand-environment');
@@ -73,7 +58,7 @@ describe('Dockhand dashboard strategy', () => {
   });
 
   it('makes a single environment’s own view the dashboard, with the global schedules and its two pages', async () => {
-    const hass = mockHass();
+    const hass = harnessHass();
     const views = await dashboard({ exclude_device_ids: ['env_2', 'env_3', 'env_4'] }, hass);
     expect(views).toHaveLength(3);
     expect(views[0]).toMatchObject({ title: 'Nebula', strategy: { device_id: 'env_1', alone: true } });
@@ -112,7 +97,7 @@ describe('Dockhand dashboard strategy', () => {
   });
 
   it('can be limited to one Dockhand instance', async () => {
-    const hass = mockHass();
+    const hass = harnessHass();
     hass.devices.env_3 = { ...hass.devices.env_3, config_entry_id: 'other' };
     const views = await dashboard({ config_entry_id: hass.devices.env_1.config_entry_id }, hass);
     expect(environmentViews(views).map((v) => v.title)).not.toContain(hass.devices.env_3.name);
@@ -120,12 +105,12 @@ describe('Dockhand dashboard strategy', () => {
   });
 
   it('says what to do when there are no environments', async () => {
-    const views = (await dashboard({}, { ...mockHass(), devices: {}, entities: {} } as HomeAssistant)) as unknown as { cards: { content: string }[] }[];
+    const views = (await dashboard({}, { ...harnessHass(), devices: {}, entities: {} } as HomeAssistant)) as unknown as { cards: { content: string }[] }[];
     expect(views[0].cards[0].content).toContain('Add the Dockhand integration');
   });
 
   it('is built again only when the environments change', () => {
-    const hass = mockHass();
+    const hass = harnessHass();
     expect(DockhandDashboardStrategy.shouldRegenerate({}, hass, { ...hass, states: {} } as HomeAssistant)).toBe(false);
     const fewer = { ...hass, devices: Object.fromEntries(Object.entries(hass.devices).filter(([id]) => id !== 'env_4')) } as HomeAssistant;
     expect(DockhandDashboardStrategy.shouldRegenerate({}, hass, fewer)).toBe(true);
@@ -135,7 +120,7 @@ describe('Dockhand dashboard strategy', () => {
   });
 
   it('shows the environment’s host details as badges, those turned on, and is built again when one is turned on', async () => {
-    const hass = mockHass();
+    const hass = harnessHass();
     const generate = async (h: HomeAssistant, deviceId: string, settings = {}) =>
       (await DockhandEnvironmentViewStrategy.generate({ type: 'custom:dockhand-environment', device_id: deviceId, settings }, h)) as { badges?: Card[] };
     const nebula = Object.values(hass.devices).find((d) => d.name === 'Nebula')!.id;
@@ -195,7 +180,7 @@ describe('Dockhand environment view', () => {
   });
 
   it('leaves out vulnerabilities where scanning is not set up', async () => {
-    const hass = mockHass();
+    const hass = harnessHass();
     for (const [id, entry] of Object.entries(hass.entities)) if (entry.translation_key === 'vulnerabilities') delete hass.entities[id];
     const sections = await environmentView(await firstView(), hass);
     expect(sections.flatMap((s) => types(s.cards))).not.toContain('vulnerability');
@@ -204,7 +189,7 @@ describe('Dockhand environment view', () => {
   });
 
   it('generates configs every card accepts', async () => {
-    const hass = mockHass();
+    const hass = harnessHass();
     const views = await dashboard({}, hass);
     const [overview] = views;
     const view = environmentViews(views)[0];
@@ -233,7 +218,7 @@ describe('Dockhand environment view', () => {
 });
 
 describe('Dockhand Stacks and Containers pages', () => {
-  const page = async (kind: 'stacks' | 'containers', config: Record<string, unknown> = {}, hass = mockHass()) => {
+  const page = async (kind: 'stacks' | 'containers', config: Record<string, unknown> = {}, hass = harnessHass()) => {
     const views = await dashboard(config, hass);
     return views.find((v) => v.strategy?.type === 'custom:dockhand-devices' && v.strategy.device_id === 'env_1' && v.strategy.kind === kind)!;
   };
@@ -254,14 +239,14 @@ describe('Dockhand Stacks and Containers pages', () => {
   });
 
   it('keeps a name the device was given in Home Assistant', async () => {
-    const hass = mockHass();
+    const hass = harnessHass();
     hass.devices.stack_1_core = { ...hass.devices.stack_1_core, name_by_user: 'Core services' };
     const { sections } = await devicesView(await page('stacks', {}, hass), hass);
     expect(sections[0].cards[0].name).toBe('Core services');
   });
 
   it('says so when there are none, and is built again when they come and go', async () => {
-    const hass = mockHass();
+    const hass = harnessHass();
     const view = await page('stacks', {}, hass);
     const none = { ...hass, devices: Object.fromEntries(Object.entries(hass.devices).filter(([id]) => !id.startsWith('stack_1_'))) } as HomeAssistant;
     const { sections } = await devicesView(view, none);
@@ -279,7 +264,7 @@ describe('Dockhand dashboard settings', () => {
   let el: Editor | undefined;
   afterEach(() => el?.remove());
 
-  async function mount(config: Record<string, unknown>, hass = mockHass()): Promise<{ seen: Record<string, unknown>[] }> {
+  async function mount(config: Record<string, unknown>, hass = harnessHass()): Promise<{ seen: Record<string, unknown>[] }> {
     el = document.createElement('dockhand-dashboard-strategy-editor') as Editor;
     el.setConfig({ type: 'custom:dockhand', ...config });
     document.body.appendChild(el);
@@ -406,7 +391,7 @@ describe('Dockhand dashboard settings', () => {
     await mount({});
     expect(root().querySelector('ha-form:not(.badges)')).toBeNull();
     el!.remove();
-    const hass = mockHass();
+    const hass = harnessHass();
     hass.devices.env_3 = { ...hass.devices.env_3, config_entry_id: 'other' };
     const { seen } = await mount({}, hass);
     const form = root().querySelector('ha-form:not(.badges)') as HTMLElement & { schema: { selector: { select: { options: { value: string }[] } } }[] };
@@ -444,7 +429,7 @@ describe('Dockhand dashboard settings', () => {
       cards: { environment: { containers: { show_controls: true }, environments: { mode: 'compact' } }, overview: { updates: { show_controls: true } } }
     });
     // A new hass reaches the open editor.
-    const hass = mockHass();
+    const hass = harnessHass();
     el!.hass = hass;
     expect((editor as unknown as { _hass: unknown })._hass).toBe(hass);
   });

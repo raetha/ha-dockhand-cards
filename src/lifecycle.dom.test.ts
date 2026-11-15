@@ -6,8 +6,8 @@
  * Environment card's history sparklines.
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { buildMockHass } from '../scripts/screenshot-harness/mock-data.mjs';
 import type { HomeAssistant } from './common/ha-types';
+import { harnessHass } from './common/mount.test-helpers';
 
 vi.mock('./common/editor-loader', () => ({ loadEditor: vi.fn().mockResolvedValue(undefined), editorUrl: (u: string) => u }));
 
@@ -26,21 +26,8 @@ type Lit = HTMLElement & {
   getGridOptions?: () => Record<string, unknown>;
 };
 
-function mockHass(history: unknown[] = []): HomeAssistant {
-  const { devices, entities, states } = buildMockHass();
-  return {
-    devices,
-    entities,
-    states,
-    language: 'en',
-    locale: { language: 'en', number_format: 'language', time_format: 'language' },
-    themes: { darkMode: true },
-    callApi: vi.fn().mockResolvedValue(history),
-    callService: vi.fn().mockResolvedValue(undefined),
-    callWS: vi.fn().mockResolvedValue({}),
-    formatEntityName: vi.fn().mockReturnValue('Composed name')
-  } as unknown as HomeAssistant;
-}
+const mockHass = (history: unknown[] = []): HomeAssistant =>
+  Object.assign(harnessHass({ darkMode: true, history }), { formatEntityName: vi.fn().mockReturnValue('Composed name') });
 
 const mounted: HTMLElement[] = [];
 afterEach(() => {
