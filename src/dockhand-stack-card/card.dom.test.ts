@@ -130,8 +130,8 @@ describe('Stack card container pills', () => {
     const card = await mount(hass);
     const pill = (name: string) => [...card.shadowRoot!.querySelectorAll<HTMLElement>('.label-row .label-pill')].find((p) => p.textContent?.trim() === name)!;
     const icons = (name: string) => [...pill(name).querySelectorAll('ha-icon')].map((i) => `${i.getAttribute('icon')} ${i.getAttribute('class') ?? ''}`.trim());
-    expect(icons('web')).toEqual(['mdi:arrow-up-circle update-icon', 'mdi:play-circle pill-state ok']);
-    expect(icons('db')).toEqual(['mdi:tag-arrow-up-outline update-icon', 'mdi:stop-circle pill-state error']);
+    expect(icons('web')).toEqual(['mdi:arrow-up-circle update-icon clickable', 'mdi:play-circle pill-state ok']);
+    expect(icons('db')).toEqual(['mdi:tag-arrow-up-outline update-icon clickable', 'mdi:stop-circle pill-state error']);
     expect(icons('idle')).toEqual(['mdi:pause-circle pill-state warn']);
     expect(pill('idle').querySelector('.pill-state')!.getAttribute('title')).toBe('Paused');
   });

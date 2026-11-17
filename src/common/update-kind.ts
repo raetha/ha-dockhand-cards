@@ -81,8 +81,9 @@ export function updateKindIcon(hass: HassLanguage, status: UpdateStatus): { icon
 export function renderUpdateKindIcon(hass: HassLanguage, status: UpdateStatus, onClick?: () => void): TemplateResult {
   const { icon, color, title } = updateKindIcon(hass, status);
   if (!onClick) return html`<ha-icon icon=${icon} style="color:${color}" title=${title}></ha-icon>`;
+  // .clickable: its own hover highlight, and none on the element around it.
   return html`<ha-icon
-    class="update-icon"
+    class="update-icon clickable"
     icon=${icon}
     style="color:${color}"
     title=${title}
