@@ -316,6 +316,17 @@ export const CONTAINER_STATE_CLASS: Record<string, string> = {
   dead: 'neutral'
 };
 
+/** The Container card's icon for each container state, shared with the
+ * Stack card's container pills so both show a state the same way. */
+export const CONTAINER_STATE_ICON: Record<string, string> = {
+  running: 'mdi:play-circle',
+  paused: 'mdi:pause-circle',
+  restarting: 'mdi:refresh-circle',
+  exited: 'mdi:stop-circle',
+  dead: 'mdi:close-circle',
+  created: 'mdi:circle-outline'
+};
+
 /** Default header badges for the Container and Stack cards, used when their
  * `icon` config option is unset. */
 export const DEFAULT_CONTAINER_ICON = 'mdi:docker';

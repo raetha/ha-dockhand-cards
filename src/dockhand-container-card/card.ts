@@ -16,20 +16,11 @@ import { t } from '../common/i18n-card';
 import { updateKindIcon, updateStatus } from '../common/update-kind';
 import { stateLabel } from '../common/state-label';
 import { renderSettingsLink, renderIcon } from '../common/icon';
-import { CONTAINER_STATE_CLASS, HEALTH_ICON, HEALTH_STATUS_CLASS, DEFAULT_CONTAINER_ICON, UPDATE_PENDING_VERSION } from '../common/const';
+import { CONTAINER_STATE_CLASS, CONTAINER_STATE_ICON, HEALTH_ICON, HEALTH_STATUS_CLASS, DEFAULT_CONTAINER_ICON, UPDATE_PENDING_VERSION } from '../common/const';
 import { renderHeaderControls, resolveDeviceControls } from '../common/device-controls';
 import { DEFAULT_CONTAINER_SECTIONS, type DockhandContainerCardConfig } from './types';
 import { renderTagRow } from '../common/tag-pills';
 import { cardStyles } from './styles';
-
-const STATE_ICON: Record<string, string> = {
-  running: 'mdi:play-circle',
-  paused: 'mdi:pause-circle',
-  restarting: 'mdi:refresh-circle',
-  exited: 'mdi:stop-circle',
-  dead: 'mdi:close-circle',
-  created: 'mdi:circle-outline'
-};
 
 export class DockhandContainerCard extends LitElement implements LovelaceCard {
   constructor() {
@@ -191,7 +182,7 @@ export class DockhandContainerCard extends LitElement implements LovelaceCard {
             ${renderIcon({
               baseClass: 'hero-word',
               colorClass: CONTAINER_STATE_CLASS[state] as 'ok' | 'warn' | 'error' | 'neutral' | undefined,
-              icon: STATE_ICON[state] ?? 'mdi:help-circle',
+              icon: CONTAINER_STATE_ICON[state] ?? 'mdi:help-circle',
               text: stateLabel(this._hass, 'container_state', state, s.state.state),
               onClick: () => this._moreInfo(s.state!.entityId)
             })}

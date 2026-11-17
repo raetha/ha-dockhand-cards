@@ -120,6 +120,19 @@ describe('Stack card container pills', () => {
     expect(icon('proxy').getAttribute('icon')).toBe('mdi:pin-outline');
     expect(icon('cache').getAttribute('icon')).toBe('mdi:clock-outline');
     expect(icon('cache').getAttribute('title')).toBe('Update held: 6 h left of the minimum image age');
-    expect(pills.find((p) => p.textContent?.trim() === 'idle')!.querySelector('ha-icon')).toBeNull();
+    expect(pills.find((p) => p.textContent?.trim() === 'idle')!.querySelector('ha-icon:not(.pill-state)')).toBeNull();
+  });
+
+  it('shows each container’s state as the Container card does, after any update icon', async () => {
+    const hass = hassWithContainers();
+    hass.states['sensor.db_state'] = { ...hass.states['sensor.db_state'], state: 'exited' };
+    hass.states['sensor.idle_state'] = { ...hass.states['sensor.idle_state'], state: 'paused' };
+    const card = await mount(hass);
+    const pill = (name: string) => [...card.shadowRoot!.querySelectorAll<HTMLElement>('.label-row .label-pill')].find((p) => p.textContent?.trim() === name)!;
+    const icons = (name: string) => [...pill(name).querySelectorAll('ha-icon')].map((i) => `${i.getAttribute('icon')} ${i.getAttribute('class') ?? ''}`.trim());
+    expect(icons('web')).toEqual(['mdi:arrow-up-circle', 'mdi:play-circle pill-state ok']);
+    expect(icons('db')).toEqual(['mdi:tag-arrow-up-outline', 'mdi:stop-circle pill-state neutral']);
+    expect(icons('idle')).toEqual(['mdi:pause-circle pill-state warn']);
+    expect(pill('idle').querySelector('.pill-state')!.getAttribute('title')).toBe('Paused');
   });
 });

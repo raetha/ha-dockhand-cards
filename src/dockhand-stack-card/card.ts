@@ -1,5 +1,6 @@
 import { loadEditor } from '../common/editor-loader';
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
+import type { HassEntity } from 'home-assistant-js-websocket';
 import { state } from 'lit/decorators.js';
 import { fireEvent, type LovelaceCard, type LovelaceCardEditor } from 'custom-card-helpers';
 
@@ -7,7 +8,7 @@ import type { HomeAssistant, LovelaceGridOptions, DeviceRegistryEntry } from '..
 import { defaultCardName, getAllStackDevices, getEnvIdForStackDevice, getEnvDeviceForEnvId, getContainerDevicesForEnvironment, getRepresentativeEntityId, getContainerName } from '../common/device-utils';
 import { resolveCardName } from '../common/card-name';
 import { resolveStackEntities, resolveContainerEntities, findPrimaryEntityByDomain, type ResolutionResult } from '../common/entity-resolver';
-import { DEFAULT_STACK_ICON, STACK_STATUS_CLASS, type StackTranslationKey } from '../common/const';
+import { CONTAINER_STATE_CLASS, CONTAINER_STATE_ICON, DEFAULT_STACK_ICON, STACK_STATUS_CLASS, type StackTranslationKey } from '../common/const';
 import { getDockhandBaseUrl, formatRelativeTime } from '../common/format';
 import { t } from '../common/i18n-card';
 import { stateLabel } from '../common/state-label';
@@ -36,6 +37,8 @@ const SYNC_ICON: Record<string, string> = {
 
 interface ContainerPillInfo {
   entityId: string;
+  /** The container's State entity's state object. */
+  state: HassEntity;
   /** See updateStatus() in common/update-kind.ts. */
   updateStatus?: UpdateStatus;
 }
@@ -198,6 +201,15 @@ export class DockhandStackCard extends LitElement implements LovelaceCard {
                   const info = containerInfo.get(name);
                   // Same icons as the Updates card's rows.
                   const updateIcon = info?.updateStatus ? renderUpdateKindIcon(this._hass, info.updateStatus) : nothing;
+                  // The Container card's state icon and color, after the
+                  // update icon so updates line up at the start of the pills.
+                  const stateIcon = info
+                    ? html`<ha-icon
+                        class="pill-state ${CONTAINER_STATE_CLASS[info.state.state] ?? 'neutral'}"
+                        icon=${CONTAINER_STATE_ICON[info.state.state] ?? 'mdi:help-circle'}
+                        title=${stateLabel(this._hass, 'container_state', info.state.state, info.state)}
+                      ></ha-icon>`
+                    : nothing;
                   return info
                     ? html`<span
                         class="label-pill clickable"
@@ -205,7 +217,7 @@ export class DockhandStackCard extends LitElement implements LovelaceCard {
                         role="button"
                         @click=${() => this._moreInfo(info.entityId)}
                         @keydown=${onKeydownActivate(() => this._moreInfo(info.entityId))}
-                        >${updateIcon}${name}</span
+                        >${updateIcon}${stateIcon}${name}</span
                       >`
                     : html`<span class="label-pill">${name}</span>`;
                 })}
@@ -248,6 +260,7 @@ export class DockhandStackCard extends LitElement implements LovelaceCard {
         const update = findPrimaryEntityByDomain(this._hass, containerDevice.id, 'update');
         map.set(rawName, {
           entityId: found.state.entityId,
+          state: found.state.state,
           updateStatus: updateStatus(update?.state)
         });
       }

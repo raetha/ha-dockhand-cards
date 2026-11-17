@@ -16,6 +16,20 @@ export const cardStyles = css`
   .sync-status.error {
     color: var(--dockhand-status-error-text-color);
   }
+  /* A container pill's state icon, colored as the Container card colors
+   * its state. */
+  .pill-state.ok {
+    color: var(--dockhand-status-ok-text-color);
+  }
+  .pill-state.warn {
+    color: var(--dockhand-status-warn-text-color);
+  }
+  .pill-state.error {
+    color: var(--dockhand-status-error-text-color);
+  }
+  .pill-state.neutral {
+    color: var(--secondary-text-color);
+  }
   .sync-error-banner {
     align-items: flex-start;
   }
