@@ -30,8 +30,10 @@ function hassWithContainer(update: { state: string; latest?: string; newer?: str
 
 const mount = (hass: HomeAssistant, config: Record<string, unknown> = {}) => mountTag<ContainersCardElement>(TAG, { type: 'custom:dockhand-containers-card', ...config }, hass);
 
+/** What the first row shows on its right, in order: the contents of its
+ * column cells. */
 function rightItems(card: ContainersCardElement): Element[] {
-  return [...card.shadowRoot!.querySelector('.row .row-right')!.children];
+  return [...card.shadowRoot!.querySelectorAll('.row .cell')].flatMap((cell) => [...cell.children]);
 }
 
 function updateIcon(card: ContainersCardElement): Element | undefined {
@@ -154,5 +156,23 @@ describe('Containers card on a narrow row', () => {
     narrow = false;
     resize();
     for (const cls of ['compact-version', 'compact-tags', 'no-tags']) expect(row.classList.contains(cls)).toBe(false);
+  });
+});
+
+describe('Containers card aligned columns', () => {
+  it('has a column for each detail shown (updates take two: pill and icon), in order, and a cell for it on every row', async () => {
+    const hass = hassWithContainer({ state: 'on', latest: 'update-pending', newer: '17.6' });
+    const list = async (config: Record<string, unknown>) => (await mount(hass, config)).shadowRoot!.querySelector<HTMLElement>('.list.aligned')!;
+    const all = await list({ show_controls: true });
+    // Its container has a newer version and an update, but no health check or
+    // stats: those columns aren't there.
+    expect(all.style.gridTemplateColumns).toBe('minmax(0px, 1fr) auto auto auto');
+    const row = all.querySelector('.row')!;
+    expect([...row.children].map((c) => c.className)).toEqual(['row-left row-target', 'cell', 'cell', 'row-actions']);
+    // A hidden detail has no column at all, nor one no row has.
+    const some = await list({ visible_badges: ['updates', 'memory'] });
+    expect(some.style.gridTemplateColumns).toBe('minmax(0px, 1fr) auto auto');
+    const none = await list({ visible_badges: ['memory'] });
+    expect(none.style.gridTemplateColumns).toBe('minmax(0px, 1fr)');
   });
 });

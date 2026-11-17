@@ -60,7 +60,9 @@ describe.each([
     for (const running of [true, false]) {
       const card = await mount(tag, type, hassWithDevice(kind, running), { show_controls: true });
       const column = card.shadowRoot!.querySelector('.row .row-actions')!;
-      expect(column.previousElementSibling?.classList.contains('row-right')).toBe(true);
+      // Last on the row: after its details, or their column cells if any.
+      expect(column.nextElementSibling).toBeNull();
+      expect(column.previousElementSibling?.matches('.row-right, .cell, .row-left')).toBe(true);
       expect(column.children.length).toBe(2);
       card.remove();
     }
