@@ -73,7 +73,9 @@ export class DockhandStacksCardEditor extends LitElement implements LovelaceCard
             options: [
               { value: 'name', label: t(this._hass, 'sort_by_name') },
               { value: 'status', label: t(this._hass, 'sort_by_status') },
-              { value: 'containers', label: t(this._hass, 'sort_by_containers') }
+              { value: 'containers', label: t(this._hass, 'sort_by_containers') },
+              { value: 'cpu', label: t(this._hass, 'sort_by_cpu') },
+              { value: 'memory', label: t(this._hass, 'sort_by_memory') }
             ]
           }
         }
@@ -99,6 +101,8 @@ export class DockhandStacksCardEditor extends LitElement implements LovelaceCard
             options: {
               container_count: t(this._hass, 'badge_container_count'),
               updates: t(this._hass, 'badge_updates'),
+              cpu: t(this._hass, 'badge_cpu'),
+              memory: t(this._hass, 'badge_memory'),
               type: t(this._hass, 'badge_type'),
               tags: t(this._hass, 'badge_tags'),
               ...(this.cardIsEmbedded ? {} : { environment: t(this._hass, 'badge_environment') })

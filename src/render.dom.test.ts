@@ -94,6 +94,26 @@ describe('every editor renders', () => {
   });
 });
 
+describe('Stacks card resource use', () => {
+  it('shows CPU and memory in use by default, as on the Containers card', async () => {
+    const hass = harnessHass();
+    const add = (key: string, state: string, unit: string) => {
+      const entityId = `sensor.core_${key}`;
+      hass.entities[entityId] = { entity_id: entityId, device_id: 'stack_1_core', platform: 'dockhand', translation_key: key } as never;
+      hass.states[entityId] = { entity_id: entityId, state, attributes: { unit_of_measurement: unit }, last_changed: '', last_updated: '', context: { id: '' } } as never;
+    };
+    add('stack_cpu_percent', '12.6', '%');
+    add('stack_memory_usage', '512', 'MiB');
+    hass.entities = { ...hass.entities };
+    const el = await mount('dockhand-stacks-card', {}, hass);
+    const text = el.shadowRoot!.textContent!.replace(/\s+/g, ' ');
+    expect(text).toContain('13%');
+    expect(text).toContain('512.0 MB');
+    const hidden = await mount('dockhand-stacks-card', { visible_badges: ['updates'] }, hass);
+    expect(hidden.shadowRoot!.textContent).not.toContain('512.0 MB');
+  });
+});
+
 describe('Stacks card update count', () => {
   it('comes from the stack’s Pending updates sensor', async () => {
     const hass = harnessHass();

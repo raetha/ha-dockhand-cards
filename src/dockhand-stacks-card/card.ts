@@ -8,7 +8,7 @@ import { getEnvironmentDevices, getStackDevicesForEnvironment, getRepresentative
 import { resolveCardName, multiEnvCardNameFallback } from '../common/card-name';
 import { resolveIncludedOrdered, groupRowsByEnvironment, resolveEffectiveGroupBy } from '../common/environment-scope';
 import { resolveStackEntities, type ResolutionResult } from '../common/entity-resolver';
-import { getDockhandBaseUrl, numericState } from '../common/format';
+import { bytesState, formatBytes, formatPercent, getDockhandBaseUrl, numericState } from '../common/format';
 import { t } from '../common/i18n-card';
 import { stateLabel } from '../common/state-label';
 import { renderSettingsLink, renderIcon, onKeydownActivate } from '../common/icon';
@@ -91,6 +91,15 @@ function containerCount(row: StackRow): number {
   return numericState(row.found.containersInStack?.state.state) ?? -1;
 }
 
+/** The stack's CPU percentage in whole percent, as the row shows it (so
+ * rows showing the same number sort by name), or its memory in use in
+ * bytes, as Dockhand's stacks list sorts it; -1 when it has none, so
+ * those sort last. */
+function usage(row: StackRow, sortBy: 'cpu' | 'memory'): number {
+  const value = sortBy === 'cpu' ? numericState(row.found.cpuPercent?.state.state) : bytesState(row.found.memoryUsage?.state);
+  return value === undefined ? -1 : Math.round(value);
+}
+
 export function sortStackRows(rows: StackRow[], sortBy: StacksSortBy): StackRow[] {
   const sorted = [...rows];
   sorted.sort((a, b) => {
@@ -100,6 +109,9 @@ export function sortStackRows(rows: StackRow[], sortBy: StacksSortBy): StackRow[
       if (rankA !== rankB) return rankA - rankB;
     } else if (sortBy === 'containers') {
       const diff = containerCount(b) - containerCount(a);
+      if (diff !== 0) return diff;
+    } else if (sortBy === 'cpu' || sortBy === 'memory') {
+      const diff = usage(b, sortBy) - usage(a, sortBy);
       if (diff !== 0) return diff;
     }
     return byNameThenEnvironment(a, b);
@@ -226,7 +238,7 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
       const stackDevices = envDevice ? getStackDevicesForEnvironment(this._hass!, envDevice) : [];
       return stackDevices
         .map((d) => {
-          const { found } = resolveStackEntities(this._hass!, d.id, ['status', 'containersInStack', 'updatesAvailable', 'pendingUpdates']);
+          const { found } = resolveStackEntities(this._hass!, d.id, ['status', 'containersInStack', 'updatesAvailable', 'pendingUpdates', 'cpuPercent', 'memoryUsage']);
           if (!found.status) return null;
           const attrs = found.status.state.attributes;
           return {
@@ -322,6 +334,11 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
     const updatesOn = found.updatesAvailable?.state.state === 'on';
     const updateCount = numericState(found.pendingUpdates?.state.state);
     const updatesId = found.updatesAvailable?.entityId;
+    const cpu = numericState(found.cpuPercent?.state.state);
+    // Memory in use rather than a percentage, as Dockhand's stacks list
+    // shows it: Dockhand reports no percentage for a stack, and its limit is
+    // the largest single container's, not the stack's.
+    const mem = bytesState(found.memoryUsage?.state);
     const id = found.status!.entityId;
     const visible = new Set(this._config?.visible_badges ?? DEFAULT_STACKS_BADGES);
 
@@ -352,6 +369,22 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
                 text: `${containerCount}`,
                 title: t(this._hass, 'label_containers'),
                 onClick: () => this._moreInfo(containerCountId)
+              })
+            : nothing}
+          ${cpu !== undefined && visible.has('cpu')
+            ? renderIcon({
+                baseClass: 'row-icon',
+                icon: 'mdi:cpu-64-bit',
+                text: formatPercent(cpu, this._hass, 0),
+                onClick: () => this._moreInfo(found.cpuPercent?.entityId)
+              })
+            : nothing}
+          ${mem !== undefined && visible.has('memory')
+            ? renderIcon({
+                baseClass: 'row-icon',
+                icon: 'mdi:memory',
+                text: formatBytes(mem, this._hass),
+                onClick: () => this._moreInfo(found.memoryUsage?.entityId)
               })
             : nothing}
         </div>

@@ -99,3 +99,21 @@ describe('isProblem', () => {
     expect(isProblem(row({ status: 'running' }), hass('synced'))).toBe(false);
   });
 });
+
+describe('sortStackRows by resource use', () => {
+  const stats = (cpu: string | undefined, memMiB: string | undefined) =>
+    ({
+      cpuPercent: cpu === undefined ? undefined : { state: { state: cpu, attributes: { unit_of_measurement: '%' } } },
+      memoryUsage: memMiB === undefined ? undefined : { state: { state: memMiB, attributes: { unit_of_measurement: 'MiB' } } }
+    }) as never;
+
+  it('puts the busiest CPU first, in whole percent, then by name; none last', () => {
+    const rows = [row({ name: 'b', found: stats('2.4', '1') }), row({ name: 'none', found: stats(undefined, undefined) }), row({ name: 'c', found: stats('9', '1') }), row({ name: 'a', found: stats('2.1', '1') })];
+    expect(sortStackRows(rows, 'cpu').map((r) => r.name)).toEqual(['c', 'a', 'b', 'none']);
+  });
+
+  it('puts the most memory in use first, by amount, as Dockhand does', () => {
+    const rows = [row({ name: 'small', found: stats('1', '100') }), row({ name: 'none', found: stats('1', undefined) }), row({ name: 'big', found: stats('1', '2048') })];
+    expect(sortStackRows(rows, 'memory').map((r) => r.name)).toEqual(['big', 'small', 'none']);
+  });
+});

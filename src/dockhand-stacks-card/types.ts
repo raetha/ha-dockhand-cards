@@ -9,9 +9,12 @@ import type { FiltersConfig } from '../common/filters';
  * 'environment' is new alongside multi-environment support — same
  * checkbox-group convention as everything else here (docs/
  * editor-design.md rule 5), not a standalone toggle. */
-export type StacksCardBadge = 'container_count' | 'updates' | 'type' | 'environment' | 'tags';
+export type StacksCardBadge = 'container_count' | 'updates' | 'cpu' | 'memory' | 'type' | 'environment' | 'tags';
 
-export const DEFAULT_STACKS_BADGES: StacksCardBadge[] = ['container_count', 'updates', 'type', 'tags'];
+/** CPU and memory are on by default, as on the Containers card; they show
+ * only while ha-dockhand's container and stack stats are on. Memory is the
+ * amount in use, as Dockhand's stacks list shows it. */
+export const DEFAULT_STACKS_BADGES: StacksCardBadge[] = ['container_count', 'updates', 'cpu', 'memory', 'type', 'tags'];
 
 /** 'status'/'type' group by the same fields STATUS_ICON/the type pill
  * already expose per row in card.ts — no new data needed to support
@@ -20,9 +23,9 @@ export type StacksGroupBy = 'none' | 'environment' | 'status' | 'type';
 
 /** 'status' sorts problems first, matching every other card's own
  * status-priority ordering (see card.ts's STATUS_RANK); 'containers'
- * puts the stacks with the most containers first. Ties fall back to the
- * name. */
-export type StacksSortBy = 'name' | 'status' | 'containers';
+ * puts the stacks with the most containers first, 'cpu' and 'memory' the
+ * busiest (memory by the amount in use). Ties fall back to the name. */
+export type StacksSortBy = 'name' | 'status' | 'containers' | 'cpu' | 'memory';
 
 export interface DockhandStacksCardConfig extends LovelaceCardConfig {
   type: 'custom:dockhand-stacks-card';
