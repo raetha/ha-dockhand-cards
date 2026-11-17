@@ -16,6 +16,19 @@ export const cardStyles = css`
   .sync-status.error {
     color: var(--dockhand-status-error-text-color);
   }
+  /* A container pill's update icon opens the update: a round highlight
+   * a little larger than the 12px icon (the negative margin keeps the
+   * pill's size), stronger than .clickable's usual one, so it's clear the
+   * icon and not the pill will take the click. */
+  .label-row .label-pill .update-icon.clickable {
+    padding: 2px;
+    margin: -2px;
+    border-radius: 50%;
+  }
+  .label-row .label-pill .update-icon.clickable:hover {
+    background: rgb(from var(--primary-color) r g b / 0.25);
+    opacity: 1;
+  }
   /* A container pill's state icon, colored as the Container card colors
    * its state. */
   .pill-state.ok {
