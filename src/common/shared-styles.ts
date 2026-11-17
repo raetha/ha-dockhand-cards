@@ -304,7 +304,7 @@ export const sharedStyles = css`
    * wrongly *after* the line (padding comes after border in the box
    * model) on top of .divider's own correct margin, roughly doubling
    * the gap after every divider on the page. */
-  .body > *:not(.section):not(.grid-2):not(.divider):not(.hero-row),
+  .body > *:not(.section):not(.grid-2):not(.divider):not(.hero-row):not(.list),
   .section > *,
   .list > *,
   .grid-2 > * {
@@ -559,22 +559,45 @@ export const sharedStyles = css`
     background: var(--dockhand-status-error-color);
   }
 
-  /* The list mechanism — two shapes, for two genuinely different needs.
-   *
-   * .list: no column alignment across rows (Stacks/Containers, plural,
-   * list cards — each row's own badge count varies, so there's no
-   * consistent set of columns to align in the first place, and — per
-   * direct instruction — for column-aligned lists too (Schedules,
-   * Updates, Recent Events, Top Containers), abandoning subgrid-based
-   * cross-row column alignment for simplicity: rows just group their
-   * own left/right content via .row's own justify-content, rather
-   * than sharing column tracks across the whole list. No box of its
-   * own — its rows become effectively direct children of whatever
-   * actually wraps them (.body/.section), getting the standard
-   * context padding above via the .list > * selector there, same as
-   * any other row would. */
+  /* A list card's rows. .list has no box of its own: its rows are laid out
+   * by .row (name on the left, details on the right) and get the standard
+   * context padding through .list > *. .list.aligned, below, lines the
+   * details up in columns instead. */
   .list {
     display: contents;
+  }
+  /* .list.aligned (the Containers card): the row details on the right line
+   * up in columns down the whole card. The card sets the columns: the name
+   * side, then one per detail shown that some row has, each as wide as its
+   * widest value (auto). Rows take the list's columns (subgrid) and keep a
+   * cell in every column, empty when they have nothing for it; group
+   * headers and dividers span them all. */
+  .list.aligned {
+    display: grid;
+    column-gap: var(--ha-space-2, 8px);
+  }
+  .list.aligned > * {
+    grid-column: 1 / -1;
+  }
+  .list.aligned > .divider {
+    padding: 0;
+  }
+  .list.aligned > .row {
+    display: grid;
+    grid-template-columns: subgrid;
+  }
+  /* The name side fills its column and no more (a flex row's margin-right:
+   * auto for controls, below, would size it to its content here). */
+  .list.aligned > .row > .row-left {
+    margin-right: 0;
+  }
+  /* Left-aligned, so the icons of a column line up. */
+  .list.aligned > .row > .cell {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--ha-space-2, 8px);
+    line-height: 1;
   }
   /* The large, prominent status text at the top of a single-device card
    * (a container's own state, a stack's own status) — inherits its own
