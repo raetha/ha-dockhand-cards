@@ -10,7 +10,7 @@ vi.mock('../common/editor-loader', () => ({ loadEditor: vi.fn().mockResolvedValu
 
 type Card = Record<string, unknown> & { cards?: Card[] };
 type Section = Card & { cards: Card[] };
-type View = { title: string; path: string; subview?: boolean; back_path?: string; max_columns?: number; strategy?: DockhandEnvironmentViewConfig | DockhandDevicesViewConfig; sections?: Section[] };
+type View = { title: string; path: string; icon?: string; show_icon_and_title?: boolean; subview?: boolean; back_path?: string; max_columns?: number; strategy?: DockhandEnvironmentViewConfig | DockhandDevicesViewConfig; sections?: Section[] };
 
 const dashboard = async (config: Record<string, unknown> = {}, hass = harnessHass()) =>
   ((await DockhandDashboardStrategy.generate({ type: 'custom:dockhand', ...config }, hass)) as { views: View[] }).views;
@@ -31,9 +31,9 @@ describe('Dockhand dashboard strategy', () => {
     expect(views[0].title).toBe('Overview');
     const environments = environmentViews(views);
     expect(environments.map((v) => v.title)).toEqual(['Aurora', 'Nebula', 'Orion', 'Vega']);
-    // Tabs named, not iconed: Home Assistant shows a tab's icon instead of its title.
+    // Tabs with an icon for their kind and their name: an icon alone doesn't say which environment.
     expect(environments.every((v) => !v.subview)).toBe(true);
-    expect([views[0], ...environments].every((v) => !('icon' in v))).toBe(true);
+    expect([views[0], ...environments].map((v) => [v.icon, v.show_icon_and_title])).toEqual([['mdi:view-dashboard', true], ...environments.map(() => ['mdi:server', true])]);
     const pages = views.filter((v) => v.strategy?.type === 'custom:dockhand-devices');
     expect(pages).toHaveLength(8);
     const nebula = environments.find((v) => v.title === 'Nebula')!;
@@ -50,9 +50,9 @@ describe('Dockhand dashboard strategy', () => {
     expect(overview.max_columns).toBe(4);
     expect(envSection.column_span).toBe(2);
     expect(envSection.cards.every((c) => (c.grid_options as { columns: number }).columns === 12)).toBe(true);
-    const headings = envSection.cards.map((stack) => stack.cards![0]);
-    expect(headings.map((h) => (h.tap_action as { navigation_path: string }).navigation_path)).toEqual(environmentViews(views).map((v) => v.path));
-    expect(envSection.cards.map((stack) => stack.cards![1].mode)).toEqual(['standard', 'standard', 'standard', 'standard']);
+    // No headings: the tabs open the environments.
+    expect(types(envSection.cards)).toEqual(['environment', 'environment', 'environment', 'environment']);
+    expect(envSection.cards.map((c) => c.mode)).toEqual(['standard', 'standard', 'standard', 'standard']);
     expect(types(middle.cards)).toEqual(['vulnerability', 'updates']);
     expect(middle.cards[0]).not.toHaveProperty('device_id');
     expect(types(schedules.cards)).toEqual(['schedules']);
@@ -82,9 +82,9 @@ describe('Dockhand dashboard strategy', () => {
     // Three environments: their column takes two, and the updates card its
     // whole width. The empty column is skipped.
     expect(first.column_span).toBe(2);
-    expect(types(first.cards)).toEqual(['updates', 'vertical-stack', 'vertical-stack', 'vertical-stack']);
+    expect(types(first.cards)).toEqual(['updates', 'environment', 'environment', 'environment']);
     expect(first.cards[0]).toMatchObject({ show_controls: true, exclude_device_ids: ['env_2'], environments_order: ['env_4'], grid_options: { columns: 'full' } });
-    expect(first.cards[1].cards![1]).toMatchObject({ mode: 'compact', show_settings_link: false });
+    expect(first.cards[1]).toMatchObject({ mode: 'compact', show_settings_link: false, grid_options: { columns: 12 } });
     expect(types(schedules.cards)).toEqual(['schedules']);
     expect(rest).toEqual([]);
     expect(views[0]).toMatchObject({ max_columns: 3 });

@@ -237,21 +237,14 @@ export class DockhandDashboardStrategy extends HTMLElement {
     }
 
     // Two environments fit one column; from three they take two, two to a
-    // row. Each environment's heading opens its view.
+    // row. Their tabs open their views, so the cards need no headings.
     const wide = environments.length >= 3;
     const scope = { environments_order: settings.environments_order, exclude_device_ids: excluded };
     const cardsFor = (which: OverviewPageCard): Config[] => {
       const own = cardSettings(settings, 'overview', which);
       switch (which) {
         case 'environments':
-          return environments.map((env) => ({
-            type: 'vertical-stack',
-            grid_options: { columns: wide ? 12 : 'full' },
-            cards: [
-              { type: 'heading', heading: env.name, icon: 'mdi:server', tap_action: { action: 'navigate', navigation_path: viewPath(env.deviceId) } },
-              card('environment', { ...own, device_id: env.deviceId })
-            ]
-          }));
+          return environments.map((env) => ({ ...card('environment', { ...own, device_id: env.deviceId }), grid_options: { columns: wide ? 12 : 'full' } }));
         case 'updates':
           return [card('updates', { ...own, ...scope })];
         case 'vulnerabilities':
@@ -267,11 +260,14 @@ export class DockhandDashboardStrategy extends HTMLElement {
       const cards = column.flatMap((which) => cardsFor(which).map((c) => (spans && which !== 'environments' ? { ...c, grid_options: { columns: 'full' } } : c)));
       return cards.length > 0 ? [section(cards, spans ? { column_span: 2 } : {})] : [];
     });
-    // No icons on the tabs: Home Assistant shows a view's icon instead of
-    // its title, and the tabs need their names to say where they go.
+    // Tabs show an icon for what kind of page they open and the name of
+    // the page: an icon alone (Home Assistant's default when a view has
+    // one) doesn't say which environment a tab is.
     const overview = {
       title: t(hass, 'strategy_overview'),
       path: 'overview',
+      icon: 'mdi:view-dashboard',
+      show_icon_and_title: true,
       type: 'sections',
       max_columns: Math.max(1, sections.reduce<number>((n, s) => n + ((s.column_span as number | undefined) ?? 1), 0)),
       sections
@@ -280,6 +276,8 @@ export class DockhandDashboardStrategy extends HTMLElement {
       {
         title: env.name,
         path: viewPath(env.deviceId),
+        icon: 'mdi:server',
+        show_icon_and_title: true,
         // A tab, so moving from one environment to the next is one click.
         // As a subview (`subview: true`), it would open from the overview
         // only, with a back arrow to it. Built only when someone opens it.

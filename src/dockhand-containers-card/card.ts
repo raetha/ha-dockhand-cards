@@ -13,7 +13,7 @@ import { t } from '../common/i18n-card';
 import { stateLabel } from '../common/state-label';
 import { renderSettingsLink, renderIcon, onKeydownActivate } from '../common/icon';
 import type { ContainerTranslationKey } from '../common/const';
-import { HEALTH_ICON, HEALTH_STATUS_CLASS } from '../common/const';
+import { CONTAINER_STATE, HEALTH_ICON, HEALTH_STATUS_CLASS, UNKNOWN_CONTAINER_STATE } from '../common/const';
 import { renderVersionTagPill, type NewerVersionTag } from '../common/version-tag';
 import { updateKindIcon, updateStatus, type UpdateStatus } from '../common/update-kind';
 import { DEFAULT_CONTAINERS_BADGES, type DockhandContainersCardConfig, type ContainersGroupBy, type ContainersSortBy } from './types';
@@ -23,16 +23,6 @@ import { containerFilters, containerStateValues, renderFilteredNote } from '../c
 import { renderTagPills } from '../common/tag-pills';
 import { cardStyles } from './styles';
 import { RowFitController } from '../common/row-fit';
-
-// Matches Dockhand's own statusTypes color list (src/routes/containers/+page.svelte).
-const STATE_ICON: Record<string, { icon: string; cls: 'ok' | 'warn' | 'error' | 'info' | 'neutral' }> = {
-  running: { icon: 'mdi:play-circle', cls: 'ok' },
-  paused: { icon: 'mdi:pause-circle', cls: 'warn' },
-  restarting: { icon: 'mdi:refresh-circle', cls: 'error' },
-  exited: { icon: 'mdi:stop-circle', cls: 'error' },
-  created: { icon: 'mdi:plus-circle-outline', cls: 'info' },
-  dead: { icon: 'mdi:close-circle', cls: 'neutral' }
-};
 
 // Attention-first ordering for sort_by/group_by: 'status' — matching
 // every other card's own status-priority convention.
@@ -314,7 +304,7 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
   private _renderRow(row: ContainerRow): TemplateResult {
     const found = row.found;
     const st = found.state!.state.state;
-    const stateIcon = STATE_ICON[st] ?? { icon: 'mdi:help-circle', cls: 'neutral' as const };
+    const stateIcon = CONTAINER_STATE[st] ?? UNKNOWN_CONTAINER_STATE;
     const health = found.health?.state.state;
     const healthId = found.health?.entityId;
     const cpu = numericState(found.cpuPercent?.state.state);

@@ -27,6 +27,9 @@ export const cardStyles = css`
   .pill-state.error {
     color: var(--dockhand-status-error-text-color);
   }
+  .pill-state.info {
+    color: var(--dockhand-status-info-text-color);
+  }
   .pill-state.neutral {
     color: var(--secondary-text-color);
   }

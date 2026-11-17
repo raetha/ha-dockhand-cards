@@ -120,7 +120,7 @@ describe('Stack card container pills', () => {
     expect(icon('proxy').getAttribute('icon')).toBe('mdi:pin-outline');
     expect(icon('cache').getAttribute('icon')).toBe('mdi:clock-outline');
     expect(icon('cache').getAttribute('title')).toBe('Update held: 6 h left of the minimum image age');
-    expect(pills.find((p) => p.textContent?.trim() === 'idle')!.querySelector('ha-icon:not(.pill-state)')).toBeNull();
+    expect(pills.find((p) => p.textContent?.trim() === 'idle')!.querySelector('.update-icon')).toBeNull();
   });
 
   it('shows each container’s state as the Container card does, after any update icon', async () => {
@@ -130,9 +130,19 @@ describe('Stack card container pills', () => {
     const card = await mount(hass);
     const pill = (name: string) => [...card.shadowRoot!.querySelectorAll<HTMLElement>('.label-row .label-pill')].find((p) => p.textContent?.trim() === name)!;
     const icons = (name: string) => [...pill(name).querySelectorAll('ha-icon')].map((i) => `${i.getAttribute('icon')} ${i.getAttribute('class') ?? ''}`.trim());
-    expect(icons('web')).toEqual(['mdi:arrow-up-circle', 'mdi:play-circle pill-state ok']);
-    expect(icons('db')).toEqual(['mdi:tag-arrow-up-outline', 'mdi:stop-circle pill-state neutral']);
+    expect(icons('web')).toEqual(['mdi:arrow-up-circle update-icon', 'mdi:play-circle pill-state ok']);
+    expect(icons('db')).toEqual(['mdi:tag-arrow-up-outline update-icon', 'mdi:stop-circle pill-state error']);
     expect(icons('idle')).toEqual(['mdi:pause-circle pill-state warn']);
     expect(pill('idle').querySelector('.pill-state')!.getAttribute('title')).toBe('Paused');
+  });
+
+  it('opens the update from a pill’s update icon, and the container’s state from the rest of it', async () => {
+    const card = await mount(hassWithContainers());
+    const events: string[] = [];
+    card.addEventListener('hass-more-info', (e) => events.push((e as CustomEvent<{ entityId: string }>).detail.entityId));
+    const web = [...card.shadowRoot!.querySelectorAll<HTMLElement>('.label-row .label-pill')].find((p) => p.textContent?.trim() === 'web')!;
+    web.querySelector<HTMLElement>('.update-icon')!.click();
+    web.querySelector<HTMLElement>('.pill-state')!.click();
+    expect(events).toEqual(['update.web', 'sensor.web_state']);
   });
 });

@@ -11,10 +11,11 @@ import type { FiltersConfig } from '../common/filters';
  * editor-design.md rule 5), not a standalone toggle. */
 export type StacksCardBadge = 'container_count' | 'updates' | 'cpu' | 'memory' | 'type' | 'environment' | 'tags';
 
-/** CPU and memory are on by default, as on the Containers card; they show
- * only while ha-dockhand's container and stack stats are on. Memory is the
- * amount in use, as Dockhand's stacks list shows it. */
-export const DEFAULT_STACKS_BADGES: StacksCardBadge[] = ['container_count', 'updates', 'cpu', 'memory', 'type', 'tags'];
+/** CPU is on by default, as on the Containers card; it shows only while
+ * ha-dockhand's container and stack stats are on. Memory is off: it is the
+ * amount in use, as Dockhand's stacks list shows it (Dockhand reports no
+ * percentage for a stack), which takes more room than a percentage. */
+export const DEFAULT_STACKS_BADGES: StacksCardBadge[] = ['container_count', 'updates', 'cpu', 'type', 'tags'];
 
 /** 'status'/'type' group by the same fields STATUS_ICON/the type pill
  * already expose per row in card.ts — no new data needed to support

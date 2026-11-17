@@ -8,7 +8,7 @@ import type { HomeAssistant, LovelaceGridOptions, DeviceRegistryEntry } from '..
 import { defaultCardName, getAllStackDevices, getEnvIdForStackDevice, getEnvDeviceForEnvId, getContainerDevicesForEnvironment, getRepresentativeEntityId, getContainerName } from '../common/device-utils';
 import { resolveCardName } from '../common/card-name';
 import { resolveStackEntities, resolveContainerEntities, findPrimaryEntityByDomain, type ResolutionResult } from '../common/entity-resolver';
-import { CONTAINER_STATE_CLASS, CONTAINER_STATE_ICON, DEFAULT_STACK_ICON, STACK_STATUS_CLASS, type StackTranslationKey } from '../common/const';
+import { CONTAINER_STATE, UNKNOWN_CONTAINER_STATE, DEFAULT_STACK_ICON, STACK_STATUS_CLASS, type StackTranslationKey } from '../common/const';
 import { getDockhandBaseUrl, formatRelativeTime } from '../common/format';
 import { t } from '../common/i18n-card';
 import { stateLabel } from '../common/state-label';
@@ -41,6 +41,8 @@ interface ContainerPillInfo {
   state: HassEntity;
   /** See updateStatus() in common/update-kind.ts. */
   updateStatus?: UpdateStatus;
+  /** The container's update entity, which its update icon opens. */
+  updateEntityId?: string;
 }
 
 export class DockhandStackCard extends LitElement implements LovelaceCard {
@@ -199,14 +201,17 @@ export class DockhandStackCard extends LitElement implements LovelaceCard {
               <div class="label-row">
                 ${containerNames.map((name) => {
                   const info = containerInfo.get(name);
-                  // Same icons as the Updates card's rows.
-                  const updateIcon = info?.updateStatus ? renderUpdateKindIcon(this._hass, info.updateStatus) : nothing;
+                  // Same icons as the Updates card's rows. A click on it opens
+                  // the update, where it can be installed; the rest of the
+                  // pill (and the keyboard) opens the container's state.
+                  const updateIcon = info?.updateStatus ? renderUpdateKindIcon(this._hass, info.updateStatus, () => this._moreInfo(info.updateEntityId)) : nothing;
                   // The Container card's state icon and color, after the
                   // update icon so updates line up at the start of the pills.
-                  const stateIcon = info
+                  const look = info ? (CONTAINER_STATE[info.state.state] ?? UNKNOWN_CONTAINER_STATE) : undefined;
+                  const stateIcon = info && look
                     ? html`<ha-icon
-                        class="pill-state ${CONTAINER_STATE_CLASS[info.state.state] ?? 'neutral'}"
-                        icon=${CONTAINER_STATE_ICON[info.state.state] ?? 'mdi:help-circle'}
+                        class="pill-state ${look.cls}"
+                        icon=${look.icon}
                         title=${stateLabel(this._hass, 'container_state', info.state.state, info.state)}
                       ></ha-icon>`
                     : nothing;
@@ -261,7 +266,8 @@ export class DockhandStackCard extends LitElement implements LovelaceCard {
         map.set(rawName, {
           entityId: found.state.entityId,
           state: found.state.state,
-          updateStatus: updateStatus(update?.state)
+          updateStatus: updateStatus(update?.state),
+          updateEntityId: update?.entityId
         });
       }
     }

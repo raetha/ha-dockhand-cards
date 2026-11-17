@@ -337,7 +337,8 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
     const cpu = numericState(found.cpuPercent?.state.state);
     // Memory in use rather than a percentage, as Dockhand's stacks list
     // shows it: Dockhand reports no percentage for a stack, and its limit is
-    // the largest single container's, not the stack's.
+    // the largest single container's, not the stack's. If Dockhand ever
+    // reports a stack's percentage, show that, as the Containers card does.
     const mem = bytesState(found.memoryUsage?.state);
     const id = found.status!.entityId;
     const visible = new Set(this._config?.visible_badges ?? DEFAULT_STACKS_BADGES);
@@ -383,7 +384,8 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
             ? renderIcon({
                 baseClass: 'row-icon',
                 icon: 'mdi:memory',
-                text: formatBytes(mem, this._hass),
+                // Whole units: a row has little room, and it's a glance.
+                text: formatBytes(mem, this._hass, 0),
                 onClick: () => this._moreInfo(found.memoryUsage?.entityId)
               })
             : nothing}

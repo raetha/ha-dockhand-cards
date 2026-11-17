@@ -16,7 +16,7 @@ import { t } from '../common/i18n-card';
 import { updateKindIcon, updateStatus } from '../common/update-kind';
 import { stateLabel } from '../common/state-label';
 import { renderSettingsLink, renderIcon } from '../common/icon';
-import { CONTAINER_STATE_CLASS, CONTAINER_STATE_ICON, HEALTH_ICON, HEALTH_STATUS_CLASS, DEFAULT_CONTAINER_ICON, UPDATE_PENDING_VERSION } from '../common/const';
+import { CONTAINER_STATE, UNKNOWN_CONTAINER_STATE, HEALTH_ICON, HEALTH_STATUS_CLASS, DEFAULT_CONTAINER_ICON, UPDATE_PENDING_VERSION } from '../common/const';
 import { renderHeaderControls, resolveDeviceControls } from '../common/device-controls';
 import { DEFAULT_CONTAINER_SECTIONS, type DockhandContainerCardConfig } from './types';
 import { renderTagRow } from '../common/tag-pills';
@@ -181,8 +181,8 @@ export class DockhandContainerCard extends LitElement implements LovelaceCard {
           <div class="hero-row">
             ${renderIcon({
               baseClass: 'hero-word',
-              colorClass: CONTAINER_STATE_CLASS[state] as 'ok' | 'warn' | 'error' | 'neutral' | undefined,
-              icon: CONTAINER_STATE_ICON[state] ?? 'mdi:help-circle',
+              colorClass: (CONTAINER_STATE[state] ?? UNKNOWN_CONTAINER_STATE).cls,
+              icon: (CONTAINER_STATE[state] ?? UNKNOWN_CONTAINER_STATE).icon,
               text: stateLabel(this._hass, 'container_state', state, s.state.state),
               onClick: () => this._moreInfo(s.state!.entityId)
             })}

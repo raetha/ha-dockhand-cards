@@ -305,27 +305,19 @@ export const STACK_STATUS_CLASS: Record<string, string> = {
   created: 'neutral'
 };
 
-/** Maps Container's own raw state value to .hero-word's own canonical
- * color modifier names (common/shared-styles.ts) — same pattern as
- * HEALTH_STATUS_CLASS above. */
-export const CONTAINER_STATE_CLASS: Record<string, string> = {
-  running: 'ok',
-  paused: 'warn',
-  restarting: 'error',
-  exited: 'neutral',
-  dead: 'neutral'
+/** Each container state's icon and color, as Dockhand's container list
+ * shows them (its statusTypes in src/routes/containers/+page.svelte), on
+ * every card that shows a container's state: the Containers card's rows,
+ * the Container card's hero and the Stack card's container pills. */
+export const CONTAINER_STATE: Record<string, { icon: string; cls: 'ok' | 'warn' | 'error' | 'info' | 'neutral' }> = {
+  running: { icon: 'mdi:play-circle', cls: 'ok' },
+  paused: { icon: 'mdi:pause-circle', cls: 'warn' },
+  restarting: { icon: 'mdi:refresh-circle', cls: 'error' },
+  exited: { icon: 'mdi:stop-circle', cls: 'error' },
+  created: { icon: 'mdi:plus-circle-outline', cls: 'info' },
+  dead: { icon: 'mdi:close-circle', cls: 'neutral' }
 };
-
-/** The Container card's icon for each container state, shared with the
- * Stack card's container pills so both show a state the same way. */
-export const CONTAINER_STATE_ICON: Record<string, string> = {
-  running: 'mdi:play-circle',
-  paused: 'mdi:pause-circle',
-  restarting: 'mdi:refresh-circle',
-  exited: 'mdi:stop-circle',
-  dead: 'mdi:close-circle',
-  created: 'mdi:circle-outline'
-};
+export const UNKNOWN_CONTAINER_STATE = { icon: 'mdi:help-circle', cls: 'neutral' as const };
 
 /** Default header badges for the Container and Stack cards, used when their
  * `icon` config option is unset. */

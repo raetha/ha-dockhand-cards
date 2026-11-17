@@ -48,7 +48,7 @@ type RenderIconBaseOpts = {
   icon?: string;
   hass?: HomeAssistant;
   stateObj?: HassEntity;
-  colorClass?: 'ok' | 'warn' | 'error' | 'accent' | 'neutral';
+  colorClass?: 'ok' | 'warn' | 'error' | 'info' | 'accent' | 'neutral';
   /** A raw CSS color for a case that doesn't map to one of the four
    * shared modifiers (Environment's own feature icons, each with their
    * own fixed, non-semantic color straight from Dockhand's own dashboard

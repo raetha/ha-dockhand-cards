@@ -612,6 +612,9 @@ export const sharedStyles = css`
   .hero-word.error {
     color: var(--dockhand-status-error-text-color);
   }
+  .hero-word.info {
+    color: var(--dockhand-status-info-text-color);
+  }
   .hero-word.neutral {
     color: var(--secondary-text-color);
   }
@@ -680,6 +683,9 @@ export const sharedStyles = css`
   }
   .row-icon.error {
     color: var(--dockhand-status-error-color);
+  }
+  .row-icon.info {
+    color: var(--dockhand-status-info-color);
   }
   .row-icon.accent {
     color: var(--dockhand-accent-color);
