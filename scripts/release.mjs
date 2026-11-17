@@ -5,11 +5,13 @@
 //                                                     (pull requests into and pushes to main), also
 //                                                     a dated section for package.json's version
 //   node scripts/release.mjs version                    package.json's version
-//   node scripts/release.mjs dev-version <run> <tagged> the test build's version: the next patch
+//   node scripts/release.mjs dev-version <last> <tagged> the test build's version: the next patch
 //                                                     once the current version is tagged
 //                                                     (<tagged> = true|false), so HACS offers
-//                                                     it as an update over the installed release
-//   node scripts/release.mjs notes <version> [--test-build <run>]
+//                                                     it as an update over the installed release,
+//                                                     numbered one past <last>, the latest test
+//                                                     build's tag ("" for none)
+//   node scripts/release.mjs notes <version> [--test-build <n>]
 //                                                     release notes: that changelog section plus
 //                                                     install text (version "Unreleased" for
 //                                                     test builds)
@@ -70,11 +72,15 @@ export function check(changelog, version, release = false, releasedFrom = undefi
   return problems;
 }
 
-export function devVersion(version, run, tagged) {
+// Numbered one past the last test build of the same version, from 1 for a
+// new one, so the number counts test builds rather than workflow runs.
+export function devVersion(version, last, tagged) {
   const m = /^(\d+)\.(\d+)\.(\d+)$/.exec(version);
   if (!m) throw new Error(`not a plain X.Y.Z version: ${version}`);
   const base = tagged ? `${m[1]}.${m[2]}.${Number(m[3]) + 1}` : version;
-  return `${base}-dev.${run}`;
+  const previous = /^v?(\d+\.\d+\.\d+)-dev\.(\d+)$/.exec(last ?? '');
+  const n = previous && previous[1] === base ? Number(previous[2]) + 1 : 1;
+  return `${base}-dev.${n}`;
 }
 
 export function notes(changelog, version, testBuild) {
@@ -124,7 +130,7 @@ function main(argv) {
       break;
     }
     default:
-      console.error('usage: release.mjs check [--release] [--released-from <changelog>] | version | dev-version <run> <tagged> | notes <version> [--test-build <run>]');
+      console.error('usage: release.mjs check [--release] [--released-from <changelog>] | version | dev-version <last> <tagged> | notes <version> [--test-build <n>]');
       process.exit(2);
   }
 }
