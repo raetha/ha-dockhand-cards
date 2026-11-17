@@ -2,7 +2,7 @@
  * The Dockhand dashboard (`strategy: { type: custom:dockhand }`): a
  * dashboard Home Assistant builds from the cards, picked from Add dashboard
  * → Community dashboards. An overview of every environment, then a
- * subview per environment with all its cards, each laid out in columns
+ * tab per environment with all its cards, each laid out in columns
  * the settings choose, and under each environment a page of Stack cards
  * and one of Container cards. Every page of a kind shares its card
  * settings (`cards`), so changing a card on one environment's page changes
@@ -267,10 +267,11 @@ export class DockhandDashboardStrategy extends HTMLElement {
       const cards = column.flatMap((which) => cardsFor(which).map((c) => (spans && which !== 'environments' ? { ...c, grid_options: { columns: 'full' } } : c)));
       return cards.length > 0 ? [section(cards, spans ? { column_span: 2 } : {})] : [];
     });
+    // No icons on the tabs: Home Assistant shows a view's icon instead of
+    // its title, and the tabs need their names to say where they go.
     const overview = {
       title: t(hass, 'strategy_overview'),
       path: 'overview',
-      icon: 'mdi:docker',
       type: 'sections',
       max_columns: Math.max(1, sections.reduce<number>((n, s) => n + ((s.column_span as number | undefined) ?? 1), 0)),
       sections
@@ -279,9 +280,9 @@ export class DockhandDashboardStrategy extends HTMLElement {
       {
         title: env.name,
         path: viewPath(env.deviceId),
-        // Not a tab: opened from the overview, with a back arrow to it.
-        subview: true,
-        // Built only when someone opens it.
+        // A tab, so moving from one environment to the next is one click.
+        // As a subview (`subview: true`), it would open from the overview
+        // only, with a back arrow to it. Built only when someone opens it.
         strategy: { type: 'custom:dockhand-environment', device_id: env.deviceId, settings: rest } satisfies DockhandEnvironmentViewConfig
       },
       ...devicesViews(hass, env, rest)

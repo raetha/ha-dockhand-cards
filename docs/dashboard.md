@@ -2,14 +2,14 @@
 
 A ready-made dashboard instead of building one card by card: in **Settings → Dashboards → Add dashboard**, pick **Dockhand** under Community dashboards. Home Assistant builds it from the [cards](../README.md#cards) each time it opens, so it keeps up by itself as environments, stacks and containers come and go in Dockhand.
 
-**The overview** shows your environments (in one column for one or two, two columns from three), with vulnerabilities across all environments, pending updates and schedules beside them. Click an environment's name to open its page.
+**The overview** shows your environments (in one column for one or two, two columns from three), with vulnerabilities across all environments, pending updates and schedules beside them. Each environment has a tab of its own beside **Overview**, so you can go from one to the next in a click; an environment's name on the overview opens its tab too.
 
 <picture>
   <source media="(prefers-color-scheme: light)" srcset="images/dashboard-overview-light.png">
   <img src="images/dashboard-overview.png" alt="The Dockhand dashboard overview: four environments, vulnerabilities and updates across them, and schedules">
 </picture>
 
-**An environment's page** has all its cards, with a back arrow to the overview, below badges for its host platform, uptime, Hawser agent version and Docker version (each once that entity is turned on in the integration's options, and chosen in the dashboard's settings). With a single environment, its page is the whole dashboard.
+**An environment's page** has all its cards, below badges for its host platform, uptime, Hawser agent version and Docker version (each once that entity is turned on in the integration's options, and chosen in the dashboard's settings). With a single environment, its page is the whole dashboard.
 
 <picture>
   <source media="(prefers-color-scheme: light)" srcset="images/dashboard-environment-light.png">

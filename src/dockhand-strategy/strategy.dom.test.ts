@@ -26,12 +26,14 @@ const environmentViews = (views: View[]) => views.filter((v) => v.strategy?.type
 const types = (cards: Card[]): string[] => cards.map((c) => (c.type as string).replace(/^custom:dockhand-|-card$/g, ''));
 
 describe('Dockhand dashboard strategy', () => {
-  it('builds an overview, and per environment a subview with its Stacks and Containers pages, with unique paths', async () => {
+  it('builds an overview, and per environment a tab with its Stacks and Containers pages, with unique paths', async () => {
     const views = await dashboard();
     expect(views[0].title).toBe('Overview');
     const environments = environmentViews(views);
     expect(environments.map((v) => v.title)).toEqual(['Aurora', 'Nebula', 'Orion', 'Vega']);
-    expect(environments.every((v) => v.subview)).toBe(true);
+    // Tabs named, not iconed: Home Assistant shows a tab's icon instead of its title.
+    expect(environments.every((v) => !v.subview)).toBe(true);
+    expect([views[0], ...environments].every((v) => !('icon' in v))).toBe(true);
     const pages = views.filter((v) => v.strategy?.type === 'custom:dockhand-devices');
     expect(pages).toHaveLength(8);
     const nebula = environments.find((v) => v.title === 'Nebula')!;
