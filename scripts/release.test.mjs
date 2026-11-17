@@ -48,9 +48,16 @@ describe('release tool', () => {
   });
 
   it('versions test builds above the installed release', () => {
-    expect(devVersion('1.5.0', 12, true)).toBe('1.5.1-dev.12');
-    expect(devVersion('1.6.0', 13, false)).toBe('1.6.0-dev.13');
-    expect(() => devVersion('1.6.0-beta', 1, true)).toThrow();
+    expect(devVersion('1.5.0', '', true)).toBe('1.5.1-dev.1');
+    expect(devVersion('1.6.0', '', false)).toBe('1.6.0-dev.1');
+    expect(() => devVersion('1.6.0-beta', '', true)).toThrow();
+  });
+
+  it('numbers test builds by test build, not by workflow run', () => {
+    expect(devVersion('2.0.0', '2.0.0-dev.43', false)).toBe('2.0.0-dev.44');
+    expect(devVersion('2.0.0', 'v2.0.0-dev.9', false)).toBe('2.0.0-dev.10');
+    expect(devVersion('2.1.0', '2.0.0-dev.43', false)).toBe('2.1.0-dev.1');
+    expect(devVersion('2.0.0', '2.0.0-dev.43', true)).toBe('2.0.1-dev.1');
   });
 
   it('builds notes from a section, with a test-build intro', () => {

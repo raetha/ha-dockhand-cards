@@ -68,7 +68,7 @@ Dockhand Cards 2.0 goes with the Dockhand integration 2.0, reading its new senso
 
 ### Internal
 
-- A push to `dev` publishes a test build only when something users install changed; running the Build workflow by hand on `dev` publishes one anyway.
+- A push to `dev` publishes a test build only when something users install changed; running the Build workflow by hand on `dev` publishes one anyway. Test builds are numbered by test build, not by workflow run, so the numbers go up by one.
 - `docs/backlog.md` records why the cards aren't shipped inside the integration, and why controls show no spinner while their action runs.
 - `scripts/screenshot-harness/bench.py` times each card's first render and its update on a state change at a large install's size, for the performance item of a full review.
 - Test build notes link the changelog's images and docs on `dev`, where they are until the release puts them on `main`.
