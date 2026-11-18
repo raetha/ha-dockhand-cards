@@ -45,13 +45,12 @@ function tagIcon(card: ContainersCardElement): Element | undefined {
 }
 
 describe('Containers card newer version tag', () => {
-  it('shows a tag icon after the update icon when both are pending, its tag in the tooltip', async () => {
+  it('shows a tag icon before the update icon when both are pending, as Dockhand does, its tag in the tooltip', async () => {
     const card = await mount(hassWithContainer({ state: 'on', latest: 'update-pending', newer: '17.6' }));
     const items = rightItems(card);
-    expect(items[0]).toBe(updateIcon(card));
-    expect(items[1]).toBe(tagIcon(card));
+    expect(items[0]).toBe(tagIcon(card));
+    expect(items[1]).toBe(updateIcon(card));
     expect(tagIcon(card)!.getAttribute('title')).toContain('17.6');
-    expect(card.shadowRoot!.querySelector('.version-tag-pill')).toBeNull();
   });
 
   it('shows only the tag icon when the newer tag is the only update', async () => {

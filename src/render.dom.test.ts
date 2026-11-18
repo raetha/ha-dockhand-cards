@@ -125,3 +125,52 @@ describe('Stacks card update count', () => {
     expect(badges).toContain('7');
   });
 });
+
+describe('Aligned list columns', () => {
+  const list = async (card: string, config: Record<string, unknown>) => (await mount(`dockhand-${card}-card`, config, harnessHass())).shadowRoot!.querySelector<HTMLElement>('.list.aligned')!;
+  const columns = (el: HTMLElement) => el.style.gridTemplateColumns.split(' ').filter((c) => c === 'auto').length;
+
+  it('gives every Stacks row a cell per column, one list across the groups', async () => {
+    const el = await list('stacks', { visible_badges: ['updates', 'container_count'], show_controls: true });
+    const rows = [...el.querySelectorAll<HTMLElement>(':scope > .row')];
+    expect(rows.length).toBeGreaterThan(1);
+    for (const row of rows) expect(row.children.length).toBe(1 + columns(el));
+    expect(el.querySelector(':scope > .group-header')).not.toBeNull();
+    // The name side keeps type, environment and tags; the columns hold none.
+    expect(el.querySelector('.cell .label-pill, .cell .tag-pills')).toBeNull();
+  });
+
+  it('gives Schedules rows a next-run column and a controls column', async () => {
+    const el = await list('schedules', { visible_badges: ['next_run'], show_controls: true });
+    expect(columns(el)).toBe(2);
+    expect(el.querySelector(':scope > .row > .cell')!.textContent!.trim()).not.toBe('');
+    expect(columns(await list('schedules', { visible_badges: [] }))).toBe(0);
+  });
+
+  it('lines up the Environment card’s top containers by CPU and memory', async () => {
+    const el = await list('environment', { device_id: 'env_1', mode: 'full' });
+    expect(columns(el)).toBe(2);
+    expect(el.querySelector(':scope > .row > .row-left .item-name')).not.toBeNull();
+  });
+});
+
+describe('List card editors', () => {
+  it.each([
+    ['containers', ['environment', 'tags', 'updates', 'health', 'cpu', 'memory']],
+    ['stacks', ['type', 'environment', 'tags', 'updates', 'container_count', 'cpu', 'memory']],
+    ['schedules', ['environment', 'next_run']]
+  ])('list the %s card’s row details in their order on a row', async (card, order) => {
+    const el = await mount(`dockhand-${card}-card-editor`, {}, harnessHass());
+    const forms = [...el.shadowRoot!.querySelectorAll<HTMLElement & { schema: unknown }>('ha-form')];
+    const find = (schema: unknown): Record<string, string> | undefined => {
+      for (const field of schema as { name?: string; options?: Record<string, string>; schema?: unknown }[]) {
+        if (field.name === 'visible_badges') return field.options;
+        const nested = field.schema ? find(field.schema) : undefined;
+        if (nested) return nested;
+      }
+      return undefined;
+    };
+    const options = forms.map((form) => find(form.schema)).find(Boolean);
+    expect(Object.keys(options!)).toEqual(order);
+  });
+});

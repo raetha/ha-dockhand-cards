@@ -113,7 +113,7 @@ describe.each([
   });
 });
 
-describe('Updates card version-tag pill', () => {
+describe('Updates card newer version tag', () => {
   function hassWithUpdates(rows: { name: string; installed: string; latest: string; newer?: string; state?: string; extra?: Record<string, unknown> }[]) {
     const env = makeDevice({ id: 'env-device', identifiers: [['dockhand', 'entry_env_1']], config_entry_id: 'entry', name: 'Nebula' });
     const devices = [env];
@@ -139,24 +139,37 @@ describe('Updates card version-tag pill', () => {
     return match;
   }
 
-  it('puts the pill before the version text when an installable update and a newer tag are both pending', async () => {
+  function cells(r: HTMLElement): HTMLElement[] {
+    return [...r.querySelectorAll<HTMLElement>(':scope > .cell')];
+  }
+
+  /** The version text, the row's last column. */
+  function versionText(r: HTMLElement): string | undefined {
+    const all = cells(r);
+    return all[all.length - 1]?.textContent?.trim();
+  }
+
+  it('puts a tag icon in a column before the version text when an installable update and a newer tag are both pending', async () => {
     const card = await mount(hassWithUpdates([{ name: 'nextcloud', installed: '34.0.2', latest: 'update-pending', newer: '35.0.1' }]));
-    const right = row(card, 'nextcloud').querySelector('.row-right')!;
-    const pill = right.querySelector('.version-tag-pill')!;
-    expect(right.firstElementChild).toBe(pill);
-    expect(pill.textContent?.trim()).toBe('35.0.1');
-    expect(pill.querySelector('ha-icon')?.getAttribute('icon')).toBe('mdi:tag-outline');
-    expect(right.textContent).toContain('Update available');
+    const [tagCell, textCell] = cells(row(card, 'nextcloud'));
+    const tag = tagCell.querySelector('.row-icon')!;
+    expect(tag.querySelector('ha-icon')?.getAttribute('icon')).toBe('mdi:tag-arrow-up-outline');
+    expect(tag.getAttribute('title')).toContain('35.0.1');
+    expect(textCell.textContent?.trim()).toBe('Update available');
     const icon = row(card, 'nextcloud').querySelector('.update-icon')!;
     expect(icon.getAttribute('icon')).toBe('mdi:arrow-up-circle');
     expect(icon.classList.contains('tag')).toBe(false);
   });
 
-  it('shows no pill, just the tag icon and the version text, when the newer tag is the only update', async () => {
-    const card = await mount(hassWithUpdates([{ name: 'postgres', installed: '16.3', latest: '17.0', newer: '17.0' }]));
+  it('keeps an empty tag cell, so the version texts line up, on a row whose only update is the tag', async () => {
+    const card = await mount(
+      hassWithUpdates([
+        { name: 'postgres', installed: '16.3', latest: '17.0', newer: '17.0' },
+        { name: 'nextcloud', installed: '34.0.2', latest: 'update-pending', newer: '35.0.1' }
+      ])
+    );
     const r = row(card, 'postgres');
-    expect(r.querySelector('.version-tag-pill')).toBeNull();
-    expect(r.querySelector('.row-right')!.textContent?.trim()).toBe('16.3 → 17.0');
+    expect(cells(r).map((c) => c.textContent?.trim())).toEqual(['', '16.3 → 17.0']);
     const icon = r.querySelector('.update-icon')!;
     expect(icon.getAttribute('icon')).toBe('mdi:tag-arrow-up-outline');
     expect(icon.classList.contains('tag')).toBe(true);
@@ -168,7 +181,7 @@ describe('Updates card version-tag pill', () => {
     const icon = r.querySelector('.update-icon')!;
     expect(icon.getAttribute('icon')).toBe('mdi:pin-outline');
     expect(icon.classList.contains('pinned')).toBe(true);
-    expect(r.querySelector('.row-right')!.textContent?.trim()).toBe('Pinned to a digest');
+    expect(versionText(r)).toBe('Pinned to a digest');
     expect(icon.getAttribute('title')).toContain('Update the digest in the compose file');
   });
 
@@ -178,14 +191,14 @@ describe('Updates card version-tag pill', () => {
     const icon = r.querySelector('.update-icon')!;
     expect(icon.getAttribute('icon')).toBe('mdi:clock-outline');
     expect(icon.classList.contains('held')).toBe(true);
-    expect(r.querySelector('.row-right')!.textContent?.trim()).toBe('12 h left');
+    expect(versionText(r)).toBe('12 h left');
     expect(icon.getAttribute('title')).toBe('Update held: 12 h left of the minimum image age');
     expect(card.shadowRoot!.textContent).not.toContain('Everything up to date');
   });
 
   it('says when a held update will be offered once the wait is over', async () => {
     const card = await mount(hassWithUpdates([{ name: 'cache', installed: 'redis:8', latest: 'update-pending', extra: { update_held_hours: 0 } }]));
-    expect(row(card, 'cache').querySelector('.row-right')!.textContent?.trim()).toBe('At next check');
+    expect(versionText(row(card, 'cache'))).toBe('At next check');
   });
 
   it('leaves out a container whose update entity is off', async () => {
@@ -196,8 +209,7 @@ describe('Updates card version-tag pill', () => {
   it('renders rows without newer_version exactly as before (older ha-dockhand)', async () => {
     const card = await mount(hassWithUpdates([{ name: 'web', installed: 'a3f29e1', latest: 'b82d4f0' }]));
     const r = row(card, 'web');
-    expect(r.querySelector('.version-tag-pill')).toBeNull();
-    expect(r.querySelector('.row-right')!.textContent?.trim()).toBe('a3f29e1 → b82d4f0');
+    expect(cells(r).map((c) => c.textContent?.trim())).toEqual(['a3f29e1 → b82d4f0']);
     expect(r.querySelector('.update-icon')!.getAttribute('icon')).toBe('mdi:arrow-up-circle');
   });
 });

@@ -1,5 +1,6 @@
 import { loadEditor } from '../common/editor-loader';
 import { LitElement, html, svg, nothing, type TemplateResult } from 'lit';
+import { cell, renderAlignedList } from '../common/aligned-list';
 import { state } from 'lit/decorators.js';
 import { arc } from 'd3-shape';
 import { fireEvent, type LovelaceCard, type LovelaceCardEditor } from 'custom-card-helpers';
@@ -1029,19 +1030,18 @@ export class DockhandEnvironmentCard extends LitElement implements LovelaceCard 
     return html`
       <div class="section">
         <div class="section-title"><ha-icon icon="mdi:package-variant"></ha-icon> ${t(this._hass, 'label_top_containers')}</div>
-        <div class="list">
-          ${entries.map(
+        ${renderAlignedList(
+          2,
+          entries.map(
             (c) => html`
               <div class="row">
-                <span class="item-name">${c.name}</span>
-                <div class="row-right">
-                  ${renderIcon({ baseClass: 'row-icon', icon: 'mdi:cpu-64-bit', text: c.cpuPercent !== null ? formatPercent(c.cpuPercent, this._hass, 0) : '—', title: t(this._hass, 'label_cpu'), static: true })}
-                  ${renderIcon({ baseClass: 'row-icon', icon: 'mdi:memory', text: c.memoryPercent !== null ? formatPercent(c.memoryPercent, this._hass, 0) : '—', title: t(this._hass, 'label_memory'), static: true })}
-                </div>
+                <div class="row-left"><span class="item-name">${c.name}</span></div>
+                ${cell(renderIcon({ baseClass: 'row-icon', icon: 'mdi:cpu-64-bit', text: c.cpuPercent !== null ? formatPercent(c.cpuPercent, this._hass, 0) : '—', title: t(this._hass, 'label_cpu'), static: true }))}
+                ${cell(renderIcon({ baseClass: 'row-icon', icon: 'mdi:memory', text: c.memoryPercent !== null ? formatPercent(c.memoryPercent, this._hass, 0) : '—', title: t(this._hass, 'label_memory'), static: true }))}
               </div>
             `
-          )}
-        </div>
+          )
+        )}
       </div>
     `;
   }

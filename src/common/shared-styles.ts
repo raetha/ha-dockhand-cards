@@ -449,19 +449,6 @@ export const sharedStyles = css`
   .row .label-pill ha-icon {
     --mdc-icon-size: 12px;
   }
-  /* Same color as the update icon it sits beside — both are update badges —
-   * on a tint of it, the way the Vulnerability card's severity boxes are
-   * (and Dockhand's own badge: amber at 10%, 20% on hover). */
-  .version-tag-pill {
-    color: var(--dockhand-status-warn-text-color);
-    background: rgb(from var(--dockhand-status-warn-color) r g b / 0.1);
-  }
-  .version-tag-pill ha-icon {
-    color: var(--dockhand-status-warn-color);
-  }
-  .version-tag-pill.clickable:hover:not(:has(.clickable:hover)) {
-    background: rgb(from var(--dockhand-status-warn-color) r g b / 0.2);
-  }
   /* The shared shape for any message that takes over a card (or a
    * card's own body) in place of its normal content — a required
    * entity missing entirely, an entity not yet available, nothing to
@@ -566,8 +553,8 @@ export const sharedStyles = css`
   .list {
     display: contents;
   }
-  /* .list.aligned (the Containers card): the row details on the right line
-   * up in columns down the whole card. The card sets the columns: the name
+  /* .list.aligned (renderAlignedList() in aligned-list.ts): the row details
+   * on the right line up in columns down the whole list. The card sets the columns: the name
    * side, then one per detail shown that some row has, each as wide as its
    * widest value (auto). Rows take the list's columns (subgrid) and keep a
    * cell in every column, empty when they have nothing for it; group
@@ -575,6 +562,11 @@ export const sharedStyles = css`
   .list.aligned {
     display: grid;
     column-gap: var(--ha-space-2, 8px);
+  }
+  /* Its rows carry the context padding (.list > *), not the list. */
+  .section > .list.aligned {
+    padding-top: 0;
+    padding-bottom: 0;
   }
   .list.aligned > * {
     grid-column: 1 / -1;
@@ -799,8 +791,7 @@ export const sharedStyles = css`
     overflow: hidden;
   }
   /* RowFitController (row-fit.ts): on a row too narrow for them, the tags
-   * fold into one pill with their count, and a newer-version pill keeps
-   * only its icon, before the name gets cut. */
+   * fold into one pill with their count before the name gets cut. */
   .tag-summary {
     display: none;
     flex-shrink: 0;
@@ -811,12 +802,6 @@ export const sharedStyles = css`
   }
   .row.compact-tags .tag-summary {
     display: inline-flex;
-  }
-  .row.compact-version .version-tag-pill {
-    gap: 0;
-  }
-  .row.compact-version .version-tag-pill .pill-text {
-    display: none;
   }
   /* Icon+count summary row (Environment card's container stats,
    * Schedules card's status counts) — spread evenly across the full card

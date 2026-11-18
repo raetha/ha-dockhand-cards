@@ -115,7 +115,7 @@ Everything shared lives in `common/shared-styles.ts`; cards use it rather than l
 
 - **`.row`**: the default data row — flex, centered, `space-between`, `8px` gap.
 - **`.row-left`** / **`.row-right`**: the grouped left part (icon, name, pills) and trailing part of a row.
-- **`.row-actions`**: a list row's controls (`show_controls`), after `.row-right`: the same number of 16px slots on every row of a card, the most any row needs and at least two (`rowControlSlots()`, set as `--row-control-slots` on the card; `.row-control-slot` fills an unused one; a row without controls gets an empty column). Buttons follow Dockhand's own list order: a stack's deploy, start or resume, restart, pause, stop (`controlButtons()` in `device-controls.ts`, shared with the Stack and Container card headers), so controls and the values before them line up down the card. Position comes from `.row`'s `space-between` and DOM order.
+- **`.row-actions`**: a list row's controls (`show_controls`), its last column (§13): the same number of 16px slots on every row of a card, the most any row needs and at least two (`rowControlSlots()`, set as `--row-control-slots` on the card; `.row-control-slot` fills an unused one; a row without controls gets an empty column). Buttons follow Dockhand's own list order: a stack's deploy, start or resume, restart, pause, stop (`controlButtons()` in `device-controls.ts`, shared with the Stack and Container card headers), so the buttons line up within the column.
 - **`.header-left`** / **`.header-right`**: a card header's groups, separate from the row classes because their gaps differ. `.header-icon` is a 32×32 box around a 24px icon (4px invisible padding each side), so `.header-right` has `gap: 0` (4 + 4 = 8px between visible icons) and `.header-left` keeps `8px` with `.header-left .header-icon { margin: 0 -4px }`. The Stack card's `.header-right .label-pill { margin-right: 4px }` does the same where a pill meets an icon. Spacing is measured between visible glyphs.
 - **`.row-icon`**: a small non-shrinking icon with optional text — a row's leading state icon, or one of the trailing badges in `.row-right`.
 - **`.hero-row`**: a card's most prominent value, centered, `12px` padding.
@@ -125,7 +125,7 @@ Everything shared lives in `common/shared-styles.ts`; cards use it rather than l
 
 **Dividers belong to the caller, not a section.** `joinWithDividers()` (`common/section-join.ts`) puts a `.divider` between sections that rendered, never first, last or doubled, whatever is hidden or empty; `mergeSections()` groups sections that sit together with no divider (a metrics section and its grid) and still collapses to `nothing` when all are empty. This matters wherever any section can come first (the Environment card's custom mode).
 
-**Lists:** `.list` is `display: contents` and the only list container. Rows don't align columns across rows (§13).
+**Lists:** `.list` is `display: contents`; `.list.aligned` (`renderAlignedList()`, §13) is the list cards' grid.
 
 **Color:** `.status-banner` (one prominent message per card) and the icon tiers take `.ok`/`.warn`/`.error`/`.accent`(/`.neutral`), reading HA's `--success-color`/`--warning-color`/ `--error-color` and `--dockhand-accent-color`. A state with its own vocabulary maps to these in a local table (`HEALTH_STATUS_CLASS` in the Container card) rather than adding a modifier. Neither a banner nor a colored icon signals "clickable"; real actions are header icons with `.filled` (§17).
 
@@ -141,7 +141,7 @@ Everything shared lives in `common/shared-styles.ts`; cards use it rather than l
 
 The rhythm is 8px between rows and sections, built from padding (§11) and measured with `getBoundingClientRect()`, not by eye. Everything under the header, header included, is inside `.body`. Rows that need more space (`.hero-row`) add their own padding.
 
-List cards don't align columns across rows: their badges are toggleable and vary per row, and one list mechanism (`.list`, rows laid out by `.row`) is simpler than per-card column tracks.
+List cards line their row details up in columns (`common/aligned-list.ts`, `.list.aligned`): one grid for the whole list, groups included, with `minmax(0, 1fr)` for the name side and an `auto` column per detail shown that some row has (`shownColumns()`), so a column is as wide as its widest value and a hidden or absent detail takes no space. Rows are `display: grid; grid-template-columns: subgrid` and keep a `.cell` in every column, empty when they have nothing for it; group headers and dividers span every column. Cells are left-aligned so a column's icons line up. The name, type, environment and tags stay on the name side (`.row-left`, which loses `.row`'s `margin-right: auto` there, since that shrink-wraps a grid item). The cost: a row with nothing for a detail keeps an empty cell, and every row gives up each column's widest value, so on a narrow card RowFitController folds tags sooner. Single-value lists (resource sections, recent events, the Vulnerability card's own grid) keep `.row-right`. A newer version tag is an icon, its tag in the tooltip, so a column doesn't widen for every row.
 
 ## 14. CSS and rendering facts
 
@@ -171,11 +171,11 @@ Wedges and rounded corners come from `d3-shape`'s `arc()`, the one dependency be
 - **`renderIcon`** (`common/icon.ts`): every small icon, clickable or static — header icons, the Dockhand link, row badges, `.card-badge`, `.stat`. `baseClass` picks the tier (`header-icon`/`row-icon`/`card-badge`/`stat`). `.filled` (appended to `baseClass`) gives a header icon a visible background and room for text, for the Updates card's Update all and Check for updates; `busy: true` swaps the icon for a CSS `.spinner` (not `ha-spinner`, which may not be loaded). `onClick` is required unless `disabled: true` (a known muted state, such as the unavailable Dockhand link; still swallows clicks) or `static: true` (never interactive; clicks pass through) — a discriminated union, so there's no clickable-looking icon without an action. Enter/Space activate it like a click. `renderSettingsLink` builds the Dockhand link on top.
 - **`onKeydownActivate`** (`common/icon.ts`): the Enter/Space handler for clickable elements that aren't `renderIcon()` icons (a whole `.row`, a `.hero-row`).
 - **`renderResourceMetrics` / `renderResourceIo`** (`common/resource-sections.ts`): CPU/memory bars and the network/disk grid, for the Container and Stack cards. A stack has no memory percentage (`STACK_RESOURCE_KEYS`), so its bar is usage over limit, as on Dockhand's Stacks page.
-- **`newerVersionTag` / `isVersionTagOnly` / `renderVersionTagPill` / `versionTagTooltip`** (`common/version-tag.ts`): ha-dockhand's newer-version-tag attributes, for the Updates, Containers and Stack cards. The tooltip follows Dockhand's `VersionUpdateBadge.svelte`.
+- **`newerVersionTag` / `isVersionTagOnly` / `versionTagTooltip`** (`common/version-tag.ts`): ha-dockhand's newer-version-tag attributes, for the Updates, Containers and Stack cards. The tooltip follows Dockhand's `VersionUpdateBadge.svelte`.
 - **`updateStatus` / `updateKindIcon` / `renderUpdateKindIcon`** (`common/update-kind.ts`): what an update entity that's on means — `installable`, `tag` (newer tag only), `pinned` (moved digest on a digest-pinned image) or `held` (`update_held_hours`); the last three have nothing to install. Orange arrow, grey tag, orange pin, grey clock, as in Dockhand's containers list.
 - **`renderTagPills`** (`common/tag-pills.ts`): Dockhand tags as colored pills, plus the count pill `RowFitController` swaps in; the pill group shrinks before the name does.
 - **`PairGridController`** (`common/pair-grid.ts`): stacks every `.grid-2` pair at once when the widest item won't fit in half the width, measured from content.
-- **`RowFitController`** (`common/row-fit.ts`): on a list row whose name would be cut, the version tag pill drops its text (`.compact-version`); tags that don't fit fold into one count pill (`.compact-tags`), or are left out when even that doesn't fit (`.no-tags`). Measured with the classes off each time, so rows don't flip back and forth.
+- **`RowFitController`** (`common/row-fit.ts`): on a list row whose name would be cut, tags that don't fit fold into one count pill (`.compact-tags`), or are left out when even that doesn't fit (`.no-tags`). Measured with the classes off each time, so rows don't flip back and forth.
 
 ## 18. CSS classes
 
@@ -199,6 +199,7 @@ Every class in use. `docs/styling.md`'s card_mod section is the public subset.
 | `.stacked-pair` | A line plus secondary content, 2px apart. |
 | `.list` | List row container, `display: contents`. |
 | `.row`, `.row-left`, `.row-right` | The default data row and its groups. |
+| `.list.aligned`, `.cell` | A list whose row details line up in columns, and a row's cell in one (§13). |
 | `.row-actions`, `.row-control`, `.row-control-slot` | A list row's controls column, its buttons, and an unused slot. |
 | `.item-name` | A row's name: `flex: 1`, truncating. |
 | `.row-icon` | Small icon with optional text: a row's state icon or a trailing badge. Color modifiers. |

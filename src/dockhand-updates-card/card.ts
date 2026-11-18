@@ -14,11 +14,11 @@ import { containerFilters, renderFilteredNote } from '../common/list-filters';
 import { renderIcon, onKeydownActivate } from '../common/icon';
 import { t } from '../common/i18n-card';
 import { UPDATE_PENDING_VERSION } from '../common/const';
-import { renderVersionTagPill, type NewerVersionTag } from '../common/version-tag';
+import { versionTagTooltip, type NewerVersionTag } from '../common/version-tag';
+import { cell, renderAlignedList } from '../common/aligned-list';
 import { heldShort, heldTooltip, pinnedDigestTooltip, updateStatus, type UpdateKind } from '../common/update-kind';
 import type { DockhandUpdatesCardConfig } from './types';
 import { cardStyles } from './styles';
-import { RowFitController } from '../common/row-fit';
 
 const UPDATE_ROW_ICONS: Record<UpdateKind, string> = {
   installable: 'mdi:arrow-up-circle',
@@ -73,13 +73,12 @@ export function canInstall(hass: HomeAssistant, entityId: string): boolean {
 
 const UPDATE_FEATURE_INSTALL = 1;
 
+function hasTagBeside(u: PendingUpdate): boolean {
+  return Boolean(u.newerVersion) && u.kind !== 'tag';
+}
+
 export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
   static styles = cardStyles;
-
-  constructor() {
-    super();
-    new RowFitController(this);
-  }
 
   @state() private _config?: DockhandUpdatesCardConfig;
   @state() private _hass?: HomeAssistant;
@@ -220,6 +219,9 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
     // included environment in one sorted list, discarding which group
     // each came from.
     const flatUpdates = effectiveGroupBy === 'none' ? sortPendingUpdates(groups.flatMap((g) => g.updates)) : null;
+    // One grid for every group, so the columns line up across groups too;
+    // the tag column only when some row has a newer tag beside its update.
+    const tagColumn = groups.some((g) => g.updates.some(hasTagBeside));
 
     return html`
       <ha-card>
@@ -263,26 +265,33 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
                   <ha-icon icon="mdi:check-circle-outline"></ha-icon>
                   <span>${t(this._hass, 'msg_everything_up_to_date')}</span>
                 </div>`
-            : flatUpdates
-              ? html`<div class="list">${flatUpdates.map((u) => this._renderUpdateRow(u))}</div>`
-              : groups.map(
-                  (g, i) => html`
-                    ${i > 0 ? html`<div class="divider"></div>` : nothing}
-                    ${showGroupHeaders ? html`<div class="group-header">${g.envName}</div>` : nothing}
-                    <div class="list">${g.updates.map((u) => this._renderUpdateRow(u))}</div>
-                  `
-                )}
+            : renderAlignedList(
+                tagColumn ? 2 : 1,
+                flatUpdates
+                  ? flatUpdates.map((u) => this._renderUpdateRow(u, tagColumn))
+                  : groups.map(
+                      (g, i) => html`
+                        ${i > 0 ? html`<div class="divider"></div>` : nothing}
+                        ${showGroupHeaders ? html`<div class="group-header">${g.envName}</div>` : nothing}
+                        ${g.updates.map((u) => this._renderUpdateRow(u, tagColumn))}
+                      `
+                    )
+              )}
           ${renderFilteredNote(this._hass, hidden, this._config.show_filtered_count)}
         </div>
       </ha-card>
     `;
   }
 
-  private _renderUpdateRow(u: PendingUpdate): TemplateResult {
-    // The tag pill only alongside something else: when the tag is the only
-    // update, the version text already names it. The pill leads the right
-    // side so the version text after it stays aligned down the list.
-    const pill = u.newerVersion && u.kind !== 'tag' ? renderVersionTagPill(this._hass, u.newerVersion) : nothing;
+  private _renderUpdateRow(u: PendingUpdate, tagColumn: boolean): TemplateResult {
+    // The tag only alongside something else: when the tag is the only
+    // update, the version text already names it. An icon, its tag in the
+    // tooltip, so it doesn't widen the column for every row; first, as in
+    // Dockhand.
+    const tag =
+      u.newerVersion && hasTagBeside(u)
+        ? renderIcon({ baseClass: 'row-icon', icon: 'mdi:tag-arrow-up-outline', colorClass: 'warn', title: versionTagTooltip(this._hass, u.newerVersion), static: true })
+        : nothing;
     let versionText: string | typeof nothing = nothing;
     let title: string | undefined;
     if (u.kind === 'held') {
@@ -302,7 +311,8 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
           <ha-icon class="update-icon ${u.kind}" icon=${UPDATE_ROW_ICONS[u.kind]} title=${title ?? nothing}></ha-icon>
           <span class="item-name">${u.name}</span>
         </div>
-        ${pill === nothing && versionText === nothing ? nothing : html`<span class="row-right" title=${title ?? nothing}>${pill}${versionText}</span>`}
+        ${tagColumn ? cell(tag) : nothing}
+        <div class="cell" title=${title ?? nothing}>${versionText}</div>
       </div>
     `;
   }

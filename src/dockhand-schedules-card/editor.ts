@@ -11,7 +11,7 @@ import { stripUndefinedKeys } from '../common/config-utils';
 import { sortableRowStyles, editorFormStyles } from '../common/editor-styles';
 import { resolveIncludedOrdered } from '../common/environment-scope';
 import { renderEnvironmentOrderSection } from '../common/environment-scope-editor';
-import { type DockhandSchedulesCardConfig, type ScheduleGroupBy, resolveVisibleBadges } from './types';
+import { SCHEDULE_BADGE_ORDER, type DockhandSchedulesCardConfig, type ScheduleGroupBy, resolveVisibleBadges } from './types';
 import { schedulesFilterFields, renderFiltersForm } from '../common/filters-editor';
 
 /** `include_global: false` (before 2.0.0) is the Where filter set to "not
@@ -181,10 +181,9 @@ export class DockhandSchedulesCardEditor extends LitElement implements LovelaceC
           {
             name: 'visible_badges',
             type: 'multi_select',
-            options: {
-              next_run: t(this._hass, 'badge_next_run'),
-              ...(this.cardIsEmbedded ? {} : { environment: t(this._hass, 'badge_environment') })
-            }
+            options: Object.fromEntries(
+              SCHEDULE_BADGE_ORDER.filter((badge) => !(this.cardIsEmbedded && badge === 'environment')).map((badge) => [badge, t(this._hass, `badge_${badge}`)])
+            )
           }
         ]
       }

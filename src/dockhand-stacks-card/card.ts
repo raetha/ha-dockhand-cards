@@ -18,6 +18,7 @@ import { renderRowControls, renderActionsColumn, resolveDeviceControls, rowContr
 import { applyFilters, type FilterExtractor } from '../common/filters';
 import { renderFilteredNote, tagValues } from '../common/list-filters';
 import { renderTagPills } from '../common/tag-pills';
+import { cell, renderAlignedList, shownColumns } from '../common/aligned-list';
 import { cardStyles } from './styles';
 import { RowFitController } from '../common/row-fit';
 
@@ -163,6 +164,33 @@ export function groupStackRows(
   return entries.map(([, bucket]) => ({ label: bucket.label, rows: sortStackRows(bucket.rows, sortBy) }));
 }
 
+/** Memory in use rather than a percentage, as Dockhand's stacks list shows
+ * it: Dockhand reports no percentage for a stack, and its limit is the
+ * largest single container's, not the stack's. If Dockhand ever reports a
+ * stack's percentage, show that, as the Containers card does. */
+function stackMemory(row: StackRow): number | undefined {
+  return bytesState(row.found.memoryUsage?.state);
+}
+
+/** Right-hand row details in their order on a row; each shown one is a
+ * column. Type, environment and tags stay with the name, on its left. */
+const COLUMN_ORDER = ['updates', 'container_count', 'cpu', 'memory'] as const;
+type ColumnKey = (typeof COLUMN_ORDER)[number] | 'controls';
+
+function hasDetail(row: StackRow, key: (typeof COLUMN_ORDER)[number]): boolean {
+  const found = row.found;
+  switch (key) {
+    case 'updates':
+      return found.updatesAvailable?.state.state === 'on';
+    case 'container_count':
+      return found.containersInStack?.state.state !== undefined;
+    case 'cpu':
+      return numericState(found.cpuPercent?.state.state) !== undefined;
+    case 'memory':
+      return stackMemory(row) !== undefined;
+  }
+}
+
 export class DockhandStacksCard extends LitElement implements LovelaceCard {
   static styles = cardStyles;
 
@@ -301,45 +329,52 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
             ? html`<div class="card-message">${t(this._hass, 'msg_no_stacks_yet')}</div>`
             : shown.length === 0
               ? html`<div class="card-message">${t(this._hass, 'msg_no_filter_matches')}</div>`
-              : groups.map(
-                  (group, i) => html`
-                    ${i > 0 ? html`<div class="divider"></div>` : nothing}
-                    ${group.label !== null ? html`<div class="group-header">${group.label}</div>` : nothing}
-                    <div class="list">${group.rows.map((r) => this._renderRow(r))}</div>
-                  `
-                )}
+              : this._renderList(groups)}
           ${renderFilteredNote(this._hass, hidden, this._config.show_filtered_count)}
         </div>
       </ha-card>
     `;
   }
 
-  /** Off unless show_controls is set, so a stray tap on a list doesn't
-   * stop anything. */
   /** Control slots per row in this render (rowControlSlots). */
   private _slots = 2;
 
+  /** Off unless show_controls is set, so a stray tap on a list doesn't
+   * stop anything. */
   private _renderControls(row: StackRow): TemplateResult | typeof nothing {
     if (!this._config?.show_controls || !this._hass) return nothing;
     const controls = resolveDeviceControls(this._hass, row.deviceId, true);
     return renderActionsColumn(controls ? renderRowControls(this, this._hass, controls, row.name, this._slots) : null);
   }
 
-  private _renderRow(row: StackRow): TemplateResult {
+  /** The row details shown, in their order on a row: each is a column of
+   * the list, so the details line up down the card. A detail that's
+   * hidden, or that no row has, has no column. */
+  private _columns(rows: StackRow[]): ColumnKey[] {
+    const visible = new Set(this._config?.visible_badges ?? DEFAULT_STACKS_BADGES);
+    const columns: ColumnKey[] = shownColumns(COLUMN_ORDER, (key) => visible.has(key), rows, hasDetail);
+    return this._config?.show_controls ? [...columns, 'controls'] : columns;
+  }
+
+  /** One grid for every group, so the columns line up across groups too. */
+  private _renderList(groups: { label: string | null; rows: StackRow[] }[]): TemplateResult {
+    const columns = this._columns(groups.flatMap((g) => g.rows));
+    return renderAlignedList(
+      columns.length,
+      groups.map(
+        (group, i) => html`
+          ${i > 0 ? html`<div class="divider"></div>` : nothing}
+          ${group.label !== null ? html`<div class="group-header">${group.label}</div>` : nothing}
+          ${group.rows.map((r) => this._renderRow(r, columns))}
+        `
+      )
+    );
+  }
+
+  private _renderRow(row: StackRow, columns: ColumnKey[]): TemplateResult {
     const found = row.found;
     const status = found.status!.state.state;
     const statusIcon = STATUS_ICON[status] ?? { icon: 'mdi:help-circle', cls: 'neutral' as const };
-    const containerCount = found.containersInStack?.state.state;
-    const containerCountId = found.containersInStack?.entityId;
-    const updatesOn = found.updatesAvailable?.state.state === 'on';
-    const updateCount = numericState(found.pendingUpdates?.state.state);
-    const updatesId = found.updatesAvailable?.entityId;
-    const cpu = numericState(found.cpuPercent?.state.state);
-    // Memory in use rather than a percentage, as Dockhand's stacks list
-    // shows it: Dockhand reports no percentage for a stack, and its limit is
-    // the largest single container's, not the stack's. If Dockhand ever
-    // reports a stack's percentage, show that, as the Containers card does.
-    const mem = bytesState(found.memoryUsage?.state);
     const id = found.status!.entityId;
     const visible = new Set(this._config?.visible_badges ?? DEFAULT_STACKS_BADGES);
 
@@ -352,35 +387,62 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
           ${visible.has('environment') ? html`<span class="label-pill">${row.environment}</span>` : nothing}
           ${visible.has('tags') ? renderTagPills(found.status?.state) : nothing}
         </div>
-        <div class="row-right">
-          ${updatesOn && visible.has('updates')
+        ${columns.map((key) => this._renderCell(key, row))}
+      </div>
+    `;
+  }
+
+  /** A row's cell for a column, empty when the row has nothing for it, so
+   * the next columns stay lined up. */
+  private _renderCell(key: ColumnKey, row: StackRow): TemplateResult | typeof nothing {
+    const found = row.found;
+    switch (key) {
+      case 'updates': {
+        const updateCount = numericState(found.pendingUpdates?.state.state);
+        return cell(
+          found.updatesAvailable?.state.state === 'on'
             ? renderIcon({
                 baseClass: 'row-icon',
                 icon: 'mdi:arrow-up-circle',
                 colorClass: 'warn',
                 text: updateCount !== undefined ? `${updateCount}` : '',
                 title: t(this._hass, 'update_available'),
-                onClick: () => this._moreInfo(updatesId)
+                onClick: () => this._moreInfo(found.updatesAvailable?.entityId)
               })
-            : nothing}
-          ${containerCount !== undefined && visible.has('container_count')
+            : nothing
+        );
+      }
+      case 'container_count': {
+        const containerCount = found.containersInStack?.state.state;
+        return cell(
+          containerCount !== undefined
             ? renderIcon({
                 baseClass: 'row-icon',
                 icon: 'mdi:docker',
                 text: `${containerCount}`,
                 title: t(this._hass, 'label_containers'),
-                onClick: () => this._moreInfo(containerCountId)
+                onClick: () => this._moreInfo(found.containersInStack?.entityId)
               })
-            : nothing}
-          ${cpu !== undefined && visible.has('cpu')
+            : nothing
+        );
+      }
+      case 'cpu': {
+        const cpu = numericState(found.cpuPercent?.state.state);
+        return cell(
+          cpu !== undefined
             ? renderIcon({
                 baseClass: 'row-icon',
                 icon: 'mdi:cpu-64-bit',
                 text: formatPercent(cpu, this._hass, 0),
                 onClick: () => this._moreInfo(found.cpuPercent?.entityId)
               })
-            : nothing}
-          ${mem !== undefined && visible.has('memory')
+            : nothing
+        );
+      }
+      case 'memory': {
+        const mem = stackMemory(row);
+        return cell(
+          mem !== undefined
             ? renderIcon({
                 baseClass: 'row-icon',
                 icon: 'mdi:memory',
@@ -388,10 +450,11 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
                 text: formatBytes(mem, this._hass, 0),
                 onClick: () => this._moreInfo(found.memoryUsage?.entityId)
               })
-            : nothing}
-        </div>
-        ${this._renderControls(row)}
-      </div>
-    `;
+            : nothing
+        );
+      }
+      case 'controls':
+        return this._renderControls(row);
+    }
   }
 }
