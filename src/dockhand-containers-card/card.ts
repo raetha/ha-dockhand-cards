@@ -21,6 +21,7 @@ import { renderRowControls, renderActionsColumn, resolveDeviceControls, rowContr
 import { applyFilters } from '../common/filters';
 import { containerFilters, containerStateValues, renderFilteredNote } from '../common/list-filters';
 import { renderTagPills } from '../common/tag-pills';
+import { cell, renderAlignedList, shownColumns } from '../common/aligned-list';
 import { cardStyles } from './styles';
 import { RowFitController } from '../common/row-fit';
 
@@ -303,11 +304,11 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
     `;
   }
 
-  /** Off unless show_controls is set, so a stray tap on a list doesn't
-   * stop anything. */
   /** Control slots per row in this render (rowControlSlots). */
   private _slots = 2;
 
+  /** Off unless show_controls is set, so a stray tap on a list doesn't
+   * stop anything. */
   private _renderControls(row: ContainerRow): TemplateResult | typeof nothing {
     if (!this._config?.show_controls || !this._hass) return nothing;
     const controls = resolveDeviceControls(this._hass, row.deviceId, true);
@@ -320,8 +321,7 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
    * newer version anywhere), has no column, so no empty space. */
   private _columns(rows: ContainerRow[]): ColumnKey[] {
     const visible = new Set(this._config?.visible_badges ?? DEFAULT_CONTAINERS_BADGES);
-    const columns: ColumnKey[] = COLUMN_ORDER.filter((key) => visible.has(key))
-      .filter((key) => rows.some((row) => hasDetail(row, key)));
+    const columns: ColumnKey[] = shownColumns(COLUMN_ORDER, (key) => visible.has(key), rows, hasDetail);
     return this._config?.show_controls ? [...columns, 'controls'] : columns;
   }
 
@@ -330,15 +330,16 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
    * them. */
   private _renderList(groups: ReturnType<typeof groupContainerRows>): TemplateResult {
     const columns = this._columns(groups.flatMap((g) => g.rows));
-    return html`<div class="list aligned" style=${`grid-template-columns: minmax(0, 1fr)${' auto'.repeat(columns.length)}`}>
-      ${groups.map(
+    return renderAlignedList(
+      columns.length,
+      groups.map(
         (group, i) => html`
           ${i > 0 ? html`<div class="divider"></div>` : nothing}
           ${group.label !== null ? html`<div class="group-header">${group.label}</div>` : nothing}
           ${group.rows.map((r) => this._renderRow(r, columns))}
         `
-      )}
-    </div>`;
+      )
+    );
   }
 
   private _renderRow(row: ContainerRow, columns: ColumnKey[]): TemplateResult {
@@ -354,14 +355,13 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
     const id = found.state!.entityId;
     // Every row has a cell for every column, empty when it has nothing
     // for it, so the next columns stay lined up.
-    const cell = (key: ColumnKey): TemplateResult => {
+    const column = (key: ColumnKey): TemplateResult => {
       switch (key) {
         case 'updates':
-          // At most two icons: the update, then a newer version tag, whose
-          // tag is in its tooltip (a pill's text would widen the column for
-          // every row).
-          return html`<div class="cell">
-            ${row.updateStatus && row.updateStatus.kind !== 'tag' ? this._renderUpdateIcon(row) : nothing}
+          // At most two icons, in Dockhand's order: a newer version tag
+          // (the tag is in its tooltip: a pill's text would widen the column
+          // for every row), then the update.
+          return cell(html`
             ${row.newerVersion
               ? renderIcon({
                   baseClass: 'row-icon',
@@ -371,10 +371,11 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
                   onClick: () => this._moreInfo(row.updateEntityId)
                 })
               : nothing}
-          </div>`;
+            ${row.updateStatus && row.updateStatus.kind !== 'tag' ? this._renderUpdateIcon(row) : nothing}
+          `);
         case 'health':
-          return html`<div class="cell">
-            ${health === 'healthy' || health === 'unhealthy' || health === 'starting'
+          return cell(
+            health === 'healthy' || health === 'unhealthy' || health === 'starting'
               ? renderIcon({
                   baseClass: 'row-icon',
                   icon: HEALTH_ICON[health] ?? 'mdi:heart-outline',
@@ -382,16 +383,12 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
                   title: stateLabel(this._hass, 'health', health, found.health?.state),
                   onClick: () => this._moreInfo(healthId)
                 })
-              : nothing}
-          </div>`;
+              : nothing
+          );
         case 'cpu':
-          return html`<div class="cell">
-            ${cpu !== undefined ? renderIcon({ baseClass: 'row-icon', icon: 'mdi:cpu-64-bit', text: formatPercent(cpu, this._hass, 0), onClick: () => this._moreInfo(cpuId) }) : nothing}
-          </div>`;
+          return cell(cpu !== undefined ? renderIcon({ baseClass: 'row-icon', icon: 'mdi:cpu-64-bit', text: formatPercent(cpu, this._hass, 0), onClick: () => this._moreInfo(cpuId) }) : nothing);
         case 'memory':
-          return html`<div class="cell">
-            ${mem !== undefined ? renderIcon({ baseClass: 'row-icon', icon: 'mdi:memory', text: formatPercent(mem, this._hass, 0), onClick: () => this._moreInfo(memId) }) : nothing}
-          </div>`;
+          return cell(mem !== undefined ? renderIcon({ baseClass: 'row-icon', icon: 'mdi:memory', text: formatPercent(mem, this._hass, 0), onClick: () => this._moreInfo(memId) }) : nothing);
         case 'controls':
           return this._renderControls(row) as TemplateResult;
       }
@@ -399,14 +396,14 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
     const visible = new Set(this._config?.visible_badges ?? DEFAULT_CONTAINERS_BADGES);
 
     return html`
-      <div class="row aligned-row clickable" @click=${() => this._moreInfo(id)}>
+      <div class="row clickable" @click=${() => this._moreInfo(id)}>
         <div class="row-left row-target" tabindex="0" role="button" @keydown=${onKeydownActivate(() => this._moreInfo(id))}>
           <ha-icon class="row-icon ${stateIcon.cls}" icon=${stateIcon.icon} title=${stateLabel(this._hass, 'container_state', st, found.state!.state)}></ha-icon>
           <span class="item-name">${row.name}</span>
           ${visible.has('environment') ? html`<span class="label-pill">${row.environment}</span>` : nothing}
           ${visible.has('tags') ? renderTagPills(found.state!.state) : nothing}
         </div>
-        ${columns.map(cell)}
+        ${columns.map(column)}
       </div>
     `;
   }

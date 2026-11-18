@@ -14,6 +14,10 @@ import type { FiltersConfig } from '../common/filters';
  * not a standalone toggle. */
 export type ContainersCardBadge = 'health' | 'updates' | 'cpu' | 'memory' | 'environment' | 'tags';
 
+/** The details in their order on a row (the name's side, then the
+ * columns), which the editor lists them in. */
+export const CONTAINERS_BADGE_ORDER: readonly ContainersCardBadge[] = ['environment', 'tags', 'updates', 'health', 'cpu', 'memory'];
+
 export const DEFAULT_CONTAINERS_BADGES: ContainersCardBadge[] = ['health', 'updates', 'cpu', 'memory', 'tags'];
 
 /** No 'type' option, unlike Stacks' equivalent — containers don't have a

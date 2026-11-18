@@ -17,6 +17,7 @@ import { resolveVisibleBadges } from './types';
 import { renderActionsColumn, renderScheduleControls, resolveScheduleControls } from '../common/device-controls';
 import { NONE, applyFilters, type FilterExtractor } from '../common/filters';
 import { renderFilteredNote } from '../common/list-filters';
+import { cell, renderAlignedList } from '../common/aligned-list';
 import { cardStyles } from './styles';
 
 // Status values per Dockhand's own ScheduleStatus type (db.ts) — the richer
@@ -414,13 +415,7 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
             : html`
                 ${this._config.show_stats ? html`<div class="divider"></div>` : nothing}
                 ${shown.length === 0 ? html`<div class="card-message">${t(this._hass, 'msg_no_filter_matches')}</div>` : nothing}
-                ${groups.map(
-                  (g, i) => html`
-                    ${i > 0 ? html`<div class="divider"></div>` : nothing}
-                    ${g.label ? html`<div class="group-header">${g.label} (${g.rows.length})</div>` : nothing}
-                    <div class="list">${g.rows.map((r) => this._renderRow(r))}</div>
-                  `
-                )}
+                ${shown.length === 0 ? nothing : this._renderList(groups)}
                 ${renderFilteredNote(this._hass, hidden, this._config.show_filtered_count)}
               `}
         </div>
@@ -465,7 +460,33 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
     `;
   }
 
-  private _renderRow(row: ScheduleRow): TemplateResult {
+  /** One grid for every group, so the columns line up across groups too:
+   * the next run, when shown and some row has one, then the controls. */
+  private _renderList(groups: { label: string | null; rows: ScheduleRow[] }[]): TemplateResult {
+    const visibleBadges = resolveVisibleBadges(this._config?.visible_badges, this._config?.group_by ?? 'environment');
+    const nextRun = visibleBadges.includes('next_run') && groups.some((g) => g.rows.some((r) => this._nextRunText(r)));
+    const controls = Boolean(this._config?.show_controls);
+    return renderAlignedList(
+      Number(nextRun) + Number(controls),
+      groups.map(
+        (g, i) => html`
+          ${i > 0 ? html`<div class="divider"></div>` : nothing}
+          ${g.label ? html`<div class="group-header">${g.label} (${g.rows.length})</div>` : nothing}
+          ${g.rows.map((r) => this._renderRow(r, nextRun))}
+        `
+      )
+    );
+  }
+
+  private _nextRunText(row: ScheduleRow): string | null {
+    return !row.enabled
+      ? t(this._hass, 'schedule_disabled')
+      : row.status === 'running'
+        ? t(this._hass, 'schedule_status_running')
+        : formatRelativeTime(row.nextRunIso, this._hass);
+  }
+
+  private _renderRow(row: ScheduleRow, nextRun: boolean): TemplateResult {
     const statusIcon = !row.enabled
       ? { icon: 'mdi:cancel', cls: 'neutral' as const }
       : row.status
@@ -485,14 +506,7 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
     // that point hiding 'environment' is a stated preference, not just
     // grouping already having covered it.
     const showInstanceLabel = this._config?.visible_badges ? showEnvironment : true;
-    const nextRunText = !row.enabled
-      ? t(this._hass, 'schedule_disabled')
-      : row.status === 'running'
-        ? t(this._hass, 'schedule_status_running')
-        : formatRelativeTime(row.nextRunIso, this._hass);
-
     const controls = this._config?.show_controls && this._hass ? resolveScheduleControls(this._hass, row.deviceId) : null;
-    const showNextRun = visibleBadges.includes('next_run') && nextRunText;
 
     return html`
       <div class="row clickable" @click=${() => this._moreInfo(row.entityId)}>
@@ -506,7 +520,7 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
           ${showEnvironment && row.environment ? html`<span class="label-pill">${row.environment}</span>` : nothing}
           ${showInstanceLabel && row.instanceLabel ? html`<span class="label-pill">${row.instanceLabel}</span>` : nothing}
         </div>
-        ${showNextRun ? html`<div class="row-right"><span>${nextRunText}</span></div>` : nothing}
+        ${nextRun ? cell(this._nextRunText(row)) : nothing}
         ${this._config?.show_controls ? renderActionsColumn(controls ? renderScheduleControls(this, this._hass, controls, row.name) : null) : nothing}
       </div>
     `;

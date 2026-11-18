@@ -8,6 +8,9 @@ export type ScheduleGroupBy = 'none' | 'environment' | 'type' | 'status';
 
 export type ScheduleBadge = 'next_run' | 'environment';
 
+/** The details in their order on a row, which the editor lists them in. */
+export const SCHEDULE_BADGE_ORDER: readonly ScheduleBadge[] = ['environment', 'next_run'];
+
 export interface DockhandSchedulesCardConfig extends LovelaceCardConfig {
   type: 'custom:dockhand-schedules-card';
   /** No scope field, deliberately — a design considered and rejected in

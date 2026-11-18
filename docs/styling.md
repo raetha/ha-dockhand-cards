@@ -19,7 +19,7 @@ Where Home Assistant has a standard color for something, the cards use it direct
 |---|---|
 | `--primary-color` | Accent: the header badge, control buttons, "Update all", focus rings, editor links (through `--dockhand-accent-color`) |
 | `--success-color` | Running, healthy, synced, all-clear; start events (through `--dockhand-status-ok-color`) |
-| `--warning-color` | Paused, partial, update available (icon, newer version tag pill, and the pin for a moved digest on a pinned image); medium/high severity; change events (through `--dockhand-status-warn-color`) |
+| `--warning-color` | Paused, partial, update available (icon, newer version tag icon, and the pin for a moved digest on a pinned image); medium/high severity; change events (through `--dockhand-status-warn-color`) |
 | `--error-color` | Stopped, unhealthy, restarting, sync error; critical/high severity; stop events (through `--dockhand-status-error-color`) |
 | `--info-color` | In progress, e.g. git "syncing"; low severity; health events (through `--dockhand-status-info-color`) |
 | `--primary-text-color` | Normal text |
@@ -34,7 +34,7 @@ Where Home Assistant has a standard color for something, the cards use it direct
 |---|---|---|
 | `--dockhand-accent-color` | `var(--primary-color)` | Accent color of these cards only |
 | `--dockhand-status-ok-color` | `var(--success-color, #43a047)` | Running/healthy/synced/all-clear states |
-| `--dockhand-status-warn-color` | `var(--warning-color, #ffa600)` | Paused/partial/pending-update states, including the newer version tag pill (its icon, and a 10% tint behind it — 20% on hover) |
+| `--dockhand-status-warn-color` | `var(--warning-color, #ffa600)` | Paused/partial/pending-update states, including the newer version tag icon |
 | `--dockhand-status-error-color` | `var(--error-color, #db4437)` | Stopped/unhealthy/restarting/sync-error states |
 | `--dockhand-status-info-color` | `var(--info-color, #039be5)` | In-progress states (currently just git "syncing") |
 | `--dockhand-status-off-color` | `var(--secondary-text-color, #727272)` | A feature that's off: the Environment card's header icons for update checks, scanning, activity and metrics |
@@ -105,11 +105,11 @@ Every card's structure uses plain, stable class names — no CSS Modules, no gen
 - `.hero-row` / `.hero-word` — a card's own single most prominent value, centered, larger text (a container's own state, a stack's own status) — `.hero-row` is the outer, padded row; `.hero-word` is the text/icon itself, independently clickable where it has a real entity to link to
 - `.fit-parts` — a value that drops pieces from the end when its line is too narrow (the memory reading on the Container and Environment cards); each piece is a plain `span` inside it.
 - `.grid-2` / `.grid-2.stacked` — two rows side by side (Container's I/O, Environment's resource counts); `.stacked` is added automatically when they don't fit, showing one per line.
-- `.row`, `.row-left`, `.row-right` — a card's own basic list row shape, content at both ends (`.row-left` the row's own icon+name, `.row-right` its own value or secondary label), used throughout every list-shaped card
+- `.row`, `.row-left`, `.row-right` — a card's own basic list row shape, content at both ends (`.row-left` the row's own icon+name, `.row-right` its own value or secondary label), used throughout every list-shaped card. In `.list.aligned` (the list cards and the Environment card's top containers) a row's details are `.cell`s, one per column, instead of a `.row-right`.
 - `.row-actions` — the controls column a list card adds to every row when **Show controls** is on
 - `.filtered-note` — the "Hidden by filters" line under a filtered list
 - `.item-name` — a row's own primary name text, truncating with an ellipsis the same way a header's own name does
-- `.label-pill` — a small rounded label (a stack/container type, a custom environment label) — shared by every card that has one, see `docs/architecture.md` §10. `.version-tag-pill` is the newer version tag one on Updates and Containers rows (additive, so `.label-pill` still matches it); its text uses `--dockhand-status-warn-text-color`. `.tag-pill` is a Dockhand tag on Stacks/Containers rows and in the Stack/Container cards' `.tag-row`; its colour is the user's own choice in Dockhand, set inline like an environment label's (text mixed halfway toward `--primary-text-color`, background at 15%)
+- `.label-pill` — a small rounded label (a stack/container type, a custom environment label) — shared by every card that has one, see `docs/architecture.md` §10. `.tag-pill` is a Dockhand tag on Stacks/Containers rows and in the Stack/Container cards' `.tag-row`; its colour is the user's own choice in Dockhand, set inline like an environment label's (text mixed halfway toward `--primary-text-color`, background at 15%)
 - `.header-icon` — every header icon on every card, clickable or genuinely static, either side of the header: an update chip, a feature toggle, the Dockhand link, and Environment's own connection-type icon (merged in from a former separate `.conn-icon`) — all one shared shape and treatment, so they visually line up and behave identically regardless of what each one is or does. `.link-unavailable` is the Dockhand link's own muted, non-interactive state when no usable URL could be resolved — additive, so a rule targeting `.header-icon` alone still matches this state too.
 - `.row-icon` — a small, non-shrinking icon+optional-text badge on a list row, position-neutral (used both as a row's own standalone content, and nested inside `.row-right` as one of several trailing badges), clickable or genuinely static (a metric row's own "CPU"/"Memory" label) — shared by every list-shaped card, see `docs/architecture.md` §18
 - `.stat` — a small icon+count summary badge, always static (a container-state count, a schedule-run outcome count) — see `docs/architecture.md` §18

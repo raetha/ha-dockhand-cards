@@ -11,7 +11,7 @@ import { t } from '../common/i18n-editor';
 import { editorFormStyles, sortableRowStyles } from '../common/editor-styles';
 import { resolveIncludedOrdered } from '../common/environment-scope';
 import { renderEnvironmentOrderSection } from '../common/environment-scope-editor';
-import { DEFAULT_STACKS_BADGES, type DockhandStacksCardConfig } from './types';
+import { STACKS_BADGE_ORDER, DEFAULT_STACKS_BADGES, type DockhandStacksCardConfig } from './types';
 import { STACKS_FILTER_FIELDS, renderFiltersForm } from '../common/filters-editor';
 
 export class DockhandStacksCardEditor extends LitElement implements LovelaceCardEditor {
@@ -98,15 +98,9 @@ export class DockhandStacksCardEditor extends LitElement implements LovelaceCard
           {
             name: 'visible_badges',
             type: 'multi_select',
-            options: {
-              container_count: t(this._hass, 'badge_container_count'),
-              updates: t(this._hass, 'badge_updates'),
-              cpu: t(this._hass, 'badge_cpu'),
-              memory: t(this._hass, 'badge_memory'),
-              type: t(this._hass, 'badge_type'),
-              tags: t(this._hass, 'badge_tags'),
-              ...(this.cardIsEmbedded ? {} : { environment: t(this._hass, 'badge_environment') })
-            }
+            options: Object.fromEntries(
+              STACKS_BADGE_ORDER.filter((badge) => !(this.cardIsEmbedded && badge === 'environment')).map((badge) => [badge, t(this._hass, `badge_${badge}`)])
+            )
           }
         ]
       }

@@ -15,6 +15,10 @@ export type StacksCardBadge = 'container_count' | 'updates' | 'cpu' | 'memory' |
  * amount in use, as Dockhand's stacks list shows it (Dockhand reports no
  * percentage for a stack), which takes more room than a percentage. Both
  * show only while ha-dockhand's container and stack stats are on. */
+/** The details in their order on a row (the name's side, then the
+ * columns), which the editor lists them in. */
+export const STACKS_BADGE_ORDER: readonly StacksCardBadge[] = ['type', 'environment', 'tags', 'updates', 'container_count', 'cpu', 'memory'];
+
 export const DEFAULT_STACKS_BADGES: StacksCardBadge[] = ['container_count', 'updates', 'type', 'tags'];
 
 /** 'status'/'type' group by the same fields STATUS_ICON/the type pill
