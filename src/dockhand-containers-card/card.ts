@@ -14,7 +14,7 @@ import { stateLabel } from '../common/state-label';
 import { renderSettingsLink, renderIcon, onKeydownActivate } from '../common/icon';
 import type { ContainerTranslationKey } from '../common/const';
 import { CONTAINER_STATE, HEALTH_ICON, HEALTH_STATUS_CLASS, UNKNOWN_CONTAINER_STATE } from '../common/const';
-import { renderVersionTagPill, type NewerVersionTag } from '../common/version-tag';
+import { versionTagTooltip, type NewerVersionTag } from '../common/version-tag';
 import { updateKindIcon, updateStatus, type UpdateStatus } from '../common/update-kind';
 import { DEFAULT_CONTAINERS_BADGES, type DockhandContainersCardConfig, type ContainersGroupBy, type ContainersSortBy } from './types';
 import { renderRowControls, renderActionsColumn, resolveDeviceControls, rowControlSlots } from '../common/device-controls';
@@ -130,17 +130,13 @@ export function groupContainerRows(
 /** Right-hand row details in their order on a row; each shown one is a
  * column. Environment and tags stay with the name, on its left. */
 const COLUMN_ORDER = ['updates', 'health', 'cpu', 'memory'] as const;
-/** Updates take two columns, the newer-version pill and the update icon, so
- * the icons line up whether or not a row has a pill. */
-type ColumnKey = Exclude<(typeof COLUMN_ORDER)[number], 'updates'> | 'version' | 'update' | 'controls';
+type ColumnKey = (typeof COLUMN_ORDER)[number] | 'controls';
 
 function hasDetail(row: ContainerRow, key: Exclude<ColumnKey, 'controls'>): boolean {
   const found = row.found;
   switch (key) {
-    case 'version':
-      return Boolean(row.newerVersion);
-    case 'update':
-      return Boolean(row.updateStatus && row.updateStatus.kind !== 'tag');
+    case 'updates':
+      return Boolean(row.newerVersion || (row.updateStatus && row.updateStatus.kind !== 'tag'));
     case 'health':
       return ['healthy', 'unhealthy', 'starting'].includes(found.health?.state.state ?? '');
     case 'cpu':
@@ -325,7 +321,6 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
   private _columns(rows: ContainerRow[]): ColumnKey[] {
     const visible = new Set(this._config?.visible_badges ?? DEFAULT_CONTAINERS_BADGES);
     const columns: ColumnKey[] = COLUMN_ORDER.filter((key) => visible.has(key))
-      .flatMap((key) => (key === 'updates' ? (['version', 'update'] as const) : [key]))
       .filter((key) => rows.some((row) => hasDetail(row, key)));
     return this._config?.show_controls ? [...columns, 'controls'] : columns;
   }
@@ -361,10 +356,22 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
     // for it, so the next columns stay lined up.
     const cell = (key: ColumnKey): TemplateResult => {
       switch (key) {
-        case 'version':
-          return html`<div class="cell">${row.newerVersion ? renderVersionTagPill(this._hass, row.newerVersion, () => this._moreInfo(row.updateEntityId)) : nothing}</div>`;
-        case 'update':
-          return html`<div class="cell">${row.updateStatus && row.updateStatus.kind !== 'tag' ? this._renderUpdateIcon(row) : nothing}</div>`;
+        case 'updates':
+          // At most two icons: the update, then a newer version tag, whose
+          // tag is in its tooltip (a pill's text would widen the column for
+          // every row).
+          return html`<div class="cell">
+            ${row.updateStatus && row.updateStatus.kind !== 'tag' ? this._renderUpdateIcon(row) : nothing}
+            ${row.newerVersion
+              ? renderIcon({
+                  baseClass: 'row-icon',
+                  icon: 'mdi:tag-arrow-up-outline',
+                  colorClass: 'warn',
+                  title: versionTagTooltip(this._hass, row.newerVersion),
+                  onClick: () => this._moreInfo(row.updateEntityId)
+                })
+              : nothing}
+          </div>`;
         case 'health':
           return html`<div class="cell">
             ${health === 'healthy' || health === 'unhealthy' || health === 'starting'
