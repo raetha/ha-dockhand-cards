@@ -9,7 +9,9 @@ import { DomChanges } from './dom-changes';
  * if the name still shows less than NAME_MIN_EM of itself, or the name side
  * holds more than fits, its environment, type and instance pills are left
  * out too (`.no-labels`): the name says which row it is, they only add
- * context.
+ * context. If the columns still don't fit beside the name's minimum (an
+ * aligned list's first track), the list scrolls sideways with its controls
+ * held in view (`.overflowing` on `.list.aligned`).
  * Decided per row from the full layout each time (the
  * classes come off, everything is measured, then they go back on where
  * needed), so a row never flips between the two and nothing paints in
@@ -39,6 +41,9 @@ export class RowFitController implements ReactiveController {
   }
 
   check(): void {
+    const lists = Array.from(this.host.shadowRoot?.querySelectorAll<HTMLElement>('.list.aligned') ?? []);
+    for (const list of lists) list.classList.remove('overflowing');
+    this.host.style.removeProperty(NAME_MIN_PROPERTY);
     const all = Array.from(this.host.shadowRoot?.querySelectorAll<HTMLElement>('.row') ?? []);
     const rows = all.filter((row) => row.querySelector('.tag-pills'));
     const labelled = all.filter((row) => row.querySelector('.name-label'));
@@ -53,6 +58,16 @@ export class RowFitController implements ReactiveController {
     }
     const crowded = labelled.filter((row) => isCut(row.querySelector('.row-left')) || nameTooShort(row.querySelector('.item-name')));
     for (const row of crowded) row.classList.add('no-labels');
+    // Only then does an aligned list's name side keep a minimum: what each
+    // row needs to show NAME_MIN_EM of its name (or all of a shorter one)
+    // after its icon. If the columns don't fit beside that, the list
+    // scrolls sideways (only then: a scrolling box clips).
+    if (lists.length) {
+      const needed = Math.max(0, ...lists.flatMap((list) => Array.from(list.querySelectorAll<HTMLElement>(':scope > .row')).map(nameSideMinimum)));
+      this.host.style.setProperty(NAME_MIN_PROPERTY, `${Math.ceil(needed)}px`);
+      const wide = lists.filter(isCut);
+      for (const list of wide) list.classList.add('overflowing');
+    }
     this.dom.forget();
   }
 }
@@ -62,8 +77,22 @@ function isSqueezed(row: Element): boolean {
   return isCut(row.querySelector('.item-name')) || isCut(row.querySelector('.row-left'));
 }
 
-/** How much of a cut name to keep before its row's labels give way. */
+/** How much of a cut name to keep before its row's labels give way, and
+ * before an aligned list scrolls sideways. */
 const NAME_MIN_EM = 6;
+
+/** The aligned list's name track minimum (aligned-list.ts). */
+const NAME_MIN_PROPERTY = '--dockhand-name-min';
+
+/** The width a row's name side needs: whatever comes before its name, and
+ * NAME_MIN_EM of the name, or all of it if it's shorter. */
+function nameSideMinimum(row: HTMLElement): number {
+  const left = row.querySelector<HTMLElement>('.row-left');
+  const name = left?.querySelector<HTMLElement>('.item-name');
+  if (!left || !name) return 0;
+  const em = parseFloat(getComputedStyle(name).fontSize) || 14;
+  return name.getBoundingClientRect().left - left.getBoundingClientRect().left + Math.min(name.scrollWidth, NAME_MIN_EM * em);
+}
 
 /** Whether a name is cut to less than NAME_MIN_EM (or all of itself, if
  * it's shorter). */

@@ -7,11 +7,14 @@ import { html, nothing, type TemplateResult } from 'lit';
  * side (`.row-left`) and then one cell per column, in order, empty when
  * the row has nothing for it; group headers and dividers inside span every
  * column. `columns` is how many, each as wide as its widest value, or their
- * own track sizes. One list for every group of a card, so groups line up too.
+ * own track sizes. Cards with a RowFitController give the name side a
+ * minimum, enough to read each name, and when the columns don't fit
+ * beside it the list scrolls sideways instead, its controls staying in
+ * view (`.overflowing`). One list for every group of a card, so groups line up too.
  */
 export function renderAlignedList(columns: number | string[], content: unknown): TemplateResult {
   const tracks = typeof columns === 'number' ? Array<string>(columns).fill('auto') : columns;
-  return html`<div class="list aligned" style=${`grid-template-columns: minmax(0, 1fr)${tracks.map((track) => ` ${track}`).join('')}`}>${content}</div>`;
+  return html`<div class="list aligned" style=${`grid-template-columns: minmax(var(--dockhand-name-min, 0px), 1fr)${tracks.map((track) => ` ${track}`).join('')}`}>${content}</div>`;
 }
 
 /** A column's cell on a row. */

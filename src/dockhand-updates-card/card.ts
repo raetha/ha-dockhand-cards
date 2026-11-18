@@ -16,6 +16,7 @@ import { t } from '../common/i18n-card';
 import { UPDATE_PENDING_VERSION } from '../common/const';
 import { versionTagTooltip, type NewerVersionTag } from '../common/version-tag';
 import { cell, renderAlignedList } from '../common/aligned-list';
+import { RowFitController } from '../common/row-fit';
 import { heldShort, heldTooltip, pinnedDigestTooltip, updateStatus, type UpdateKind } from '../common/update-kind';
 import type { DockhandUpdatesCardConfig } from './types';
 import { cardStyles } from './styles';
@@ -79,6 +80,11 @@ function hasTagBeside(u: PendingUpdate): boolean {
 
 export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
   static styles = cardStyles;
+
+  constructor() {
+    super();
+    new RowFitController(this);
+  }
 
   @state() private _config?: DockhandUpdatesCardConfig;
   @state() private _hass?: HomeAssistant;

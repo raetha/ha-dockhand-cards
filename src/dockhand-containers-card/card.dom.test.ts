@@ -174,6 +174,22 @@ describe('Containers card on a narrow row', () => {
     resize();
     expect(row.classList.contains('no-labels')).toBe(true);
   });
+
+  it('scrolls the list sideways only when the columns don’t fit beside the names', async () => {
+    const card = await mount(hassWithContainer({ state: 'on', latest: 'update-pending' }), { visible_badges: ['updates', 'controls'] });
+    const list = card.shadowRoot!.querySelector<HTMLElement>('.list.aligned')!;
+    let content = 300;
+    width(list, () => content, () => 300);
+    resize();
+    expect(list.classList.contains('overflowing')).toBe(false);
+    // The name side keeps a minimum, set on the card for the grid's first
+    // track.
+    expect(card.style.getPropertyValue('--dockhand-name-min')).toMatch(/^\d+px$/);
+    expect(list.style.gridTemplateColumns).toContain('var(--dockhand-name-min, 0px)');
+    content = 360;
+    resize();
+    expect(list.classList.contains('overflowing')).toBe(true);
+  });
 });
 
 describe('Containers card aligned columns', () => {
@@ -183,13 +199,13 @@ describe('Containers card aligned columns', () => {
     const all = await list({ visible_badges: ['health', 'updates', 'cpu', 'memory', 'tags', 'controls'] });
     // Its container has a newer version and an update, but no health check or
     // stats: those columns aren't there.
-    expect(all.style.gridTemplateColumns).toBe('minmax(0px, 1fr) auto auto');
+    expect(all.style.gridTemplateColumns).toBe('minmax(var(--dockhand-name-min, 0px), 1fr) auto auto');
     const row = all.querySelector('.row')!;
     expect([...row.children].map((c) => c.className)).toEqual(['row-left row-target', 'cell icon-slots', 'row-actions']);
     // A hidden detail has no column at all, nor one no row has.
     const some = await list({ visible_badges: ['updates', 'memory'] });
-    expect(some.style.gridTemplateColumns).toBe('minmax(0px, 1fr) auto');
+    expect(some.style.gridTemplateColumns).toBe('minmax(var(--dockhand-name-min, 0px), 1fr) auto');
     const none = await list({ visible_badges: ['memory'] });
-    expect(none.style.gridTemplateColumns).toBe('minmax(0px, 1fr)');
+    expect(none.style.gridTemplateColumns).toBe('minmax(var(--dockhand-name-min, 0px), 1fr)');
   });
 });
