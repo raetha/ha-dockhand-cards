@@ -93,7 +93,7 @@ Dockhand Cards 2.0 goes with the Dockhand integration 2.0, reading its new senso
 - The screenshot harness mocks ha-dockhand 2.0's sensors; the Stack card screenshots show its tags.
 - The Overview card passes every section setting on to the cards it builds, the way its editor already saved them, so new card options work there without changes.
 - The Environment card's section picker appears through Home Assistant's own form conditions.
-- Dependencies: custom-card-helpers 2.1.0 (its types now describe `hass.entities`, `hass.devices` and `formatEntityName`, so the cards' own copies are gone), d3-shape 3.2.1; build and test tools rollup 4.68.3, @rollup/plugin-terser 1.0.2, jsdom 31.0.1, eslint 10.15.0, typescript-eslint 8.72.2.
+- Dependencies: custom-card-helpers 2.2.1 (its types now describe `hass.entities`, `hass.devices` and `formatEntityName`, so the cards' own copies are gone), d3-shape 3.2.1; build and test tools rollup 4.68.6, @rollup/plugin-terser 1.0.2, jsdom 31.0.1, eslint 10.15.0, typescript-eslint 8.72.2, vitest 5.1.1.
 - Tests render every card and editor against the screenshot harness's mock data and drive every control, and `npm test` checks a coverage floor (about 98% of lines, up from about 45%) that can only rise.
 - Devices are matched to their Dockhand instance by `config_entry_id` alone (HA 2026.8+).
 - Code comments and docs trimmed of development history (`docs/architecture.md` rewritten); `docs/quality.md` brought up to date.
