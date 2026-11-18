@@ -172,7 +172,7 @@ export class DockhandStackCard extends LitElement implements LovelaceCard {
 
     const status = s.status.state.state;
     const containerCount = s.containersInStack?.state.state;
-    const containerNames = s.containersInStack?.state.attributes.container_names as string[] | undefined;
+    const containerNames = s.containersInStack?.state.attributes.containers as string[] | undefined;
     const containerInfo = containerNames && containerNames.length > 0 ? this._containerInfo(stackDevice) : new Map<string, ContainerPillInfo>();
     const visible = new Set(this._config?.visible_sections ?? DEFAULT_STACK_SECTIONS);
 
@@ -238,7 +238,7 @@ export class DockhandStackCard extends LitElement implements LovelaceCard {
     return joinWithDividers([statusContent, mergeSections(metricsContent, ioContent), containersContent, gitSyncContent]);
   }
 
-  /** Maps each container's raw Docker name (what `container_names` lists)
+  /** Maps each container's raw Docker name (what `containers` lists)
    * to its "state" entity id (so a pill can link straight to that
    * container's status/state entity, same raw-name resolution the
    * Container card's own editor already uses for its dropdown) and its

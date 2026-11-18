@@ -61,8 +61,8 @@ const known = (state: string | undefined): string[] => (state && state !== 'unkn
 
 const FILTERS: Record<string, FilterExtractor<StackRow>> = {
   status: (row) => known(row.status),
-  // `type` is ha-dockhand's label (Internal, Git, Untracked); the device model
-  // adds " Stack".
+  // `type` is ha-dockhand's value (internal, git, untracked); the device
+  // model, the fallback, is "Internal Stack" and so on.
   type: (row) => [row.type.toLowerCase().replace(/ stack$/, '')],
   updates: (row) => {
     const state = row.found.updatesAvailable?.state.state;

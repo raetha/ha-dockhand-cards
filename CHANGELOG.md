@@ -73,6 +73,7 @@ Dockhand Cards 2.0 goes with the Dockhand integration 2.0, reading its new senso
 
 ### Internal
 
+- The Stack card reads a stack's container names from the integration's `containers` attribute, as ha-dockhand 2.0.0 names it (was `container_names`), and the screenshot harness's mock stacks use its lowercase `type` values.
 - A push to `dev` publishes a test build only when something users install changed; running the Build workflow by hand on `dev` publishes one anyway. Test builds are numbered by test build, not by workflow run, so the numbers go up by one.
 - `docs/backlog.md` records why the cards aren't shipped inside the integration, and why controls show no spinner while their action runs.
 - `scripts/screenshot-harness/bench.py` times each card's first render and its update on a state change at a large install's size, for the performance item of a full review.

@@ -257,8 +257,8 @@ function buildEnvironment(addDevice, addEntity, opts) {
 
   // ── Stacks ─────────────────────────────────────────────────────────
   const stacks = [
-    { name: 'core', status: 'running', containerCount: 3, type: 'Git', containerNames: ['traefik', 'web', 'worker'], git: true, syncStatus: 'pending', syncError: true, lastSyncHoursAgo: 3, lastCommit: 'a3f29e17c8b4' },
-    { name: 'monitoring', status: 'partial', containerCount: 2, type: 'Internal', containerNames: ['postgres', 'redis'] }
+    { name: 'core', status: 'running', containerCount: 3, type: 'git', containerNames: ['traefik', 'web', 'worker'], git: true, syncStatus: 'pending', syncError: true, lastSyncHoursAgo: 3, lastCommit: 'a3f29e17c8b4' },
+    { name: 'monitoring', status: 'partial', containerCount: 2, type: 'internal', containerNames: ['postgres', 'redis'] }
   ];
   valueSensor('stacks', stacks.length);
   valueSensor('stacks_running', online ? stacks.filter((st) => st.status === 'running').length : 0);
@@ -361,7 +361,7 @@ function buildEnvironment(addDevice, addEntity, opts) {
     );
     addEntity(
       entity(`sensor.${slug}_${s.name}_containers_in_stack`, devId, 'containers_in_stack', s.containerCount, {
-        container_names: s.containerNames
+        containers: s.containerNames
       })
     );
     // Stack totals as Dockhand's /api/stack-stats reports them (via

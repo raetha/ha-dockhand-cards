@@ -90,7 +90,7 @@ describe('Stack card container pills', () => {
     ];
     const states = [
       makeState({ entity_id: 'sensor.core_status', state: 'running', attributes: { type: 'internal' } }),
-      makeState({ entity_id: 'sensor.core_containers', state: '5', attributes: { container_names: ['web', 'db', 'proxy', 'cache', 'idle'] } })
+      makeState({ entity_id: 'sensor.core_containers', state: '5', attributes: { containers: ['web', 'db', 'proxy', 'cache', 'idle'] } })
     ];
     const updates: Record<string, Record<string, unknown>> = {
       web: { installed_version: 'a', latest_version: 'update-pending' },
