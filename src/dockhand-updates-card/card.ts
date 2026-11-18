@@ -265,10 +265,10 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
                   <span>${t(this._hass, 'msg_everything_up_to_date')}</span>
                 </div>`
             : renderAlignedList(
-                // The version text right-aligned, and never more than most
-                // of the row, so a long version can't crowd out the name:
-                // it's cut instead (_renderVersion).
-                ['fit-content(60%)'],
+                // As wide as the versions need, beside the names' minimum
+                // (RowFitController): a long version is cut rather than the
+                // name.
+                1,
                 flatUpdates
                   ? flatUpdates.map((u) => this._renderUpdateRow(u))
                   : groups.map(

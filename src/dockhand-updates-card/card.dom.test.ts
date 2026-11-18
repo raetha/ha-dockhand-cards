@@ -163,6 +163,34 @@ describe('Updates card newer version tag', () => {
     expect(icon.classList.contains('tag')).toBe(false);
   });
 
+  it('keeps just the tag pill’s icon when the version beside it would be cut', async () => {
+    const callbacks: Array<() => void> = [];
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(callback: () => void) {
+          callbacks.push(callback);
+        }
+        observe(): void {}
+        disconnect(): void {}
+      }
+    );
+    try {
+      const card = await mount(hassWithUpdates([{ name: 'nextcloud', installed: '34.0.2', latest: '35.0.0', newer: '36.0.1' }]));
+      const r = row(card, 'nextcloud');
+      let cut = false;
+      Object.defineProperty(r.querySelector('.version-old')!, 'scrollWidth', { configurable: true, get: () => (cut ? 80 : 40) });
+      Object.defineProperty(r.querySelector('.version-old')!, 'clientWidth', { configurable: true, get: () => 40 });
+      callbacks.forEach((callback) => callback());
+      expect(r.classList.contains('compact-version')).toBe(false);
+      cut = true;
+      callbacks.forEach((callback) => callback());
+      expect(r.classList.contains('compact-version')).toBe(true);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('shows the tag as the row icon when the newer tag is the only update', async () => {
     const card = await mount(
       hassWithUpdates([
@@ -224,8 +252,8 @@ describe('Updates card newer version tag', () => {
     expect(version.querySelector('.version-new')!.textContent).toBe('17.6-bookworm-20261101');
     expect(version.querySelector('.version-text')!.getAttribute('title')).toBe('16.4-bookworm-20260101 → 17.6-bookworm-20261101');
     expect(version.classList.contains('end')).toBe(true);
-    // Never more than most of the row.
-    expect(card.shadowRoot!.querySelector<HTMLElement>('.list.aligned')!.style.gridTemplateColumns).toContain('fit-content(60%)');
+    // As wide as it needs beside the names' minimum.
+    expect(card.shadowRoot!.querySelector<HTMLElement>('.list.aligned')!.style.gridTemplateColumns).toBe('minmax(var(--dockhand-name-min, 0px), 1fr) auto');
   });
 });
 

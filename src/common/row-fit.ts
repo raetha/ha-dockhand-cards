@@ -9,7 +9,8 @@ import { DomChanges } from './dom-changes';
  * if the name still shows less than NAME_MIN_EM of itself, or the name side
  * holds more than fits, its environment, type and instance pills are left
  * out too (`.no-labels`): the name says which row it is, they only add
- * context. If the columns still don't fit beside the name's minimum (an
+ * context. A newer-tag pill beside a version keeps only its icon when the
+ * version would be cut (`.compact-version`). If the columns still don't fit beside the name's minimum (an
  * aligned list's first track), the list scrolls sideways with its controls
  * held in view (`.overflowing` on `.list.aligned`).
  * Decided per row from the full layout each time (the
@@ -47,7 +48,7 @@ export class RowFitController implements ReactiveController {
     const all = Array.from(this.host.shadowRoot?.querySelectorAll<HTMLElement>('.row') ?? []);
     const rows = all.filter((row) => row.querySelector('.tag-pills'));
     const labelled = all.filter((row) => row.querySelector('.name-label'));
-    for (const row of all) row.classList.remove('compact-tags', 'no-tags', 'no-labels');
+    for (const row of all) row.classList.remove('compact-tags', 'no-tags', 'no-labels', 'compact-version');
     // Read every row, then write: one layout for each step, not one a row.
     const clipped = rows.filter((row) => isCut(row.querySelector('.tag-pills')));
     for (const row of clipped) row.classList.add('compact-tags');
@@ -65,6 +66,12 @@ export class RowFitController implements ReactiveController {
     if (lists.length) {
       const needed = Math.max(0, ...lists.flatMap((list) => Array.from(list.querySelectorAll<HTMLElement>(':scope > .row')).map(nameSideMinimum)));
       this.host.style.setProperty(NAME_MIN_PROPERTY, `${Math.ceil(needed)}px`);
+      // A newer-tag pill (the Updates card's version column) keeps just its
+      // icon when what's beside it would otherwise be cut; its tooltip
+      // still names the tag.
+      const tagged = all.filter((row) => row.querySelector('.version-tag-pill'));
+      const short = tagged.filter((row) => isCut(row.querySelector('.cell.version')) || Array.from(row.querySelectorAll('.version-old, .version-new')).some(isCut));
+      for (const row of short) row.classList.add('compact-version');
       const wide = lists.filter(isCut);
       for (const list of wide) list.classList.add('overflowing');
     }

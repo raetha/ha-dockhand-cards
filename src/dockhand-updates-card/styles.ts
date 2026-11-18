@@ -16,8 +16,7 @@ export const cardStyles = css`
     color: var(--secondary-text-color);
   }
   /* A cell that can shrink below its text (min-width 0), so the old
-   * version, then the new, then a tag pill's text, is cut rather than the
-   * name. */
+   * version, then the new, is cut rather than the name. */
   .update-row > .cell.version,
   .update-row .version-text {
     display: flex;
@@ -49,24 +48,24 @@ export const cardStyles = css`
   .update-row > .cell.version {
     gap: var(--ha-space-2, 8px);
   }
-  /* The version text first gives way, then the tag pill's text. */
+  /* The tag pill keeps its text unless it would cut the version, then
+   * keeps just its icon (RowFitController's .compact-version). */
   .version-text {
-    flex: 0 1000 auto;
+    flex: 0 1 auto;
   }
   /* Same color as the update icon, on a tint of it, as Dockhand's own badge
    * (amber at 10%). */
   .version-tag-pill {
     color: var(--dockhand-status-warn-text-color);
     background: rgb(from var(--dockhand-status-warn-color) r g b / 0.1);
-    flex: 0 1 auto;
-    min-width: 0;
+  }
+  .row.compact-version .version-tag-pill {
+    gap: 0;
+  }
+  .row.compact-version .version-tag-pill .pill-text {
+    display: none;
   }
   .version-tag-pill ha-icon {
     color: var(--dockhand-status-warn-color);
-  }
-  .version-tag-pill .pill-text {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
 `;
