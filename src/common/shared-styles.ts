@@ -563,6 +563,19 @@ export const sharedStyles = css`
     display: grid;
     column-gap: var(--ha-space-2, 8px);
   }
+  /* When even the name's minimum doesn't fit beside the columns
+   * (RowFitController), the list scrolls sideways and the controls stay at
+   * its right edge, over the rest, as in Dockhand's own tables. */
+  .list.aligned.overflowing {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+  .list.aligned.overflowing > .row > .row-actions {
+    position: sticky;
+    right: 0;
+    background: var(--ha-card-background, var(--card-background-color, #fff));
+    box-shadow: calc(-1 * var(--ha-space-2, 8px)) 0 0 var(--ha-card-background, var(--card-background-color, #fff));
+  }
   /* Its rows carry the context padding (.list > *), not the list. */
   .section > .list.aligned {
     padding-top: 0;
