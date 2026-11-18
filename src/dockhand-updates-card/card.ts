@@ -15,7 +15,7 @@ import { renderIcon, onKeydownActivate } from '../common/icon';
 import { t } from '../common/i18n-card';
 import { UPDATE_PENDING_VERSION } from '../common/const';
 import { versionTagTooltip, type NewerVersionTag } from '../common/version-tag';
-import { cell, renderAlignedList } from '../common/aligned-list';
+import { renderAlignedList } from '../common/aligned-list';
 import { RowFitController } from '../common/row-fit';
 import { heldShort, heldTooltip, pinnedDigestTooltip, updateStatus, type UpdateKind } from '../common/update-kind';
 import type { DockhandUpdatesCardConfig } from './types';
@@ -73,10 +73,6 @@ export function canInstall(hass: HomeAssistant, entityId: string): boolean {
 }
 
 const UPDATE_FEATURE_INSTALL = 1;
-
-function hasTagBeside(u: PendingUpdate): boolean {
-  return Boolean(u.newerVersion) && u.kind !== 'tag';
-}
 
 export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
   static styles = cardStyles;
@@ -225,9 +221,6 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
     // included environment in one sorted list, discarding which group
     // each came from.
     const flatUpdates = effectiveGroupBy === 'none' ? sortPendingUpdates(groups.flatMap((g) => g.updates)) : null;
-    // One grid for every group, so the columns line up across groups too;
-    // the tag column only when some row has a newer tag beside its update.
-    const tagColumn = groups.some((g) => g.updates.some(hasTagBeside));
 
     return html`
       <ha-card>
@@ -275,14 +268,14 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
                 // The version text right-aligned, and never more than most
                 // of the row, so a long version can't crowd out the name:
                 // it's cut instead (_renderVersion).
-                [...(tagColumn ? ['auto'] : []), 'fit-content(60%)'],
+                ['fit-content(60%)'],
                 flatUpdates
-                  ? flatUpdates.map((u) => this._renderUpdateRow(u, tagColumn))
+                  ? flatUpdates.map((u) => this._renderUpdateRow(u))
                   : groups.map(
                       (g, i) => html`
                         ${i > 0 ? html`<div class="divider"></div>` : nothing}
                         ${showGroupHeaders ? html`<div class="group-header">${g.envName}</div>` : nothing}
-                        ${g.updates.map((u) => this._renderUpdateRow(u, tagColumn))}
+                        ${g.updates.map((u) => this._renderUpdateRow(u))}
                       `
                     )
               )}
@@ -292,15 +285,7 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
     `;
   }
 
-  private _renderUpdateRow(u: PendingUpdate, tagColumn: boolean): TemplateResult {
-    // The tag only alongside something else: when the tag is the only
-    // update, the version text already names it. An icon, its tag in the
-    // tooltip, so it doesn't widen the column for every row; first, as in
-    // Dockhand.
-    const tag =
-      u.newerVersion && hasTagBeside(u)
-        ? renderIcon({ baseClass: 'row-icon', icon: 'mdi:tag-arrow-up-outline', colorClass: 'warn', title: versionTagTooltip(this._hass, u.newerVersion), static: true })
-        : nothing;
+  private _renderUpdateRow(u: PendingUpdate): TemplateResult {
     let versionText: TemplateResult | string | typeof nothing = nothing;
     let title: string | undefined;
     if (u.kind === 'held') {
@@ -317,14 +302,24 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
       versionText = html`<span class="version-old">${u.installedVersion}</span><span class="version-arrow"> → </span><span class="version-new">${u.latestVersion}</span>`;
       title = `${u.installedVersion} → ${u.latestVersion}`;
     }
+    // A newer tag waiting behind an update that can be installed now (a new
+    // digest and a new tag at once): a pill naming the tag, ahead of the
+    // version text. When the tag is the only update, the row's icon and
+    // version text already say so. The Containers card shows it as an icon
+    // instead, since its column holds icons only.
+    const tag =
+      u.newerVersion && u.kind !== 'tag'
+        ? html`<span class="label-pill version-tag-pill" title=${versionTagTooltip(this._hass, u.newerVersion)}
+            ><ha-icon icon="mdi:tag-outline"></ha-icon><span class="pill-text">${u.newerVersion.tag}</span></span
+          >`
+        : nothing;
     return html`
       <div class="row update-row clickable" tabindex="0" role="button" @click=${() => this._moreInfo(u.entityId)} @keydown=${onKeydownActivate(() => this._moreInfo(u.entityId))}>
         <div class="row-left">
           <ha-icon class="update-icon ${u.kind}" icon=${UPDATE_ROW_ICONS[u.kind]} title=${title ?? nothing}></ha-icon>
           <span class="item-name">${u.name}</span>
         </div>
-        ${tagColumn ? cell(tag) : nothing}
-        <div class="cell version end" title=${title ?? nothing}>${versionText}</div>
+        <div class="cell version end">${tag}<span class="version-text" title=${title ?? nothing}>${versionText}</span></div>
       </div>
     `;
   }

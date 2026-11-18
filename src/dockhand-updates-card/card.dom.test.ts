@@ -149,19 +149,21 @@ describe('Updates card newer version tag', () => {
     return all[all.length - 1]?.textContent?.trim();
   }
 
-  it('puts a tag icon in a column before the version text when an installable update and a newer tag are both pending', async () => {
+  it('puts a tag pill ahead of the version text, in its column, when an installable update and a newer tag are both pending', async () => {
     const card = await mount(hassWithUpdates([{ name: 'nextcloud', installed: '34.0.2', latest: 'update-pending', newer: '35.0.1' }]));
-    const [tagCell, textCell] = cells(row(card, 'nextcloud'));
-    const tag = tagCell.querySelector('.row-icon')!;
-    expect(tag.querySelector('ha-icon')?.getAttribute('icon')).toBe('mdi:tag-arrow-up-outline');
-    expect(tag.getAttribute('title')).toContain('35.0.1');
-    expect(textCell.textContent?.trim()).toBe('Update available');
+    const all = cells(row(card, 'nextcloud'));
+    expect(all).toHaveLength(1);
+    const pill = all[0].firstElementChild!;
+    expect(pill.classList.contains('version-tag-pill')).toBe(true);
+    expect(pill.textContent?.trim()).toBe('35.0.1');
+    expect(pill.getAttribute('title')).toContain('35.0.1');
+    expect(all[0].querySelector('.version-text')!.textContent?.trim()).toBe('Update available');
     const icon = row(card, 'nextcloud').querySelector('.update-icon')!;
     expect(icon.getAttribute('icon')).toBe('mdi:arrow-up-circle');
     expect(icon.classList.contains('tag')).toBe(false);
   });
 
-  it('keeps an empty tag cell, so the version texts line up, on a row whose only update is the tag', async () => {
+  it('shows the tag as the row icon when the newer tag is the only update', async () => {
     const card = await mount(
       hassWithUpdates([
         { name: 'postgres', installed: '16.3', latest: '17.0', newer: '17.0' },
@@ -169,7 +171,9 @@ describe('Updates card newer version tag', () => {
       ])
     );
     const r = row(card, 'postgres');
-    expect(cells(r).map((c) => c.textContent?.trim())).toEqual(['', '16.3 → 17.0']);
+    expect(cells(r).map((c) => c.textContent?.trim())).toEqual(['16.3 → 17.0']);
+    expect(r.querySelector('.version-tag-pill')).toBeNull();
+    expect(r.querySelector('.version-text')!.getAttribute('title')).toBe('16.3 → 17.0');
     const icon = r.querySelector('.update-icon')!;
     expect(icon.getAttribute('icon')).toBe('mdi:tag-arrow-up-outline');
     expect(icon.classList.contains('tag')).toBe(true);
@@ -218,7 +222,7 @@ describe('Updates card newer version tag', () => {
     const version = row(card, 'web').querySelector<HTMLElement>('.cell.version')!;
     expect(version.querySelector('.version-old')!.textContent).toBe('16.4-bookworm-20260101');
     expect(version.querySelector('.version-new')!.textContent).toBe('17.6-bookworm-20261101');
-    expect(version.getAttribute('title')).toBe('16.4-bookworm-20260101 → 17.6-bookworm-20261101');
+    expect(version.querySelector('.version-text')!.getAttribute('title')).toBe('16.4-bookworm-20260101 → 17.6-bookworm-20261101');
     expect(version.classList.contains('end')).toBe(true);
     // Never more than most of the row.
     expect(card.shadowRoot!.querySelector<HTMLElement>('.list.aligned')!.style.gridTemplateColumns).toContain('fit-content(60%)');

@@ -34,7 +34,7 @@ Where Home Assistant has a standard color for something, the cards use it direct
 |---|---|---|
 | `--dockhand-accent-color` | `var(--primary-color)` | Accent color of these cards only |
 | `--dockhand-status-ok-color` | `var(--success-color, #43a047)` | Running/healthy/synced/all-clear states |
-| `--dockhand-status-warn-color` | `var(--warning-color, #ffa600)` | Paused/partial/pending-update states, including the newer version tag icon |
+| `--dockhand-status-warn-color` | `var(--warning-color, #ffa600)` | Paused/partial/pending-update states, including the newer version tag icon (a tinted pill on the Updates card) |
 | `--dockhand-status-error-color` | `var(--error-color, #db4437)` | Stopped/unhealthy/restarting/sync-error states |
 | `--dockhand-status-info-color` | `var(--info-color, #039be5)` | In-progress states (currently just git "syncing") |
 | `--dockhand-status-off-color` | `var(--secondary-text-color, #727272)` | A feature that's off: the Environment card's header icons for update checks, scanning, activity and metrics |
