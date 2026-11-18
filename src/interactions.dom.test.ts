@@ -99,10 +99,10 @@ const CARD_CASES: [string, Record<string, unknown>][] = [
   ['vulnerability', { device_id: 'env_1' }],
   ['stack', { device_id: 'stack_1_core' }],
   ['container', { device_id: 'container_1_web' }],
-  ['stacks', { device_id: 'env_1', show_controls: true }],
-  ['containers', { device_id: 'env_1', show_controls: true }],
+  ['stacks', { device_id: 'env_1', visible_badges: ['container_count', 'updates', 'type', 'tags', 'controls'] }],
+  ['containers', { device_id: 'env_1', visible_badges: ['health', 'updates', 'cpu', 'memory', 'tags', 'controls'] }],
   ['updates', { scope: 'all' }],
-  ['schedules', { group_by: 'status', show_stats: true, show_controls: true }],
+  ['schedules', { group_by: 'status', show_stats: true, visible_badges: ['environment', 'next_run', 'controls'] }],
   ['overview', { show_environments: true, show_vulnerabilities: true, show_stacks: true, show_containers: true, show_updates: true, show_schedules: true }]
 ];
 

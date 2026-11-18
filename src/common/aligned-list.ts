@@ -6,10 +6,12 @@ import { html, nothing, type TemplateResult } from 'lit';
  * wide as its widest value. Rows are `.row`s whose children are the name
  * side (`.row-left`) and then one cell per column, in order, empty when
  * the row has nothing for it; group headers and dividers inside span every
- * column. One list for every group of a card, so groups line up too.
+ * column. `columns` is how many, each as wide as its widest value, or their
+ * own track sizes. One list for every group of a card, so groups line up too.
  */
-export function renderAlignedList(columns: number, content: unknown): TemplateResult {
-  return html`<div class="list aligned" style=${`grid-template-columns: minmax(0, 1fr)${' auto'.repeat(columns)}`}>${content}</div>`;
+export function renderAlignedList(columns: number | string[], content: unknown): TemplateResult {
+  const tracks = typeof columns === 'number' ? Array<string>(columns).fill('auto') : columns;
+  return html`<div class="list aligned" style=${`grid-template-columns: minmax(0, 1fr)${tracks.map((track) => ` ${track}`).join('')}`}>${content}</div>`;
 }
 
 /** A column's cell on a row. */

@@ -583,6 +583,20 @@ export const sharedStyles = css`
   .list.aligned > .row > .row-left {
     margin-right: 0;
   }
+  /* The name side's pills follow the name rather than the name filling
+   * its column and pushing them to its far end. */
+  .list.aligned > .row > .row-left .item-name {
+    flex-grow: 0;
+    flex-basis: auto;
+  }
+  /* A column of icons that each have their own place (the Containers
+   * card's newer tag, then its update), so each kind lines up down the
+   * list even on rows that have only one. */
+  .list.aligned > .row > .cell.icon-slots {
+    display: grid;
+    grid-template-columns: repeat(var(--icon-slots, 1), 16px);
+    column-gap: var(--ha-space-2, 8px);
+  }
   /* Left-aligned, so the icons of a column line up. */
   .list.aligned > .row > .cell {
     display: flex;
@@ -719,7 +733,7 @@ export const sharedStyles = css`
     flex-shrink: 0;
     line-height: 1;
   }
-  /* A list row's controls (show_controls): two fixed 16px slots, the same
+  /* A list row's controls (Controls, under Row details): two fixed 16px slots, the same
    * on every row, so controls line up down the card and the values before
    * them do too. A row-icon is 16px (below). */
   .row-actions {
@@ -783,6 +797,10 @@ export const sharedStyles = css`
     flex: 0 0 auto;
     max-width: 100%;
   }
+  /* With the tags left out, the name gives way after all. */
+  .row.no-tags .row-left:has(.tag-pills) .item-name {
+    flex-shrink: 1;
+  }
   .tag-pills {
     display: flex;
     gap: var(--ha-space-1, 4px);
@@ -791,13 +809,15 @@ export const sharedStyles = css`
     overflow: hidden;
   }
   /* RowFitController (row-fit.ts): on a row too narrow for them, the tags
-   * fold into one pill with their count before the name gets cut. */
+   * fold into one pill with their count before the name gets cut, and the
+   * name's other pills give way before it's cut short. */
   .tag-summary {
     display: none;
     flex-shrink: 0;
   }
   .row.compact-tags .tag-pills,
-  .row.no-tags .tag-pills {
+  .row.no-tags .tag-pills,
+  .row.no-labels .name-label {
     display: none;
   }
   .row.compact-tags .tag-summary {

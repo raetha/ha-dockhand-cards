@@ -273,7 +273,7 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
     const groups = groupContainerRows(shown, resolveEffectiveGroupBy(this._config.group_by, envDevices, 'environment'), this._config.sort_by ?? 'name', envDevices, (status) =>
       stateLabel(this._hass, 'container_state', status)
     );
-    this._slots = this._config.show_controls ? rowControlSlots(this._hass, shown.map((r) => r.deviceId)) : 2;
+    this._slots = this._showsControls() ? rowControlSlots(this._hass, shown.map((r) => r.deviceId)) : 2;
 
     return html`
       <ha-card style=${`--row-control-slots: ${this._slots}`}>
@@ -307,10 +307,15 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
   /** Control slots per row in this render (rowControlSlots). */
   private _slots = 2;
 
-  /** Off unless show_controls is set, so a stray tap on a list doesn't
+  /** Off unless chosen under Row details, so a stray tap on a list doesn't
    * stop anything. */
+  private _showsControls(): boolean {
+    return (this._config?.visible_badges ?? DEFAULT_CONTAINERS_BADGES).includes('controls');
+  }
+
+  /** A row's controls column (_showsControls). */
   private _renderControls(row: ContainerRow): TemplateResult | typeof nothing {
-    if (!this._config?.show_controls || !this._hass) return nothing;
+    if (!this._showsControls() || !this._hass) return nothing;
     const controls = resolveDeviceControls(this._hass, row.deviceId, true);
     return renderActionsColumn(controls ? renderRowControls(this, this._hass, controls, row.name, this._slots) : null);
   }
@@ -322,27 +327,31 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
   private _columns(rows: ContainerRow[]): ColumnKey[] {
     const visible = new Set(this._config?.visible_badges ?? DEFAULT_CONTAINERS_BADGES);
     const columns: ColumnKey[] = shownColumns(COLUMN_ORDER, (key) => visible.has(key), rows, hasDetail);
-    return this._config?.show_controls ? [...columns, 'controls'] : columns;
+    return visible.has('controls') ? [...columns, 'controls'] : columns;
   }
 
   /** One grid for every group, so the columns line up across groups too;
    * rows take its columns (subgrid), and group headers and dividers span
    * them. */
   private _renderList(groups: ReturnType<typeof groupContainerRows>): TemplateResult {
-    const columns = this._columns(groups.flatMap((g) => g.rows));
+    const rows = groups.flatMap((g) => g.rows);
+    const columns = this._columns(rows);
+    // The update column keeps a place for the newer tag when some row has
+    // one, so the update icons line up after it.
+    const tagSlot = rows.some((r) => r.newerVersion);
     return renderAlignedList(
       columns.length,
       groups.map(
         (group, i) => html`
           ${i > 0 ? html`<div class="divider"></div>` : nothing}
           ${group.label !== null ? html`<div class="group-header">${group.label}</div>` : nothing}
-          ${group.rows.map((r) => this._renderRow(r, columns))}
+          ${group.rows.map((r) => this._renderRow(r, columns, tagSlot))}
         `
       )
     );
   }
 
-  private _renderRow(row: ContainerRow, columns: ColumnKey[]): TemplateResult {
+  private _renderRow(row: ContainerRow, columns: ColumnKey[], tagSlot: boolean): TemplateResult {
     const found = row.found;
     const st = found.state!.state.state;
     const stateIcon = CONTAINER_STATE[st] ?? UNKNOWN_CONTAINER_STATE;
@@ -360,8 +369,8 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
         case 'updates':
           // At most two icons, in Dockhand's order: a newer version tag
           // (the tag is in its tooltip: a pill's text would widen the column
-          // for every row), then the update.
-          return cell(html`
+          // for every row), then the update, each in its own place.
+          return html`<div class="cell icon-slots" style=${`--icon-slots: ${tagSlot ? 2 : 1}`}>
             ${row.newerVersion
               ? renderIcon({
                   baseClass: 'row-icon',
@@ -370,9 +379,11 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
                   title: versionTagTooltip(this._hass, row.newerVersion),
                   onClick: () => this._moreInfo(row.updateEntityId)
                 })
-              : nothing}
+              : tagSlot
+                ? html`<span></span>`
+                : nothing}
             ${row.updateStatus && row.updateStatus.kind !== 'tag' ? this._renderUpdateIcon(row) : nothing}
-          `);
+          </div>`;
         case 'health':
           return cell(
             health === 'healthy' || health === 'unhealthy' || health === 'starting'
@@ -400,7 +411,7 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
         <div class="row-left row-target" tabindex="0" role="button" @keydown=${onKeydownActivate(() => this._moreInfo(id))}>
           <ha-icon class="row-icon ${stateIcon.cls}" icon=${stateIcon.icon} title=${stateLabel(this._hass, 'container_state', st, found.state!.state)}></ha-icon>
           <span class="item-name">${row.name}</span>
-          ${visible.has('environment') ? html`<span class="label-pill">${row.environment}</span>` : nothing}
+          ${visible.has('environment') ? html`<span class="label-pill name-label">${row.environment}</span>` : nothing}
           ${visible.has('tags') ? renderTagPills(found.state!.state) : nothing}
         </div>
         ${columns.map(column)}

@@ -12,11 +12,11 @@ import type { FiltersConfig } from '../common/filters';
  * is new alongside multi-environment support — same checkbox-group
  * convention as everything else here (docs/editor-design.md rule 5),
  * not a standalone toggle. */
-export type ContainersCardBadge = 'health' | 'updates' | 'cpu' | 'memory' | 'environment' | 'tags';
+export type ContainersCardBadge = 'health' | 'updates' | 'cpu' | 'memory' | 'environment' | 'tags' | 'controls';
 
 /** The details in their order on a row (the name's side, then the
  * columns), which the editor lists them in. */
-export const CONTAINERS_BADGE_ORDER: readonly ContainersCardBadge[] = ['environment', 'tags', 'updates', 'health', 'cpu', 'memory'];
+export const CONTAINERS_BADGE_ORDER: readonly ContainersCardBadge[] = ['environment', 'tags', 'updates', 'health', 'cpu', 'memory', 'controls'];
 
 export const DEFAULT_CONTAINERS_BADGES: ContainersCardBadge[] = ['health', 'updates', 'cpu', 'memory', 'tags'];
 
@@ -37,8 +37,6 @@ export interface DockhandContainersCardConfig extends LovelaceCardConfig {
    * see common/card-name.ts. */
   name?: string | EntityNameItem | EntityNameItem[];
   show_settings_link?: boolean;
-  /** Start / stop / restart on each row; off unless set. */
-  show_controls?: boolean;
   visible_badges?: ContainersCardBadge[];
   group_by?: ContainersGroupBy;
   sort_by?: ContainersSortBy;

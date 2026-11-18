@@ -305,7 +305,7 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
     const groups = groupStackRows(shown, resolveEffectiveGroupBy(this._config.group_by, envDevices, 'environment'), this._config.sort_by ?? 'name', envDevices, (by, value) =>
       stateLabel(this._hass, by === 'status' ? 'stack_status' : 'stack_type', value)
     );
-    this._slots = this._config.show_controls ? rowControlSlots(this._hass, shown.map((r) => r.deviceId)) : 2;
+    this._slots = this._showsControls() ? rowControlSlots(this._hass, shown.map((r) => r.deviceId)) : 2;
 
     return html`
       <ha-card style=${`--row-control-slots: ${this._slots}`}>
@@ -339,10 +339,15 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
   /** Control slots per row in this render (rowControlSlots). */
   private _slots = 2;
 
-  /** Off unless show_controls is set, so a stray tap on a list doesn't
+  /** Off unless chosen under Row details, so a stray tap on a list doesn't
    * stop anything. */
+  private _showsControls(): boolean {
+    return (this._config?.visible_badges ?? DEFAULT_STACKS_BADGES).includes('controls');
+  }
+
+  /** A row's controls column (_showsControls). */
   private _renderControls(row: StackRow): TemplateResult | typeof nothing {
-    if (!this._config?.show_controls || !this._hass) return nothing;
+    if (!this._showsControls() || !this._hass) return nothing;
     const controls = resolveDeviceControls(this._hass, row.deviceId, true);
     return renderActionsColumn(controls ? renderRowControls(this, this._hass, controls, row.name, this._slots) : null);
   }
@@ -353,7 +358,7 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
   private _columns(rows: StackRow[]): ColumnKey[] {
     const visible = new Set(this._config?.visible_badges ?? DEFAULT_STACKS_BADGES);
     const columns: ColumnKey[] = shownColumns(COLUMN_ORDER, (key) => visible.has(key), rows, hasDetail);
-    return this._config?.show_controls ? [...columns, 'controls'] : columns;
+    return visible.has('controls') ? [...columns, 'controls'] : columns;
   }
 
   /** One grid for every group, so the columns line up across groups too. */
@@ -383,8 +388,8 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
         <div class="row-left row-target" tabindex="0" role="button" @keydown=${onKeydownActivate(() => this._moreInfo(id))}>
           <ha-icon class="row-icon ${statusIcon.cls}" icon=${statusIcon.icon} title=${stateLabel(this._hass, 'stack_status', status, found.status!.state)}></ha-icon>
           <span class="item-name">${row.name}</span>
-          ${visible.has('type') ? html`<span class="label-pill">${stateLabel(this._hass, 'stack_type', row.type)}</span>` : nothing}
-          ${visible.has('environment') ? html`<span class="label-pill">${row.environment}</span>` : nothing}
+          ${visible.has('type') ? html`<span class="label-pill name-label">${stateLabel(this._hass, 'stack_type', row.type)}</span>` : nothing}
+          ${visible.has('environment') ? html`<span class="label-pill name-label">${row.environment}</span>` : nothing}
           ${visible.has('tags') ? renderTagPills(found.status?.state) : nothing}
         </div>
         ${columns.map((key) => this._renderCell(key, row))}

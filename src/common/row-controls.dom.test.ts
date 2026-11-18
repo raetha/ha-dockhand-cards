@@ -50,7 +50,7 @@ describe.each([
   { kind: 'container' as const, tag: TAGS.containers, type: 'dockhand-containers-card' },
   { kind: 'stack' as const, tag: TAGS.stacks, type: 'dockhand-stacks-card' }
 ])('$type row controls', ({ kind, tag, type }) => {
-  it('are hidden unless show_controls is set, with no actions column', async () => {
+  it('are hidden unless chosen under Row details, with no actions column', async () => {
     const card = await mount(tag, type, hassWithDevice(kind, true));
     expect(controlTitles(card)).toEqual([]);
     expect(card.shadowRoot!.querySelector('.row-actions')).toBeNull();
@@ -58,7 +58,7 @@ describe.each([
 
   it('sit in their own column with a fixed slot each, so they line up', async () => {
     for (const running of [true, false]) {
-      const card = await mount(tag, type, hassWithDevice(kind, running), { show_controls: true });
+      const card = await mount(tag, type, hassWithDevice(kind, running), { visible_badges: ['controls'] });
       const column = card.shadowRoot!.querySelector('.row .row-actions')!;
       // Last on the row: after its details, or their column cells if any.
       expect(column.nextElementSibling).toBeNull();
@@ -69,7 +69,7 @@ describe.each([
   });
 
   it('offer restart and stop while running, in Dockhand’s order, each asking first, without opening more-info', async () => {
-    const card = await mount(tag, type, hassWithDevice(kind, true), { show_controls: true });
+    const card = await mount(tag, type, hassWithDevice(kind, true), { visible_badges: ['controls'] });
     expect(controlTitles(card)).toEqual(['Restart', 'Stop']);
     const fired = actions(card);
     const moreInfo = vi.fn();
@@ -83,7 +83,7 @@ describe.each([
   });
 
   it('offer start while stopped, without asking, and restart too for a container, as Dockhand does', async () => {
-    const card = await mount(tag, type, hassWithDevice(kind, false), { show_controls: true });
+    const card = await mount(tag, type, hassWithDevice(kind, false), { visible_badges: ['controls'] });
     expect(controlTitles(card)).toEqual(kind === 'container' ? ['Start', 'Restart'] : ['Start']);
     const fired = actions(card);
     card.shadowRoot!.querySelector<HTMLElement>('.row-control')!.click();
@@ -92,7 +92,7 @@ describe.each([
   });
 
   it('are absent for a system one, which has no running switch', async () => {
-    const card = await mount(tag, type, hassWithDevice(kind, true, { system: true }), { show_controls: true });
+    const card = await mount(tag, type, hassWithDevice(kind, true, { system: true }), { visible_badges: ['controls'] });
     expect(controlTitles(card)).toEqual([]);
     // The column is still there, empty, so the row's values stay aligned.
     expect(card.shadowRoot!.querySelector('.row-actions')!.children.length).toBe(0);
@@ -111,14 +111,14 @@ describe('row controls beyond start, restart and stop', () => {
   }
 
   it('puts a stack’s deploy first, in a third slot every row gets', async () => {
-    const card = await mount(TAGS.stacks, 'dockhand-stacks-card', hassWith('stack', 'running', 'deploy'), { show_controls: true });
+    const card = await mount(TAGS.stacks, 'dockhand-stacks-card', hassWith('stack', 'running', 'deploy'), { visible_badges: ['controls'] });
     expect(controlTitles(card)).toEqual(['Redeploy', 'Restart', 'Stop']);
     expect(card.shadowRoot!.querySelector('.row-actions')!.children.length).toBe(3);
     expect(card.shadowRoot!.querySelector<HTMLElement>('ha-card')!.style.getPropertyValue('--row-control-slots')).toBe('3');
   });
 
   it('offers Pause between Restart and Stop while a container runs, without asking', async () => {
-    const card = await mount(TAGS.containers, 'dockhand-containers-card', hassWith('container', 'running', 'pause'), { show_controls: true });
+    const card = await mount(TAGS.containers, 'dockhand-containers-card', hassWith('container', 'running', 'pause'), { visible_badges: ['controls'] });
     expect(controlTitles(card)).toEqual(['Restart', 'Pause', 'Stop']);
     const fired = actions(card);
     card.shadowRoot!.querySelectorAll<HTMLElement>('.row-control')[1].click();
@@ -127,7 +127,7 @@ describe('row controls beyond start, restart and stop', () => {
   });
 
   it('offers Resume for a paused container, as Dockhand does', async () => {
-    const card = await mount(TAGS.containers, 'dockhand-containers-card', hassWith('container', 'paused', 'pause'), { show_controls: true });
+    const card = await mount(TAGS.containers, 'dockhand-containers-card', hassWith('container', 'paused', 'pause'), { visible_badges: ['controls'] });
     expect(controlTitles(card)).toEqual(['Resume', 'Restart']);
   });
 });
@@ -151,13 +151,13 @@ function hassWithSchedule(opts: { run?: string; enabled?: string }): HomeAssista
 describe('Schedules card row controls', () => {
   const mountSchedules = (hass: HomeAssistant, config: Record<string, unknown> = {}) => mount(TAGS.schedules, 'dockhand-schedules-card', hass, config);
 
-  it('are hidden unless show_controls is set', async () => {
+  it('are hidden unless chosen under Row details', async () => {
     const card = await mountSchedules(hassWithSchedule({ run: 'unknown', enabled: 'on' }));
     expect(controlTitles(card)).toEqual([]);
   });
 
   it('offer Run now (asking first) and disable for an enabled schedule', async () => {
-    const card = await mountSchedules(hassWithSchedule({ run: 'unknown', enabled: 'on' }), { show_controls: true });
+    const card = await mountSchedules(hassWithSchedule({ run: 'unknown', enabled: 'on' }), { visible_badges: ['controls'] });
     expect(controlTitles(card)).toEqual(['Disable schedule', 'Run now']);
     const fired = actions(card);
     for (const control of card.shadowRoot!.querySelectorAll<HTMLElement>('.row-control')) control.click();
@@ -168,12 +168,12 @@ describe('Schedules card row controls', () => {
   });
 
   it('offer enable for a disabled schedule', async () => {
-    const card = await mountSchedules(hassWithSchedule({ enabled: 'off' }), { show_controls: true });
+    const card = await mountSchedules(hassWithSchedule({ enabled: 'off' }), { visible_badges: ['controls'] });
     expect(controlTitles(card)).toEqual(['Enable schedule']);
   });
 
   it('leave out unavailable or missing entities, and the row stays a single keyboard target', async () => {
-    const card = await mountSchedules(hassWithSchedule({ run: 'unavailable' }), { show_controls: true });
+    const card = await mountSchedules(hassWithSchedule({ run: 'unavailable' }), { visible_badges: ['controls'] });
     expect(controlTitles(card)).toEqual([]);
     const row = card.shadowRoot!.querySelector('.row.clickable')!;
     expect(row.getAttribute('role')).toBeNull();

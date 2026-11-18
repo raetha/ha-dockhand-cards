@@ -51,7 +51,9 @@ describe('Containers card newer version tag', () => {
     expect(items[0]).toBe(tagIcon(card));
     expect(items[1]).toBe(updateIcon(card));
     expect(tagIcon(card)!.getAttribute('title')).toContain('17.6');
+    expect(card.shadowRoot!.querySelector<HTMLElement>('.icon-slots')!.style.getPropertyValue('--icon-slots')).toBe('2');
   });
+
 
   it('shows only the tag icon when the newer tag is the only update', async () => {
     const card = await mount(hassWithContainer({ state: 'on', latest: '17.6', newer: '17.6' }));
@@ -157,18 +159,33 @@ describe('Containers card on a narrow row', () => {
     resize();
     for (const cls of ['compact-tags', 'no-tags']) expect(row.classList.contains(cls)).toBe(false);
   });
+
+  it('leaves the environment pill out when the name would be cut short, not when it is merely cut', async () => {
+    const card = await mount(hassWithContainer({ state: 'on' }), { visible_badges: ['environment'] });
+    const row = card.shadowRoot!.querySelector<HTMLElement>('.row')!;
+    expect(row.querySelector('.row-left > .name-label')).not.toBeNull();
+    const name = row.querySelector('.item-name')!;
+    // 6em of a 14px font is 84px: cut, but still showing more than that.
+    let shown = 120;
+    width(name, () => 200, () => shown);
+    resize();
+    expect(row.classList.contains('no-labels')).toBe(false);
+    shown = 40;
+    resize();
+    expect(row.classList.contains('no-labels')).toBe(true);
+  });
 });
 
 describe('Containers card aligned columns', () => {
   it('has a column for each detail shown, in order, and a cell for it on every row', async () => {
     const hass = hassWithContainer({ state: 'on', latest: 'update-pending', newer: '17.6' });
     const list = async (config: Record<string, unknown>) => (await mount(hass, config)).shadowRoot!.querySelector<HTMLElement>('.list.aligned')!;
-    const all = await list({ show_controls: true });
+    const all = await list({ visible_badges: ['health', 'updates', 'cpu', 'memory', 'tags', 'controls'] });
     // Its container has a newer version and an update, but no health check or
     // stats: those columns aren't there.
     expect(all.style.gridTemplateColumns).toBe('minmax(0px, 1fr) auto auto');
     const row = all.querySelector('.row')!;
-    expect([...row.children].map((c) => c.className)).toEqual(['row-left row-target', 'cell', 'row-actions']);
+    expect([...row.children].map((c) => c.className)).toEqual(['row-left row-target', 'cell icon-slots', 'row-actions']);
     // A hidden detail has no column at all, nor one no row has.
     const some = await list({ visible_badges: ['updates', 'memory'] });
     expect(some.style.gridTemplateColumns).toBe('minmax(0px, 1fr) auto');

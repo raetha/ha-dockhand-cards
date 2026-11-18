@@ -9,7 +9,7 @@ import type { FiltersConfig } from '../common/filters';
  * 'environment' is new alongside multi-environment support — same
  * checkbox-group convention as everything else here (docs/
  * editor-design.md rule 5), not a standalone toggle. */
-export type StacksCardBadge = 'container_count' | 'updates' | 'cpu' | 'memory' | 'type' | 'environment' | 'tags';
+export type StacksCardBadge = 'container_count' | 'updates' | 'cpu' | 'memory' | 'type' | 'environment' | 'tags' | 'controls';
 
 /** CPU and memory are off by default: they go together, and memory is the
  * amount in use, as Dockhand's stacks list shows it (Dockhand reports no
@@ -17,7 +17,7 @@ export type StacksCardBadge = 'container_count' | 'updates' | 'cpu' | 'memory' |
  * show only while ha-dockhand's container and stack stats are on. */
 /** The details in their order on a row (the name's side, then the
  * columns), which the editor lists them in. */
-export const STACKS_BADGE_ORDER: readonly StacksCardBadge[] = ['type', 'environment', 'tags', 'updates', 'container_count', 'cpu', 'memory'];
+export const STACKS_BADGE_ORDER: readonly StacksCardBadge[] = ['type', 'environment', 'tags', 'updates', 'container_count', 'cpu', 'memory', 'controls'];
 
 export const DEFAULT_STACKS_BADGES: StacksCardBadge[] = ['container_count', 'updates', 'type', 'tags'];
 
@@ -40,8 +40,6 @@ export interface DockhandStacksCardConfig extends LovelaceCardConfig {
    * see common/card-name.ts. */
   name?: string | EntityNameItem | EntityNameItem[];
   show_settings_link?: boolean;
-  /** Start / stop / restart on each row; off unless set. */
-  show_controls?: boolean;
   visible_badges?: StacksCardBadge[];
   group_by?: StacksGroupBy;
   sort_by?: StacksSortBy;
