@@ -15,10 +15,9 @@ export const cardStyles = css`
   .update-row .update-icon.held {
     color: var(--secondary-text-color);
   }
-  /* Right-aligned; a cell that can shrink below its text (min-width 0),
-   * so the old version, then the new, is cut rather than the name. */
+  /* A cell that can shrink below its text (min-width 0), so the old
+   * version, then the new, is cut rather than the name. */
   .update-row > .cell.version {
-    justify-content: flex-end;
     gap: var(--ha-space-1, 4px);
     min-width: 0;
     overflow: hidden;

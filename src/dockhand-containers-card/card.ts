@@ -334,24 +334,20 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
    * rows take its columns (subgrid), and group headers and dividers span
    * them. */
   private _renderList(groups: ReturnType<typeof groupContainerRows>): TemplateResult {
-    const rows = groups.flatMap((g) => g.rows);
-    const columns = this._columns(rows);
-    // The update column keeps a place for the newer tag when some row has
-    // one, so the update icons line up after it.
-    const tagSlot = rows.some((r) => r.newerVersion);
+    const columns = this._columns(groups.flatMap((g) => g.rows));
     return renderAlignedList(
       columns.length,
       groups.map(
         (group, i) => html`
           ${i > 0 ? html`<div class="divider"></div>` : nothing}
           ${group.label !== null ? html`<div class="group-header">${group.label}</div>` : nothing}
-          ${group.rows.map((r) => this._renderRow(r, columns, tagSlot))}
+          ${group.rows.map((r) => this._renderRow(r, columns))}
         `
       )
     );
   }
 
-  private _renderRow(row: ContainerRow, columns: ColumnKey[], tagSlot: boolean): TemplateResult {
+  private _renderRow(row: ContainerRow, columns: ColumnKey[]): TemplateResult {
     const found = row.found;
     const st = found.state!.state.state;
     const stateIcon = CONTAINER_STATE[st] ?? UNKNOWN_CONTAINER_STATE;
@@ -369,8 +365,8 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
         case 'updates':
           // At most two icons, in Dockhand's order: a newer version tag
           // (the tag is in its tooltip: a pill's text would widen the column
-          // for every row), then the update, each in its own place.
-          return html`<div class="cell icon-slots" style=${`--icon-slots: ${tagSlot ? 2 : 1}`}>
+          // for every row), then the update, right-aligned.
+          return html`<div class="cell end">
             ${row.newerVersion
               ? renderIcon({
                   baseClass: 'row-icon',
@@ -379,9 +375,7 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
                   title: versionTagTooltip(this._hass, row.newerVersion),
                   onClick: () => this._moreInfo(row.updateEntityId)
                 })
-              : tagSlot
-                ? html`<span></span>`
-                : nothing}
+              : nothing}
             ${row.updateStatus && row.updateStatus.kind !== 'tag' ? this._renderUpdateIcon(row) : nothing}
           </div>`;
         case 'health':

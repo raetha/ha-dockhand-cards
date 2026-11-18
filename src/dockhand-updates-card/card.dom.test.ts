@@ -219,6 +219,7 @@ describe('Updates card newer version tag', () => {
     expect(version.querySelector('.version-old')!.textContent).toBe('16.4-bookworm-20260101');
     expect(version.querySelector('.version-new')!.textContent).toBe('17.6-bookworm-20261101');
     expect(version.getAttribute('title')).toBe('16.4-bookworm-20260101 → 17.6-bookworm-20261101');
+    expect(version.classList.contains('end')).toBe(true);
     // Never more than most of the row.
     expect(card.shadowRoot!.querySelector<HTMLElement>('.list.aligned')!.style.gridTemplateColumns).toContain('fit-content(60%)');
   });

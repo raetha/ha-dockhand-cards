@@ -51,7 +51,8 @@ describe('Containers card newer version tag', () => {
     expect(items[0]).toBe(tagIcon(card));
     expect(items[1]).toBe(updateIcon(card));
     expect(tagIcon(card)!.getAttribute('title')).toContain('17.6');
-    expect(card.shadowRoot!.querySelector<HTMLElement>('.icon-slots')!.style.getPropertyValue('--icon-slots')).toBe('2');
+    // Right-aligned, so a row with only one icon lines up with the others' last.
+    expect(items[1].parentElement!.classList.contains('end')).toBe(true);
   });
 
 
@@ -201,7 +202,7 @@ describe('Containers card aligned columns', () => {
     // stats: those columns aren't there.
     expect(all.style.gridTemplateColumns).toBe('minmax(var(--dockhand-name-min, 0px), 1fr) auto auto');
     const row = all.querySelector('.row')!;
-    expect([...row.children].map((c) => c.className)).toEqual(['row-left row-target', 'cell icon-slots', 'row-actions']);
+    expect([...row.children].map((c) => c.className)).toEqual(['row-left row-target', 'cell end', 'row-actions']);
     // A hidden detail has no column at all, nor one no row has.
     const some = await list({ visible_badges: ['updates', 'memory'] });
     expect(some.style.gridTemplateColumns).toBe('minmax(var(--dockhand-name-min, 0px), 1fr) auto');

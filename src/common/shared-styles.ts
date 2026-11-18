@@ -602,13 +602,11 @@ export const sharedStyles = css`
     flex-grow: 0;
     flex-basis: auto;
   }
-  /* A column of icons that each have their own place (the Containers
-   * card's newer tag, then its update), so each kind lines up down the
-   * list even on rows that have only one. */
-  .list.aligned > .row > .cell.icon-slots {
-    display: grid;
-    grid-template-columns: repeat(var(--icon-slots, 1), 16px);
-    column-gap: var(--ha-space-2, 8px);
+  /* Right-aligned instead: the Containers card's updates column (a newer
+   * tag, then the update, icons only), so a row with just one lines up
+   * with the others' last, and the Updates card's version text. */
+  .list.aligned > .row > .cell.end {
+    justify-content: flex-end;
   }
   /* Left-aligned, so the icons of a column line up. */
   .list.aligned > .row > .cell {

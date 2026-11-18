@@ -140,17 +140,6 @@ describe('Aligned list columns', () => {
     expect(el.querySelector('.cell .label-pill, .cell .tag-pills')).toBeNull();
   });
 
-  it('keeps the Containers card’s update icons in line when only some rows have a newer tag', async () => {
-    const el = await list('containers', { device_id: 'env_1' });
-    const cells = [...el.querySelectorAll<HTMLElement>('.cell.icon-slots')];
-    const tagged = cells.filter((c) => c.querySelector('[icon="mdi:tag-arrow-up-outline"]'));
-    const untagged = cells.filter((c) => !c.querySelector('[icon="mdi:tag-arrow-up-outline"]') && c.children.length > 1);
-    expect(tagged.length).toBeGreaterThan(0);
-    expect(untagged.length).toBeGreaterThan(0);
-    // An empty first place, then the update icon in the second.
-    for (const c of untagged) expect(c.children[0].childElementCount + (c.children[0].textContent ?? '').trim().length).toBe(0);
-  });
-
   it('gives Schedules rows a next-run column and a controls column', async () => {
     const el = await list('schedules', { visible_badges: ['next_run', 'controls'] });
     expect(columns(el)).toBe(2);

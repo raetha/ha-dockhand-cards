@@ -324,7 +324,7 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
           <span class="item-name">${u.name}</span>
         </div>
         ${tagColumn ? cell(tag) : nothing}
-        <div class="cell version" title=${title ?? nothing}>${versionText}</div>
+        <div class="cell version end" title=${title ?? nothing}>${versionText}</div>
       </div>
     `;
   }
