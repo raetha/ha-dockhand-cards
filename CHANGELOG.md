@@ -10,6 +10,8 @@ and [Unreleased] is the notes of the current test build.
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-11-18
+
 Dockhand Cards 2.0 goes with the Dockhand integration 2.0, reading its new sensors and using the controls it adds.
 
 - **A Dockhand dashboard** lays out every environment, stack and container for you, with no cards to place.
@@ -713,7 +715,8 @@ so a user's own icon customization is reflected automatically.
   from `hass.language`. Custom mode's section-checkbox labels specifically are English-only for
   now — see `docs/BACKLOG.md`.
 
-[Unreleased]: https://github.com/raetha/ha-dockhand-cards/compare/v1.5.1...HEAD
+[Unreleased]: https://github.com/raetha/ha-dockhand-cards/compare/2.0.0...HEAD
+[2.0.0]: https://github.com/raetha/ha-dockhand-cards/compare/v1.5.1...2.0.0
 [1.5.1]: https://github.com/raetha/ha-dockhand-cards/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/raetha/ha-dockhand-cards/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/raetha/ha-dockhand-cards/compare/v1.3.2...v1.4.0
