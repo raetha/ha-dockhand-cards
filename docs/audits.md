@@ -15,6 +15,14 @@ Quality, security and housekeeping reviews of the cards, their tooling and CI. R
 9. **Leftovers:** finished experiments, backward compatibility nobody needs (see `docs/backlog.md`'s 2.0.0 items), unused code, stale comments and docs (`CLAUDE.md`, `docs/development.md`, the README).
 10. **Record it:** a dated section below, and changelog lines for anything users notice.
 
+## 2026-11-18: final review for 2.0.0
+
+- Open pull requests: only the release pull request. Every action pin matches its tag and is the latest release. Held until after the release, being one or two days old: custom-card-helpers 2.2.1 (it ships in the bundle), typescript-eslint 8.73.0 and rollup 4.68.5. TypeScript 7 still held.
+- `npm audit --omit=dev`: nothing. The full audit now lists 15 high advisories with one cause, picomatch ≤4.0.7 (ReDoS on crafted globs, GHSA-fc5q-39xc-vjpf), through rollup's plugins and vitest; there's no fixed release yet, and it only ever sees the build's and tests' own globs, so it waits for one (npm's suggested fix is downgrading every tool a major version). CodeQL ran on the latest `dev` push and passed.
+- Changes since the 2026-11-15 review read through: aligned list columns on every list card, the name side's pills giving way (`.no-labels`), sideways scrolling with sticky controls, Controls under Row details, the Updates card's version column and tag pill, the editors' row detail order, tabs and badges on the dashboard, container state colors, stack CPU and memory. `npm run verify` and `a11y.py` (both themes): pass. Measured at 260–420 px with every detail on: names stay readable, lists that fit never scroll.
+- `bench.py` (377 devices, 9,318 entities): every card updates in 0.2–6 ms on an unrelated state change. The card bundle is 172 KB (45 KB gzipped), smaller than 1.5.1's 214 KB despite the new features.
+- Changelog re-read as release notes: the download sizes quoted for the language split were from before this release's features; they're now measured against 1.5.1. `docs/architecture.md` and `docs/styling.md` gained the new row classes (`.cell.end`, `.no-labels`, `.compact-version`, `.overflowing`, `.version-tag-pill`).
+
 ## 2026-11-15: final review for 2.0.0
 
 - Open pull requests: none. `npm audit`: only deepmerge, the known build-tooling alert; nothing that ships.
