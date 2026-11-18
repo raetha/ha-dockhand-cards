@@ -165,21 +165,21 @@ describe('Overview card generated cards', () => {
   it('pass every section default and override on, whatever the field', async () => {
     const el = await mount('dockhand-overview-card', {
       ...ALL_SECTIONS,
-      stacks_show_controls: true,
+      stacks_visible_badges: ['container_count', 'updates', 'type', 'tags', 'controls'],
       containers_filters: { state: ['exited_error'] },
       schedules_group_by: 'type',
       environment_mode: 'compact',
       updates_hide_when_no_updates: false,
-      environments_overrides: { env_1: { containers: { show_controls: true, filters: { tags: { not: ['infra'] } } } } }
+      environments_overrides: { env_1: { containers: { visible_badges: ['health', 'updates', 'cpu', 'memory', 'tags', 'controls'], filters: { tags: { not: ['infra'] } } } } }
     });
-    expect(child(el, 'dockhand-stacks-card')).toMatchObject({ show_controls: true, type: 'custom:dockhand-stacks-card' });
-    expect(child(el, 'dockhand-containers-card')).toMatchObject({ filters: { tags: { not: ['infra'] } }, show_controls: true });
+    expect(child(el, 'dockhand-stacks-card')).toMatchObject({ visible_badges: ['container_count', 'updates', 'type', 'tags', 'controls'], type: 'custom:dockhand-stacks-card' });
+    expect(child(el, 'dockhand-containers-card')).toMatchObject({ filters: { tags: { not: ['infra'] } }, visible_badges: ['health', 'updates', 'cpu', 'memory', 'tags', 'controls'] });
     expect(child(el, 'dockhand-schedules-card')).toMatchObject({ group_by: 'type', include_global: false, visible_badges: ['next_run'] });
     expect(child(el, 'dockhand-environment-card')).toMatchObject({ mode: 'compact', device_id: 'env_1' });
     // The Vulnerability card picks its environment the way the list cards do.
     expect(child(el, 'dockhand-vulnerability-card')).not.toHaveProperty('device_id');
     expect(child(el, 'dockhand-updates-card')).not.toHaveProperty('hide_when_no_updates');
     // Unset fields stay absent, so each card's own defaults hold.
-    expect(child(el, 'dockhand-stacks-card')).not.toHaveProperty('visible_badges');
+    expect(child(el, 'dockhand-stacks-card')).not.toHaveProperty('filters');
   });
 });

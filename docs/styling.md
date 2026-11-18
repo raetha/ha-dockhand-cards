@@ -106,7 +106,7 @@ Every card's structure uses plain, stable class names — no CSS Modules, no gen
 - `.fit-parts` — a value that drops pieces from the end when its line is too narrow (the memory reading on the Container and Environment cards); each piece is a plain `span` inside it.
 - `.grid-2` / `.grid-2.stacked` — two rows side by side (Container's I/O, Environment's resource counts); `.stacked` is added automatically when they don't fit, showing one per line.
 - `.row`, `.row-left`, `.row-right` — a card's own basic list row shape, content at both ends (`.row-left` the row's own icon+name, `.row-right` its own value or secondary label), used throughout every list-shaped card. In `.list.aligned` (the list cards and the Environment card's top containers) a row's details are `.cell`s, one per column, instead of a `.row-right`.
-- `.row-actions` — the controls column a list card adds to every row when **Show controls** is on
+- `.row-actions` — the controls column a list card adds to every row when **Controls** is chosen under **Row details**
 - `.filtered-note` — the "Hidden by filters" line under a filtered list
 - `.item-name` — a row's own primary name text, truncating with an ellipsis the same way a header's own name does
 - `.label-pill` — a small rounded label (a stack/container type, a custom environment label) — shared by every card that has one, see `docs/architecture.md` §10. `.tag-pill` is a Dockhand tag on Stacks/Containers rows and in the Stack/Container cards' `.tag-row`; its colour is the user's own choice in Dockhand, set inline like an environment label's (text mixed halfway toward `--primary-text-color`, background at 15%)

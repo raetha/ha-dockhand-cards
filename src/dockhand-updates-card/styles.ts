@@ -15,4 +15,30 @@ export const cardStyles = css`
   .update-row .update-icon.held {
     color: var(--secondary-text-color);
   }
+  /* Right-aligned; a cell that can shrink below its text (min-width 0),
+   * so the old version, then the new, is cut rather than the name. */
+  .update-row > .cell.version {
+    justify-content: flex-end;
+    gap: var(--ha-space-1, 4px);
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .version-old,
+  .version-new {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .version-old {
+    flex: 0 1000 auto;
+    min-width: 2ch;
+  }
+  .version-new {
+    flex: 0 1 auto;
+    min-width: min(6ch, 100%);
+  }
+  .version-arrow {
+    flex-shrink: 0;
+  }
 `;

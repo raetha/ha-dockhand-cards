@@ -8,15 +8,14 @@ environments_order: [] # environment display order; all environments are include
 exclude_device_ids: [] # environments to leave out
 name: null # optional — Composed or Custom, same as every other card's Name field
 show_settings_link: true # link to view containers in Dockhand
-show_controls: false # the Container card's buttons on each row
-visible_badges: [health, updates, cpu, memory, tags] # per-row details; add `environment` for an environment pill
+visible_badges: [health, updates, cpu, memory, tags] # per-row details; add `environment` for an environment pill, `controls` for the Container card's buttons
 group_by: environment # none | environment | status
 sort_by: name # name | status | cpu | memory (highest first)
 filters: {} # which rows show — see lists.md
 show_filtered_count: true # a "Hidden by filters" line under a filtered list
 ```
 
-Every container in one environment, several, or all of them, one compact row each: state, health, pending updates and CPU/memory (when container stats are enabled). Works like the [Stacks card](stacks.md), including **Row details** and **Show controls**.
+Every container in one environment, several, or all of them, one compact row each: state, health, pending updates and CPU/memory (when container stats are enabled). Works like the [Stacks card](stacks.md), including **Row details** and their **Controls**.
 
 A newer version tag Dockhand has found shows as a tag icon (hover for the tag): after the update icon when there's also an update to install, or on its own when there isn't. A container pinned to a digest whose tag has moved on gets an orange pin in the update icon's place, and one whose update Dockhand is holding until the new image reaches its minimum image age gets a grey clock; hover either for the details. All of these are part of the **updates** row detail.
 

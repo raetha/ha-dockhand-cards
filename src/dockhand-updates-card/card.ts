@@ -266,7 +266,10 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
                   <span>${t(this._hass, 'msg_everything_up_to_date')}</span>
                 </div>`
             : renderAlignedList(
-                tagColumn ? 2 : 1,
+                // The version text right-aligned, and never more than most
+                // of the row, so a long version can't crowd out the name:
+                // it's cut instead (_renderVersion).
+                [...(tagColumn ? ['auto'] : []), 'fit-content(60%)'],
                 flatUpdates
                   ? flatUpdates.map((u) => this._renderUpdateRow(u, tagColumn))
                   : groups.map(
@@ -292,7 +295,7 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
       u.newerVersion && hasTagBeside(u)
         ? renderIcon({ baseClass: 'row-icon', icon: 'mdi:tag-arrow-up-outline', colorClass: 'warn', title: versionTagTooltip(this._hass, u.newerVersion), static: true })
         : nothing;
-    let versionText: string | typeof nothing = nothing;
+    let versionText: TemplateResult | string | typeof nothing = nothing;
     let title: string | undefined;
     if (u.kind === 'held') {
       versionText = heldShort(this._hass, u.heldHours ?? 0);
@@ -303,7 +306,10 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
     } else if (u.latestVersion === UPDATE_PENDING_VERSION) {
       versionText = t(this._hass, 'update_available');
     } else if (u.installedVersion && u.latestVersion) {
-      versionText = `${u.installedVersion} → ${u.latestVersion}`;
+      // The old version gives way first, then the new one, each with an
+      // ellipsis; the whole of both is in the tooltip.
+      versionText = html`<span class="version-old">${u.installedVersion}</span><span class="version-arrow"> → </span><span class="version-new">${u.latestVersion}</span>`;
+      title = `${u.installedVersion} → ${u.latestVersion}`;
     }
     return html`
       <div class="row update-row clickable" tabindex="0" role="button" @click=${() => this._moreInfo(u.entityId)} @keydown=${onKeydownActivate(() => this._moreInfo(u.entityId))}>
@@ -312,7 +318,7 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
           <span class="item-name">${u.name}</span>
         </div>
         ${tagColumn ? cell(tag) : nothing}
-        <div class="cell" title=${title ?? nothing}>${versionText}</div>
+        <div class="cell version" title=${title ?? nothing}>${versionText}</div>
       </div>
     `;
   }

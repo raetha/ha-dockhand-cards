@@ -6,10 +6,10 @@ export type ScheduleSortBy = 'name' | 'next_run' | 'status';
 
 export type ScheduleGroupBy = 'none' | 'environment' | 'type' | 'status';
 
-export type ScheduleBadge = 'next_run' | 'environment';
+export type ScheduleBadge = 'next_run' | 'environment' | 'controls';
 
 /** The details in their order on a row, which the editor lists them in. */
-export const SCHEDULE_BADGE_ORDER: readonly ScheduleBadge[] = ['environment', 'next_run'];
+export const SCHEDULE_BADGE_ORDER: readonly ScheduleBadge[] = ['environment', 'next_run', 'controls'];
 
 export interface DockhandSchedulesCardConfig extends LovelaceCardConfig {
   type: 'custom:dockhand-schedules-card';
@@ -34,8 +34,6 @@ export interface DockhandSchedulesCardConfig extends LovelaceCardConfig {
    * system like the Environment card's custom_sections: this card only
    * ever has the one optional section. */
   show_stats?: boolean;
-  /** Run now and enable / disable on each row; off unless set. */
-  show_controls?: boolean;
   /** Which optional per-row details show — same shape as Stacks/
    * Containers' own visible_badges (checkboxes under one shared "Row
    * details" heading, not standalone toggles — see docs/editor-design.md

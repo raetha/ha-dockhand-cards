@@ -35,13 +35,13 @@ const CASES: [Card, Record<string, unknown>][] = [
   ['container', { device_id: 'container_1_backup' }],
   ['stacks', { device_id: 'env_1' }],
   ['stacks', { group_by: 'status', sort_by: 'status', visible_badges: ['container_count', 'updates', 'type', 'environment', 'tags'] }],
-  ['stacks', { group_by: 'type', show_controls: true }],
+  ['stacks', { group_by: 'type', visible_badges: ['container_count', 'updates', 'type', 'tags', 'controls'] }],
   ['containers', { device_id: 'env_1' }],
-  ['containers', { group_by: 'environment', sort_by: 'status', show_controls: true }],
+  ['containers', { group_by: 'environment', sort_by: 'status', visible_badges: ['health', 'updates', 'cpu', 'memory', 'tags', 'controls'] }],
   ['updates', { scope: 'all' }],
   ['updates', { group_by: 'environment' }],
   ['schedules', { group_by: 'environment' }],
-  ['schedules', { group_by: 'status', show_stats: true, show_controls: true }],
+  ['schedules', { group_by: 'status', show_stats: true, visible_badges: ['environment', 'next_run', 'controls'] }],
   ['schedules', { group_by: 'type', sort_by: 'next_run' }],
   ['overview', { show_environments: true, environment_mode: 'compact', show_stacks: true, show_containers: true }],
   [
@@ -131,7 +131,7 @@ describe('Aligned list columns', () => {
   const columns = (el: HTMLElement) => el.style.gridTemplateColumns.split(' ').filter((c) => c === 'auto').length;
 
   it('gives every Stacks row a cell per column, one list across the groups', async () => {
-    const el = await list('stacks', { visible_badges: ['updates', 'container_count'], show_controls: true });
+    const el = await list('stacks', { visible_badges: ['updates', 'container_count', 'controls'] });
     const rows = [...el.querySelectorAll<HTMLElement>(':scope > .row')];
     expect(rows.length).toBeGreaterThan(1);
     for (const row of rows) expect(row.children.length).toBe(1 + columns(el));
@@ -140,8 +140,19 @@ describe('Aligned list columns', () => {
     expect(el.querySelector('.cell .label-pill, .cell .tag-pills')).toBeNull();
   });
 
+  it('keeps the Containers card’s update icons in line when only some rows have a newer tag', async () => {
+    const el = await list('containers', { device_id: 'env_1' });
+    const cells = [...el.querySelectorAll<HTMLElement>('.cell.icon-slots')];
+    const tagged = cells.filter((c) => c.querySelector('[icon="mdi:tag-arrow-up-outline"]'));
+    const untagged = cells.filter((c) => !c.querySelector('[icon="mdi:tag-arrow-up-outline"]') && c.children.length > 1);
+    expect(tagged.length).toBeGreaterThan(0);
+    expect(untagged.length).toBeGreaterThan(0);
+    // An empty first place, then the update icon in the second.
+    for (const c of untagged) expect(c.children[0].childElementCount + (c.children[0].textContent ?? '').trim().length).toBe(0);
+  });
+
   it('gives Schedules rows a next-run column and a controls column', async () => {
-    const el = await list('schedules', { visible_badges: ['next_run'], show_controls: true });
+    const el = await list('schedules', { visible_badges: ['next_run', 'controls'] });
     expect(columns(el)).toBe(2);
     expect(el.querySelector(':scope > .row > .cell')!.textContent!.trim()).not.toBe('');
     expect(columns(await list('schedules', { visible_badges: [] }))).toBe(0);
@@ -156,9 +167,9 @@ describe('Aligned list columns', () => {
 
 describe('List card editors', () => {
   it.each([
-    ['containers', ['environment', 'tags', 'updates', 'health', 'cpu', 'memory']],
-    ['stacks', ['type', 'environment', 'tags', 'updates', 'container_count', 'cpu', 'memory']],
-    ['schedules', ['environment', 'next_run']]
+    ['containers', ['environment', 'tags', 'updates', 'health', 'cpu', 'memory', 'controls']],
+    ['stacks', ['type', 'environment', 'tags', 'updates', 'container_count', 'cpu', 'memory', 'controls']],
+    ['schedules', ['environment', 'next_run', 'controls']]
   ])('list the %s card’s row details in their order on a row', async (card, order) => {
     const el = await mount(`dockhand-${card}-card-editor`, {}, harnessHass());
     const forms = [...el.shadowRoot!.querySelectorAll<HTMLElement & { schema: unknown }>('ha-form')];

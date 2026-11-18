@@ -50,7 +50,7 @@ strategy:
     overview:
       schedules: { show_stats: true }
     environment:
-      containers: { show_controls: true }
+      containers: { visible_badges: [health, updates, cpu, memory, tags, controls] }
     stack: { visible_sections: [status, metrics, containers] }
     container: {}
 ```

@@ -18,6 +18,7 @@ import { renderActionsColumn, renderScheduleControls, resolveScheduleControls } 
 import { NONE, applyFilters, type FilterExtractor } from '../common/filters';
 import { renderFilteredNote } from '../common/list-filters';
 import { cell, renderAlignedList } from '../common/aligned-list';
+import { RowFitController } from '../common/row-fit';
 import { cardStyles } from './styles';
 
 // Status values per Dockhand's own ScheduleStatus type (db.ts) — the richer
@@ -246,6 +247,11 @@ export function groupScheduleRows(
 export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
   static styles = cardStyles;
 
+  constructor() {
+    super();
+    new RowFitController(this);
+  }
+
   @state() private _config?: DockhandSchedulesCardConfig;
   @state() private _hass?: HomeAssistant;
 
@@ -465,7 +471,7 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
   private _renderList(groups: { label: string | null; rows: ScheduleRow[] }[]): TemplateResult {
     const visibleBadges = resolveVisibleBadges(this._config?.visible_badges, this._config?.group_by ?? 'environment');
     const nextRun = visibleBadges.includes('next_run') && groups.some((g) => g.rows.some((r) => this._nextRunText(r)));
-    const controls = Boolean(this._config?.show_controls);
+    const controls = visibleBadges.includes('controls');
     return renderAlignedList(
       Number(nextRun) + Number(controls),
       groups.map(
@@ -496,6 +502,7 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
     // group_by's own default, as the grouping and the editor use.
     const visibleBadges = resolveVisibleBadges(this._config?.visible_badges, this._config?.group_by ?? 'environment');
     const showEnvironment = visibleBadges.includes('environment');
+    const showControls = visibleBadges.includes('controls');
     // The 'environment' badge is hidden by default once group_by:
     // 'environment' groups rows into per-environment sections already —
     // redundant for those rows, but *not* for the "Global" section, which
@@ -506,7 +513,7 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
     // that point hiding 'environment' is a stated preference, not just
     // grouping already having covered it.
     const showInstanceLabel = this._config?.visible_badges ? showEnvironment : true;
-    const controls = this._config?.show_controls && this._hass ? resolveScheduleControls(this._hass, row.deviceId) : null;
+    const controls = showControls && this._hass ? resolveScheduleControls(this._hass, row.deviceId) : null;
 
     return html`
       <div class="row clickable" @click=${() => this._moreInfo(row.entityId)}>
@@ -517,11 +524,11 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
             title=${!row.enabled ? t(this._hass, 'schedule_disabled') : row.status ? stateLabel(this._hass, 'schedule_status', row.status) : t(this._hass, 'schedule_never_run')}
           ></ha-icon>
           <span class="item-name">${row.name}</span>
-          ${showEnvironment && row.environment ? html`<span class="label-pill">${row.environment}</span>` : nothing}
-          ${showInstanceLabel && row.instanceLabel ? html`<span class="label-pill">${row.instanceLabel}</span>` : nothing}
+          ${showEnvironment && row.environment ? html`<span class="label-pill name-label">${row.environment}</span>` : nothing}
+          ${showInstanceLabel && row.instanceLabel ? html`<span class="label-pill name-label">${row.instanceLabel}</span>` : nothing}
         </div>
         ${nextRun ? cell(this._nextRunText(row)) : nothing}
-        ${this._config?.show_controls ? renderActionsColumn(controls ? renderScheduleControls(this, this._hass, controls, row.name) : null) : nothing}
+        ${showControls ? renderActionsColumn(controls ? renderScheduleControls(this, this._hass, controls, row.name) : null) : nothing}
       </div>
     `;
   }
