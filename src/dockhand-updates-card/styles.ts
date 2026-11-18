@@ -33,9 +33,11 @@ export const cardStyles = css`
     flex: 0 1000 auto;
     min-width: 2ch;
   }
+  /* No minimum of its own: one would leave a short version (18.7) short
+   * of the right edge. The old version's far larger shrink factor still
+   * cuts it first. */
   .version-new {
     flex: 0 1 auto;
-    min-width: min(6ch, 100%);
   }
   .version-arrow {
     flex-shrink: 0;
