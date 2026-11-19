@@ -29,15 +29,12 @@ type RenderIconBaseOpts = {
    * new context wants to use it. Every current caller passes one of:
    * `.header-icon` (a card's own header, either side — 32×32 clickable
    * footprint, the icon itself left at HA's own native 24px default;
-   * also the shape for Environment's own connection-type icon, merged
-   * in from what was once a separate `.conn-icon`), `.row-icon` (16px
+   * also the shape for Environment's own connection-type icon),
+   * `.row-icon` (16px
    * — the shape for a compact icon+optional-text badge, positioned by
    * whichever ancestor row/group it sits in, not by this class itself
-   * — a `.row-icon` badge nested inside an outer `.row-right` wrapper,
-   * grouping several such badges together on a row's own right side,
-   * is an established, already-shipped pattern — see Environment
-   * card's own "Top containers by CPU" section for the precedent this
-   * follows), `.card-badge` (a card's own fixed 28×28 header icon,
+   * — several can sit in a `.row-right` wrapper on a row's right side,
+   * as in the Environment card's "Top containers by CPU"), `.card-badge` (a card's own fixed 28×28 header icon,
    * always static), or `.stat` (a small icon+count summary badge,
    * always static, its own color usually set per-instance via `color`
    * rather than a shared modifier, since each one's own semantic
@@ -51,7 +48,7 @@ type RenderIconBaseOpts = {
   icon?: string;
   hass?: HomeAssistant;
   stateObj?: HassEntity;
-  colorClass?: 'ok' | 'warn' | 'error' | 'accent' | 'neutral';
+  colorClass?: 'ok' | 'warn' | 'error' | 'info' | 'accent' | 'neutral';
   /** A raw CSS color for a case that doesn't map to one of the four
    * shared modifiers (Environment's own feature icons, each with their
    * own fixed, non-semantic color straight from Dockhand's own dashboard
@@ -74,16 +71,9 @@ type RenderIconBaseOpts = {
  * (a card's own header badge, a decorative connection-type indicator).
  * See `baseClass`'s own doc above for how sizing/layout is supplied.
  *
- * Keyboard activation (Enter/Space triggering the same thing a click
- * does) is wired up automatically here, internally, from `onClick` alone
- * — every card used to independently hand-roll its own private
- * `_onKeydown()` method to wire this up manually per call site, which is
- * exactly the kind of duplication that let one real call site (the
- * Dockhand link) silently ship without it at all: keyboard-focusable
- * (`tabindex="0"`) but not keyboard-*activatable*, since nothing was
- * listening for Enter/Space there. There is no longer a way to add a
- * clickable icon without also making it keyboard-accessible, since the
- * two are no longer two separate things a caller could forget to pair.
+ * Keyboard activation (Enter/Space doing what a click does) is wired up
+ * here from `onClick` alone, so no clickable icon can be focusable but
+ * not activatable from the keyboard.
  *
  * `onClick` is required unless `disabled: true` or `static: true` is
  * set explicitly — a discriminated union, not just an optional field,
@@ -99,16 +89,6 @@ type RenderIconBaseOpts = {
  * fire for) — `static` never had click behavior as a concept at all,
  * so it intercepts nothing, letting a click pass through untouched to
  * whatever it happens to sit inside.
- *
- * A third, different "present but nothing to do" state did exist once
- * (Stacks' own container-count badge, shown but not clickable when its
- * own dedicated entity wasn't available on an older ha-dockhand
- * release) but has since been removed — the fallback that produced it
- * was dropped once relying on that dedicated entity always being
- * present became a safe assumption. `static` is not a reintroduction
- * of that case: that one was a data-availability gap on an otherwise
- * genuinely-clickable icon; `static` is for icons that were never
- * clickable in the first place, by design, regardless of data.
  */
 export function renderIcon(
   opts: RenderIconBaseOpts &
@@ -127,7 +107,18 @@ export function renderIcon(
     return html`<span class=${classes} style=${style} title=${opts.title ?? ''}>${content}</span>`;
   }
   if (opts.disabled) {
-    return html`<span class=${classes} style=${style} title=${opts.title ?? ''} aria-busy=${opts.busy ? 'true' : nothing} @click=${(e: Event) => e.stopPropagation()}>${content}</span>`;
+    // A control that can't be used right now: announced as such, and, as
+    // an inactive control, exempt from the contrast minimum (WCAG 1.4.3).
+    return html`<span
+      class=${classes}
+      style=${style}
+      role="button"
+      aria-disabled="true"
+      title=${opts.title ?? ''}
+      aria-busy=${opts.busy ? 'true' : nothing}
+      @click=${(e: Event) => e.stopPropagation()}
+      >${content}</span
+    >`;
   }
   const onClick = opts.onClick;
   return html`<span

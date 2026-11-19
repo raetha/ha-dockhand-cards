@@ -1,13 +1,14 @@
 import { loadEditor } from '../common/editor-loader';
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
+import type { HassEntity } from 'home-assistant-js-websocket';
 import { state } from 'lit/decorators.js';
 import { fireEvent, type LovelaceCard, type LovelaceCardEditor } from 'custom-card-helpers';
 
 import type { HomeAssistant, LovelaceGridOptions, DeviceRegistryEntry } from '../common/ha-types';
-import { getAllStackDevices, getEnvIdForStackDevice, getEnvDeviceForEnvId, getContainerDevicesForEnvironment, getRepresentativeEntityId } from '../common/device-utils';
-import { resolveCardName, migrateTitleToName } from '../common/card-name';
+import { defaultCardName, getAllStackDevices, getEnvIdForStackDevice, getEnvDeviceForEnvId, getContainerDevicesForEnvironment, getRepresentativeEntityId, getContainerName } from '../common/device-utils';
+import { resolveCardName } from '../common/card-name';
 import { resolveStackEntities, resolveContainerEntities, findPrimaryEntityByDomain, type ResolutionResult } from '../common/entity-resolver';
-import { DEFAULT_STACK_ICON, STACK_STATUS_CLASS, type StackTranslationKey } from '../common/const';
+import { CONTAINER_STATE, UNKNOWN_CONTAINER_STATE, DEFAULT_STACK_ICON, STACK_STATUS_CLASS, type StackTranslationKey } from '../common/const';
 import { getDockhandBaseUrl, formatRelativeTime } from '../common/format';
 import { t } from '../common/i18n-card';
 import { stateLabel } from '../common/state-label';
@@ -15,8 +16,9 @@ import { renderSettingsLink, renderIcon, onKeydownActivate } from '../common/ico
 import { STACK_RESOURCE_KEYS, renderResourceIo, renderResourceMetrics } from '../common/resource-sections';
 import { renderUpdateKindIcon, updateStatus, type UpdateStatus } from '../common/update-kind';
 import { joinWithDividers, mergeSections } from '../common/section-join';
-import { renderDeviceControls, resolveDeviceControls } from '../common/device-controls';
+import { renderHeaderControls, resolveDeviceControls } from '../common/device-controls';
 import { DEFAULT_STACK_SECTIONS, type DockhandStackCardConfig } from './types';
+import { renderTagRow } from '../common/tag-pills';
 import { cardStyles } from './styles';
 
 const STATUS_ICON: Record<string, string> = {
@@ -35,8 +37,12 @@ const SYNC_ICON: Record<string, string> = {
 
 interface ContainerPillInfo {
   entityId: string;
+  /** The container's State entity's state object. */
+  state: HassEntity;
   /** See updateStatus() in common/update-kind.ts. */
   updateStatus?: UpdateStatus;
+  /** The container's update entity, which its update icon opens. */
+  updateEntityId?: string;
 }
 
 export class DockhandStackCard extends LitElement implements LovelaceCard {
@@ -64,7 +70,7 @@ export class DockhandStackCard extends LitElement implements LovelaceCard {
   }
 
   setConfig(config: DockhandStackCardConfig): void {
-    this._config = { show_settings_link: true, ...(migrateTitleToName(config as Record<string, unknown>) as DockhandStackCardConfig) };
+    this._config = { show_settings_link: true, ...config };
   }
 
   set config(config: DockhandStackCardConfig) {
@@ -121,7 +127,7 @@ export class DockhandStackCard extends LitElement implements LovelaceCard {
     ]);
     const s = resolution.found;
     const representativeEntityId = getRepresentativeEntityId(this._hass, this._config.device_id);
-    const name = resolveCardName(this._hass, representativeEntityId, this._config.name, device.name_by_user || device.name || t(this._hass, 'name_stack'));
+    const name = resolveCardName(this._hass, representativeEntityId, this._config.name, defaultCardName(this._hass, device) || t(this._hass, 'name_stack'));
     const isGit = Boolean(s.gitSyncStatus);
     const controls = resolveDeviceControls(this._hass, this._config.device_id, this._config.show_controls);
 
@@ -135,6 +141,7 @@ export class DockhandStackCard extends LitElement implements LovelaceCard {
             </div>
             <div class="header-right">
               <span class="label-pill">${stateLabel(this._hass, 'stack_type', s.status?.state.attributes.type || device.model || t(this._hass, 'name_stack'))}</span>
+              ${controls ? renderHeaderControls(this, this._hass, controls, name) : nothing}
               ${renderSettingsLink({
                 hass: this._hass,
                 show: this._config?.show_settings_link,
@@ -143,8 +150,9 @@ export class DockhandStackCard extends LitElement implements LovelaceCard {
               })}
             </div>
           </div>
+          ${renderTagRow(s.status?.state)}
           <div class="divider"></div>
-          ${this._renderBody(s, isGit, device, controls ? renderDeviceControls(this, this._hass, controls, name) : nothing)}
+          ${this._renderBody(s, isGit, device)}
         </div>
       </ha-card>
     `;
@@ -153,8 +161,7 @@ export class DockhandStackCard extends LitElement implements LovelaceCard {
   private _renderBody(
     s: ResolutionResult<StackTranslationKey>['found'],
     isGit: boolean,
-    stackDevice: DeviceRegistryEntry,
-    controlsContent: TemplateResult | typeof nothing
+    stackDevice: DeviceRegistryEntry
   ): TemplateResult {
     if (!s.status) {
       return html`<div class="card-message warn">
@@ -164,8 +171,8 @@ export class DockhandStackCard extends LitElement implements LovelaceCard {
     }
 
     const status = s.status.state.state;
-    const containerCount = s.status.state.attributes.container_count ?? s.containersInStack?.state.state;
-    const containerNames = s.status.state.attributes.container_names as string[] | undefined;
+    const containerCount = s.containersInStack?.state.state;
+    const containerNames = s.containersInStack?.state.attributes.containers as string[] | undefined;
     const containerInfo = containerNames && containerNames.length > 0 ? this._containerInfo(stackDevice) : new Map<string, ContainerPillInfo>();
     const visible = new Set(this._config?.visible_sections ?? DEFAULT_STACK_SECTIONS);
 
@@ -194,8 +201,20 @@ export class DockhandStackCard extends LitElement implements LovelaceCard {
               <div class="label-row">
                 ${containerNames.map((name) => {
                   const info = containerInfo.get(name);
-                  // Same icons as the Updates card's rows.
-                  const updateIcon = info?.updateStatus ? renderUpdateKindIcon(this._hass, info.updateStatus) : nothing;
+                  // Same icons as the Updates card's rows. A click on it opens
+                  // the update, where it can be installed; the rest of the
+                  // pill (and the keyboard) opens the container's state.
+                  const updateIcon = info?.updateStatus ? renderUpdateKindIcon(this._hass, info.updateStatus, () => this._moreInfo(info.updateEntityId)) : nothing;
+                  // The Container card's state icon and color, after the
+                  // update icon so updates line up at the start of the pills.
+                  const look = info ? (CONTAINER_STATE[info.state.state] ?? UNKNOWN_CONTAINER_STATE) : undefined;
+                  const stateIcon = info && look
+                    ? html`<ha-icon
+                        class="pill-state ${look.cls}"
+                        icon=${look.icon}
+                        title=${stateLabel(this._hass, 'container_state', info.state.state, info.state)}
+                      ></ha-icon>`
+                    : nothing;
                   return info
                     ? html`<span
                         class="label-pill clickable"
@@ -203,7 +222,7 @@ export class DockhandStackCard extends LitElement implements LovelaceCard {
                         role="button"
                         @click=${() => this._moreInfo(info.entityId)}
                         @keydown=${onKeydownActivate(() => this._moreInfo(info.entityId))}
-                        >${updateIcon}${name}</span
+                        >${updateIcon}${stateIcon}${name}</span
                       >`
                     : html`<span class="label-pill">${name}</span>`;
                 })}
@@ -216,10 +235,10 @@ export class DockhandStackCard extends LitElement implements LovelaceCard {
     const metricsContent = visible.has('metrics') ? renderResourceMetrics(this._hass, s, moreInfo) : nothing;
     const ioContent = visible.has('io') ? renderResourceIo(this._hass, s, moreInfo) : nothing;
 
-    return joinWithDividers([mergeSections(statusContent, controlsContent), mergeSections(metricsContent, ioContent), containersContent, gitSyncContent]);
+    return joinWithDividers([statusContent, mergeSections(metricsContent, ioContent), containersContent, gitSyncContent]);
   }
 
-  /** Maps each container's raw Docker name (what `container_names` lists)
+  /** Maps each container's raw Docker name (what `containers` lists)
    * to its "state" entity id (so a pill can link straight to that
    * container's status/state entity, same raw-name resolution the
    * Container card's own editor already uses for its dropdown) and its
@@ -241,12 +260,14 @@ export class DockhandStackCard extends LitElement implements LovelaceCard {
 
     for (const containerDevice of getContainerDevicesForEnvironment(this._hass, envDevice)) {
       const { found } = resolveContainerEntities(this._hass, containerDevice.id, ['state']);
-      const rawName = found.state?.state.attributes.name as string | undefined;
+      const rawName = getContainerName(containerDevice);
       if (rawName && found.state) {
         const update = findPrimaryEntityByDomain(this._hass, containerDevice.id, 'update');
         map.set(rawName, {
           entityId: found.state.entityId,
-          updateStatus: updateStatus(update?.state)
+          state: found.state.state,
+          updateStatus: updateStatus(update?.state),
+          updateEntityId: update?.entityId
         });
       }
     }

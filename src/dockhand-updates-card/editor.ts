@@ -5,14 +5,15 @@ import type { HaFormSchema } from '../common/ha-form-types';
 
 import type { HomeAssistant } from '../common/ha-types';
 import { getEnvironmentDevices, getRepresentativeEntityId } from '../common/device-utils';
-import { cardNameFieldSchema, migrateTitleToName } from '../common/card-name';
+import { cardNameFieldSchema } from '../common/card-name';
 import { stripUndefinedKeys } from '../common/config-utils';
 import { t } from '../common/i18n-editor';
 import { sortableRowStyles, editorFormStyles } from '../common/editor-styles';
-import { resolveIncludedOrderedWithLegacy } from '../common/environment-scope';
-import { renderEnvironmentOrderSection, effectiveExcludeDeviceIds } from '../common/environment-scope-editor';
+import { resolveIncludedOrdered } from '../common/environment-scope';
+import { renderEnvironmentOrderSection } from '../common/environment-scope-editor';
 import { buildUpdatesVisibilityCondition } from '../common/updates-visibility';
 import type { DockhandUpdatesCardConfig } from './types';
+import { UPDATES_FILTER_FIELDS, renderFiltersForm } from '../common/filters-editor';
 
 export class DockhandUpdatesCardEditor extends LitElement implements LovelaceCardEditor {
   static styles = [sortableRowStyles, editorFormStyles];
@@ -20,6 +21,10 @@ export class DockhandUpdatesCardEditor extends LitElement implements LovelaceCar
   @state() private _config?: DockhandUpdatesCardConfig;
   @state() private _hass?: HomeAssistant;
   @property({ type: Boolean }) cardIsEmbedded = false;
+  /** Set by the Dockhand dashboard's settings: the dashboard chooses the
+   * environments, so the editor leaves its Environments section out, but
+   * the card still spans several (unlike cardIsEmbedded). */
+  @property({ type: Boolean }) scopeFixed = false;
   /** See DockhandEnvironmentCardEditor's identical property: set only by
    * Overview's global-defaults view, where one name shared by every
    * environment's card has no meaning. */
@@ -30,7 +35,7 @@ export class DockhandUpdatesCardEditor extends LitElement implements LovelaceCar
   }
 
   setConfig(config: DockhandUpdatesCardConfig): void {
-    this._config = migrateTitleToName(config as Record<string, unknown>) as DockhandUpdatesCardConfig;
+    this._config = config;
   }
 
   private _rootSchema(): HaFormSchema[] {
@@ -71,7 +76,7 @@ export class DockhandUpdatesCardEditor extends LitElement implements LovelaceCar
   private _representativeEntityId(): string | undefined {
     if (!this._hass || !this._config) return undefined;
     const devices = getEnvironmentDevices(this._hass);
-    const included = resolveIncludedOrderedWithLegacy(devices, this._config.environments_order, this._config.exclude_device_ids, this._config.device_id, this._config.scope);
+    const included = resolveIncludedOrdered(devices, this._config.environments_order, this._config.exclude_device_ids);
     return included[0] ? getRepresentativeEntityId(this._hass, included[0].deviceId) : undefined;
   }
 
@@ -94,36 +99,30 @@ export class DockhandUpdatesCardEditor extends LitElement implements LovelaceCar
           `
         : html``}
 
-      <!--
-        Legacy scope/device_id (real, released since 1.1.0 —
-        scope: 'selected' was added later in this same still-unreleased
-        cycle and never shipped) is never rewritten here. See
-        resolveIncludedOrderedWithLegacy's own comment in
-        environment-scope.ts for the full reasoning, same approach as
-        Stacks/Containers.
-      -->
       ${renderEnvironmentOrderSection({
         hass: this._hass,
         headingKey: 'label_environments',
         hintKey: 'order_list_hint',
         icon: 'mdi:web',
         order: this._config.environments_order,
-        excluded: effectiveExcludeDeviceIds(devices, this._config.exclude_device_ids, this._config.device_id, this._config.scope),
-        hidden: this.cardIsEmbedded,
+        excluded: this._config.exclude_device_ids,
+        hidden: this.cardIsEmbedded || this.scopeFixed,
         showExcludeToggle: true,
         allowReorder: true,
-        onMoved: (order) => this._updateConfig({ environments_order: order, scope: undefined, device_id: undefined }),
+        onMoved: (order) => this._updateConfig({ environments_order: order }),
         onToggleExcluded: (deviceId, nowExcluded) => {
-          const current = effectiveExcludeDeviceIds(devices, this._config?.exclude_device_ids, this._config?.device_id, this._config?.scope) ?? [];
+          const current = this._config?.exclude_device_ids ?? [];
           const next = nowExcluded ? [...current, deviceId] : current.filter((id) => id !== deviceId);
-          this._updateConfig({ exclude_device_ids: next, scope: undefined, device_id: undefined });
+          this._updateConfig({ exclude_device_ids: next });
         },
         onSolo: (deviceId) => {
-          this._updateConfig({ exclude_device_ids: devices.filter((d) => d.deviceId !== deviceId).map((d) => d.deviceId), scope: undefined, device_id: undefined });
+          this._updateConfig({ exclude_device_ids: devices.filter((d) => d.deviceId !== deviceId).map((d) => d.deviceId) });
         },
-        onSelectAll: () => this._updateConfig({ exclude_device_ids: [], scope: undefined, device_id: undefined }),
-        onClearAll: () => this._updateConfig({ exclude_device_ids: devices.map((d) => d.deviceId), scope: undefined, device_id: undefined })
+        onSelectAll: () => this._updateConfig({ exclude_device_ids: [] }),
+        onClearAll: () => this._updateConfig({ exclude_device_ids: devices.map((d) => d.deviceId) })
       })}
+
+      ${renderFiltersForm(this._hass, UPDATES_FILTER_FIELDS, this._config, (patch) => this._updateConfig(patch))}
 
       <ha-form
         .hass=${this._hass}
@@ -165,8 +164,8 @@ export class DockhandUpdatesCardEditor extends LitElement implements LovelaceCar
   };
 
   /** Reconciles the card's own `visibility:` condition against its
-   * current hide_when_no_updates/environments_order/exclude_device_ids
-   * (or legacy scope/device_id), every time any of them changes — not
+   * current hide_when_no_updates/environments_order/exclude_device_ids,
+   * every time any of them changes — not
    * just when the toggle itself is flipped, since changing which
    * environments are included while the toggle is already on needs the
    * condition rebuilt too. Uses HA's own native card visibility feature
@@ -192,7 +191,7 @@ export class DockhandUpdatesCardEditor extends LitElement implements LovelaceCar
     if (this.cardIsEmbedded) {
       delete next.visibility;
     } else if (next.hide_when_no_updates && this._hass) {
-      const deviceIds = resolveIncludedOrderedWithLegacy(getEnvironmentDevices(this._hass), next.environments_order, next.exclude_device_ids, next.device_id, next.scope).map((d) => d.deviceId);
+      const deviceIds = resolveIncludedOrdered(getEnvironmentDevices(this._hass), next.environments_order, next.exclude_device_ids).map((d) => d.deviceId);
       const condition = buildUpdatesVisibilityCondition(this._hass, deviceIds);
       if (condition) {
         next.visibility = condition;

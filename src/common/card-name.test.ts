@@ -1,44 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { migrateTitleToName, resolveCardName, multiEnvCardNameFallback } from './card-name';
+import { resolveCardName, multiEnvCardNameFallback } from './card-name';
 import { makeHass, makeState } from './test-fixtures';
-
-describe('migrateTitleToName', () => {
-  it('moves title to name when name is unset', () => {
-    const result = migrateTitleToName({ title: 'My Custom Title', device_id: 'abc' });
-    expect(result).toEqual({ name: 'My Custom Title', device_id: 'abc' });
-    expect(result).not.toHaveProperty('title');
-  });
-
-  it('leaves a config with no title untouched', () => {
-    const config = { device_id: 'abc', show_settings_link: true };
-    expect(migrateTitleToName(config)).toBe(config);
-  });
-
-  it('keeps the existing name but still strips the now-meaningless title when both are somehow present', () => {
-    // Shouldn't normally happen, but a person hand-editing YAML could
-    // produce this — the already-set name must win, not be silently
-    // overwritten by the older field, but the dead title key still
-    // needs to go, or it lingers in every future save indefinitely. An
-    // earlier version of this function only stripped title in the
-    // branch that used its value, silently keeping it forever in this
-    // exact case — this test exists specifically because that was
-    // pointed out as a real gap, not caught by testing beforehand.
-    const result = migrateTitleToName({ title: 'Old', name: 'Already Composed', device_id: 'abc' });
-    expect(result).toEqual({ name: 'Already Composed', device_id: 'abc' });
-    expect(result).not.toHaveProperty('title');
-  });
-
-  it('is idempotent — running it twice produces the same result as running it once', () => {
-    const once = migrateTitleToName({ title: 'My Title' });
-    const twice = migrateTitleToName(once);
-    expect(twice).toEqual(once);
-  });
-
-  it('preserves every other field untouched', () => {
-    const result = migrateTitleToName({ title: 'X', device_id: 'env_1', show_settings_link: false, visible_badges: ['updates'] });
-    expect(result).toMatchObject({ device_id: 'env_1', show_settings_link: false, visible_badges: ['updates'] });
-  });
-});
 
 describe('resolveCardName', () => {
   it('returns fallback directly when name is unset, never touching hass/entityId at all', () => {
@@ -94,18 +56,13 @@ describe('resolveCardName', () => {
     expect(resolveCardName(hass, 'sensor.x', [{ type: 'area' }], 'Fallback')).toBe('Fallback');
   });
 
-  it('also delegates a plain string through formatEntityName when a real entity is present, rather than always short-circuiting on typeof string', () => {
-    // Confirms the early-return for strings is specifically about "no
-    // entity to resolve against," not "strings never call
-    // formatEntityName" — HA's own formatEntityName accepts a plain
-    // string value too (Custom mode is a real EntityNameItem-shaped
-    // concept as far as HA's own API goes).
+  it('returns a plain string as written, as HA’s own formatEntityName does (compute_entity_name_display.ts)', () => {
     const stateObj = makeState({ entity_id: 'sensor.x', state: 'on' });
     const formatEntityName = vi.fn().mockReturnValue('Resolved String');
     const hass = makeHass({ states: [stateObj], formatEntityName });
 
-    expect(resolveCardName(hass, 'sensor.x', 'My Custom Name', 'Fallback')).toBe('Resolved String');
-    expect(formatEntityName).toHaveBeenCalledWith(stateObj, 'My Custom Name');
+    expect(resolveCardName(hass, 'sensor.x', 'My Custom Name', 'Fallback')).toBe('My Custom Name');
+    expect(formatEntityName).not.toHaveBeenCalled();
   });
 });
 

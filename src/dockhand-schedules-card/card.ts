@@ -4,13 +4,7 @@ import { state } from 'lit/decorators.js';
 import { fireEvent, type LovelaceCard, type LovelaceCardEditor } from 'custom-card-helpers';
 
 import type { HomeAssistant, LovelaceGridOptions } from '../common/ha-types';
-import {
-  getEnvironmentDevices,
-  getScheduleDevicesForEnvironment,
-  getGlobalScheduleDevices,
-  getRepresentativeEntityId,
-  type EnvironmentDeviceOption
-} from '../common/device-utils';
+import { getEnvironmentDevices, getScheduleDevicesForEnvironment, getGlobalScheduleDevices, getRepresentativeEntityId, type EnvironmentDeviceOption, getScheduleName } from '../common/device-utils';
 import { resolveCardName, multiEnvCardNameFallback } from '../common/card-name';
 import { resolveScheduleEntities } from '../common/entity-resolver';
 import { getDockhandBaseUrl, getInstanceLabel, formatRelativeTime } from '../common/format';
@@ -20,6 +14,11 @@ import { resolveIncludedOrdered, groupRowsByEnvironment, resolveEffectiveGroupBy
 import { t } from '../common/i18n-card';
 import type { DockhandSchedulesCardConfig, ScheduleSortBy, ScheduleGroupBy } from './types';
 import { resolveVisibleBadges } from './types';
+import { renderActionsColumn, renderScheduleControls, resolveScheduleControls } from '../common/device-controls';
+import { NONE, applyFilters, type FilterExtractor } from '../common/filters';
+import { renderFilteredNote } from '../common/list-filters';
+import { cell, renderAlignedList } from '../common/aligned-list';
+import { RowFitController } from '../common/row-fit';
 import { cardStyles } from './styles';
 
 // Status values per Dockhand's own ScheduleStatus type (db.ts) — the richer
@@ -59,6 +58,7 @@ function humanizeType(type: string): string {
 
 export interface ScheduleRow {
   entityId: string;
+  deviceId: string;
   name: string;
   type: string;
   environment?: string;
@@ -70,20 +70,34 @@ export interface ScheduleRow {
    * so this stays undefined rather than labeling rows that don't need it. */
   instanceLabel?: string;
   enabled: boolean;
+  /** Dockhand's own schedule (is_system), when ha-dockhand says. */
+  system?: boolean;
   status: string | null;
   nextRunIso: string | null;
 }
+
+/** What Always show problems keeps in view: a schedule whose last run
+ * failed (the editor's helper text says the same). */
+export function isProblem(row: ScheduleRow): boolean {
+  return row.status === 'failed' || row.status === 'error';
+}
+
+const FILTERS: Record<string, FilterExtractor<ScheduleRow>> = {
+  type: (row) => [row.type],
+  last_result: (row) => [row.status ?? NONE],
+  enabled: (row) => [row.enabled ? 'enabled' : 'disabled'],
+  origin: (row) => (row.system === undefined ? [] : [row.system ? 'system' : 'user']),
+  scope: (row) => [row.environmentDeviceId ? 'environment' : 'global']
+};
 
 /** Final tiebreak once the primary sort_by criterion (and, for next_run/
  * status, the existing name-based secondary one) can't distinguish two
  * rows — most concretely, two schedules with the exact same name in
  * different environments (e.g. each environment has a git stack literally
  * called "myapp"). Falls back to environment name explicitly rather than
- * leaving it to whatever incidental order rows happened to arrive in from
- * resolveIncludedOrdered (Array.sort is stable, so ties used to silently
- * preserve environment resolution order — either alphabetical, or the
- * custom drag order — even though group_by wasn't 'environment' at all
- * and the person had no reason to expect environment order to matter).
+ * leaving ties in the order resolveIncludedOrdered produced (Array.sort is
+ * stable), which would follow the environment drag order even when rows
+ * aren't grouped by environment.
  * Global schedules (environment: undefined) sort to '', ahead of any
  * named environment — consistent with groupKeyAndLabel's own "Global
  * sorts first" rule below, rather than an arbitrary, unrelated tiebreak
@@ -233,6 +247,11 @@ export function groupScheduleRows(
 export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
   static styles = cardStyles;
 
+  constructor() {
+    super();
+    new RowFitController(this);
+  }
+
   @state() private _config?: DockhandSchedulesCardConfig;
   @state() private _hass?: HomeAssistant;
 
@@ -314,10 +333,8 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
     });
 
     // Global schedules (system cleanup, destination maintenance) don't
-    // belong to any single environment — always available now, gated only
-    // on include_global itself (defaulting to true, same opt-out
-    // philosophy as environments_order/exclude_device_ids), not on a
-    // scope value the way it used to be.
+    // belong to any single environment: shown unless include_global is
+    // false (opt-out, like exclude_device_ids).
     const globalDevices = this._config.include_global !== false ? getGlobalScheduleDevices(this._hass) : [];
     for (const device of globalDevices) {
       scheduleDevices.push({ device, environmentDeviceId: undefined });
@@ -337,12 +354,14 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
       const instanceLabel = environmentDeviceId === undefined ? globalInstanceLabels.get(device.id) : undefined;
       rows.push({
         entityId: found.lastStatus.entityId,
-        name: attrs.name || device.name_by_user || device.name || device.id,
+        deviceId: device.id,
+        name: getScheduleName(device) || device.name_by_user || device.name || device.id,
         type: attrs.schedule_type || 'schedule',
         environment: attrs.environment,
         environmentDeviceId,
         instanceLabel,
         enabled: attrs.enabled !== false,
+        system: typeof attrs.is_system === 'boolean' ? attrs.is_system : undefined,
         status: found.lastStatus.state.state === 'unknown' ? null : found.lastStatus.state.state,
         nextRunIso: found.nextRun && found.nextRun.state.state !== 'unknown' ? found.nextRun.state.state : null
       });
@@ -363,18 +382,11 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
     // field now uses the same way.
     const representativeEntityId = envDevices[0] ? getRepresentativeEntityId(this._hass, envDevices[0].deviceId) : undefined;
     const title = resolveCardName(this._hass, representativeEntityId, this._config.name, multiEnvCardNameFallback(envDevices, t(this._hass, 'name_schedules')));
-    // envDevices (already correctly ordered — see _buildRows) passes
-    // straight through to groupScheduleRows now, which groups by
-    // iterating it directly rather than deriving a key per row and
-    // re-sorting buckets against a separate order array afterward. Two
-    // earlier versions of this call site got progressively closer but
-    // still wrong — one converted environments_order into a name-keyed
-    // array (right when written, wrong once grouping switched to device
-    // ids), the next passed the device-id array directly but through a
-    // separate re-sort step that could still drift out of sync. This is
-    // the structural fix: there's no second order-bearing value left to
-    // drift from envDevices' own order at all.
-    const groups = groupScheduleRows(rows, resolveEffectiveGroupBy(this._config.group_by, envDevices, 'environment'), this._config.sort_by ?? 'status', envDevices, {
+    // envDevices (already ordered — see _buildRows) is the only order:
+    // groupScheduleRows groups by iterating it, so no second order array
+    // can drift from it.
+    const { rows: shown, hidden } = applyFilters(rows, this._hass, FILTERS, this._config.filters, this._config.always_show_problems ? isProblem : undefined);
+    const groups = groupScheduleRows(shown, resolveEffectiveGroupBy(this._config.group_by, envDevices, 'environment'), this._config.sort_by ?? 'status', envDevices, {
       type: (type) => stateLabel(this._hass, 'schedule_type', type),
       status: (status) => stateLabel(this._hass, 'schedule_status', status),
       disabled: t(this._hass, 'schedule_disabled'),
@@ -408,13 +420,9 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
               </div>`
             : html`
                 ${this._config.show_stats ? html`<div class="divider"></div>` : nothing}
-                ${groups.map(
-                  (g, i) => html`
-                    ${i > 0 ? html`<div class="divider"></div>` : nothing}
-                    ${g.label ? html`<div class="group-header">${g.label} (${g.rows.length})</div>` : nothing}
-                    <div class="list">${g.rows.map((r) => this._renderRow(r))}</div>
-                  `
-                )}
+                ${shown.length === 0 ? html`<div class="card-message">${t(this._hass, 'msg_no_filter_matches')}</div>` : nothing}
+                ${shown.length === 0 ? nothing : this._renderList(groups)}
+                ${renderFilteredNote(this._hass, hidden, this._config.show_filtered_count)}
               `}
         </div>
       </ha-card>
@@ -439,8 +447,8 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
     const queued = rows.filter((r) => r.enabled && r.status === 'queued').length;
     // Git sync tasks land here often — "checked, nothing changed" isn't a
     // failure, but folding it into `success` would overstate how much
-    // actually happened, and leaving it uncounted (as an earlier version
-    // of this row did) understated the total that ran at all.
+    // actually happened, and leaving it uncounted would understate the
+    // total that ran at all.
     const skipped = rows.filter((r) => r.enabled && r.status === 'skipped').length;
     const disabled = rows.filter((r) => !r.enabled).length;
 
@@ -458,15 +466,43 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
     `;
   }
 
-  private _renderRow(row: ScheduleRow): TemplateResult {
+  /** One grid for every group, so the columns line up across groups too:
+   * the next run, when shown and some row has one, then the controls. */
+  private _renderList(groups: { label: string | null; rows: ScheduleRow[] }[]): TemplateResult {
+    const visibleBadges = resolveVisibleBadges(this._config?.visible_badges, this._config?.group_by ?? 'environment');
+    const nextRun = visibleBadges.includes('next_run') && groups.some((g) => g.rows.some((r) => this._nextRunText(r)));
+    const controls = visibleBadges.includes('controls');
+    return renderAlignedList(
+      Number(nextRun) + Number(controls),
+      groups.map(
+        (g, i) => html`
+          ${i > 0 ? html`<div class="divider"></div>` : nothing}
+          ${g.label ? html`<div class="group-header">${g.label} (${g.rows.length})</div>` : nothing}
+          ${g.rows.map((r) => this._renderRow(r, nextRun))}
+        `
+      )
+    );
+  }
+
+  private _nextRunText(row: ScheduleRow): string | null {
+    return !row.enabled
+      ? t(this._hass, 'schedule_disabled')
+      : row.status === 'running'
+        ? t(this._hass, 'schedule_status_running')
+        : formatRelativeTime(row.nextRunIso, this._hass);
+  }
+
+  private _renderRow(row: ScheduleRow, nextRun: boolean): TemplateResult {
     const statusIcon = !row.enabled
       ? { icon: 'mdi:cancel', cls: 'neutral' as const }
       : row.status
         ? (STATUS_ICON[row.status] ?? { icon: 'mdi:help-circle', cls: 'neutral' as const })
         : { icon: 'mdi:minus-circle-outline', cls: 'neutral' as const };
 
-    const visibleBadges = resolveVisibleBadges(this._config?.visible_badges, this._config?.group_by);
+    // group_by's own default, as the grouping and the editor use.
+    const visibleBadges = resolveVisibleBadges(this._config?.visible_badges, this._config?.group_by ?? 'environment');
     const showEnvironment = visibleBadges.includes('environment');
+    const showControls = visibleBadges.includes('controls');
     // The 'environment' badge is hidden by default once group_by:
     // 'environment' groups rows into per-environment sections already —
     // redundant for those rows, but *not* for the "Global" section, which
@@ -477,25 +513,22 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
     // that point hiding 'environment' is a stated preference, not just
     // grouping already having covered it.
     const showInstanceLabel = this._config?.visible_badges ? showEnvironment : true;
-    const nextRunText = !row.enabled
-      ? t(this._hass, 'schedule_disabled')
-      : row.status === 'running'
-        ? t(this._hass, 'schedule_status_running')
-        : formatRelativeTime(row.nextRunIso, this._hass);
+    const controls = showControls && this._hass ? resolveScheduleControls(this._hass, row.deviceId) : null;
 
     return html`
-      <div class="row clickable" tabindex="0" role="button" @click=${() => this._moreInfo(row.entityId)} @keydown=${onKeydownActivate(() => this._moreInfo(row.entityId))}>
-        <div class="row-left">
+      <div class="row clickable" @click=${() => this._moreInfo(row.entityId)}>
+        <div class="row-left row-target" tabindex="0" role="button" @keydown=${onKeydownActivate(() => this._moreInfo(row.entityId))}>
           <ha-icon
             class="row-icon ${statusIcon.cls}"
             icon=${statusIcon.icon}
             title=${!row.enabled ? t(this._hass, 'schedule_disabled') : row.status ? stateLabel(this._hass, 'schedule_status', row.status) : t(this._hass, 'schedule_never_run')}
           ></ha-icon>
           <span class="item-name">${row.name}</span>
-          ${showEnvironment && row.environment ? html`<span class="label-pill">${row.environment}</span>` : nothing}
-          ${showInstanceLabel && row.instanceLabel ? html`<span class="label-pill">${row.instanceLabel}</span>` : nothing}
+          ${showEnvironment && row.environment ? html`<span class="label-pill name-label">${row.environment}</span>` : nothing}
+          ${showInstanceLabel && row.instanceLabel ? html`<span class="label-pill name-label">${row.instanceLabel}</span>` : nothing}
         </div>
-        ${visibleBadges.includes('next_run') && nextRunText ? html`<span class="row-right">${nextRunText}</span>` : nothing}
+        ${nextRun ? cell(this._nextRunText(row)) : nothing}
+        ${showControls ? renderActionsColumn(controls ? renderScheduleControls(this, this._hass, controls, row.name) : null) : nothing}
       </div>
     `;
   }

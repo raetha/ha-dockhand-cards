@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   resolveEnvironmentEntities,
   resolveContainerEntities,
@@ -9,6 +9,8 @@ import {
   resolveScheduleEntities
 } from './entity-resolver';
 import { makeDevice, makeEntity, makeState, makeHass } from './test-fixtures';
+import { loadDisabledEntities, resetDisabledEntities } from './disabled-entities';
+import type { HomeAssistant } from './ha-types';
 
 const ENV_DEVICE_ID = 'env-device';
 
@@ -23,19 +25,33 @@ describe('resolveEnvironmentEntities', () => {
     expect(result.unavailable).toEqual([]);
   });
 
-  it('reports a disabled entity distinctly from a missing one', () => {
-    const disabled = makeEntity({
-      entity_id: 'sensor.cpu',
-      device_id: ENV_DEVICE_ID,
-      translation_key: 'cpu_usage',
-      disabled_by: 'user'
-    });
-    const hass = makeHass({ entities: [disabled] });
+  it('reports a disabled entity, from the full registry an editor loaded, distinctly from a missing one', async () => {
+    // Disabled entities aren't in hass.entities at all.
+    const hass = makeHass({});
+    hass.callWS = vi.fn().mockResolvedValue([
+      { entity_id: 'sensor.cpu', device_id: ENV_DEVICE_ID, platform: 'dockhand', translation_key: 'cpu_usage', disabled_by: 'user' },
+      { entity_id: 'sensor.other', device_id: ENV_DEVICE_ID, platform: 'other', translation_key: 'memory_usage', disabled_by: 'user' },
+      { entity_id: 'sensor.mem', device_id: ENV_DEVICE_ID, platform: 'dockhand', translation_key: 'memory_usage', disabled_by: null }
+    ]) as HomeAssistant['callWS'];
+    expect(resolveEnvironmentEntities(hass, ENV_DEVICE_ID, ['cpuUsage']).unavailable).toEqual([{ key: 'cpuUsage', entityId: null, reason: 'not_found' }]);
 
+    expect(await loadDisabledEntities(hass)).toBe(true);
     const result = resolveEnvironmentEntities(hass, ENV_DEVICE_ID, ['cpuUsage', 'memoryUsage']);
     expect(result.unavailable).toContainEqual({ key: 'cpuUsage', entityId: 'sensor.cpu', reason: 'disabled' });
     expect(result.unavailable).toContainEqual({ key: 'memoryUsage', entityId: null, reason: 'not_found' });
     expect(result.found).toEqual({});
+    // Loaded again only once it's old.
+    expect(await loadDisabledEntities(hass)).toBe(false);
+    expect(hass.callWS).toHaveBeenCalledTimes(1);
+    resetDisabledEntities();
+  });
+
+  it('carries on without disabled entities when the registry can’t be read (not an admin)', async () => {
+    const hass = makeHass({});
+    hass.callWS = vi.fn().mockRejectedValue(new Error('Unauthorized')) as HomeAssistant['callWS'];
+    expect(await loadDisabledEntities(hass)).toBe(false);
+    expect(resolveEnvironmentEntities(hass, ENV_DEVICE_ID, ['cpuUsage']).unavailable[0].reason).toBe('not_found');
+    resetDisabledEntities();
   });
 
   it('treats an enabled entity with no state yet as not_found, not disabled', () => {
@@ -118,12 +134,6 @@ describe('findPrimaryEntityByDomain', () => {
     expect(findPrimaryEntityByDomain(hass, 'c1', 'update')).toBeNull();
   });
 
-  it('ignores a disabled entity of that domain', () => {
-    const entity = makeEntity({ entity_id: 'update.web', device_id: 'c1', translation_key: null, disabled_by: 'user' });
-    const hass = makeHass({ entities: [entity] });
-    expect(findPrimaryEntityByDomain(hass, 'c1', 'update')).toBeNull();
-  });
-
   it('skips a same-domain entity that has a translation_key, regardless of registry order', () => {
     const autoUpdate = makeEntity({ entity_id: 'switch.web_auto_update', device_id: 'c1', translation_key: 'container_auto_update' });
     const running = makeEntity({ entity_id: 'switch.web', device_id: 'c1', translation_key: null });
@@ -143,51 +153,26 @@ describe('findPrimaryEntityByDomain', () => {
 });
 
 describe('getContainerDropdownOptions', () => {
-  it('labels with the raw container name attribute, not the full device display name, sorted alphabetically', () => {
-    const zebra = makeDevice({ id: 'c-zebra', name: 'Forseti \u2013 Containers \u2013 zebra' });
-    const alpha = makeDevice({ id: 'c-alpha', name: 'Forseti \u2013 Containers \u2013 alpha' });
-    const entities = [
-      makeEntity({ entity_id: 'sensor.zebra_state', device_id: 'c-zebra', translation_key: 'state' }),
-      makeEntity({ entity_id: 'sensor.alpha_state', device_id: 'c-alpha', translation_key: 'state' })
-    ];
-    const states = [
-      makeState({ entity_id: 'sensor.zebra_state', state: 'running', attributes: { name: 'zebra' } }),
-      makeState({ entity_id: 'sensor.alpha_state', state: 'running', attributes: { name: 'alpha' } })
-    ];
-    const hass = makeHass({ devices: [zebra, alpha], entities, states });
-
-    const result = getContainerDropdownOptions(hass, [zebra, alpha]);
-    expect(result).toEqual([
+  it('labels with the container name from the device identifier, not the full device name, sorted alphabetically', () => {
+    const zebra = makeDevice({ id: 'c-zebra', name: 'Forseti \u2013 Containers \u2013 zebra', identifiers: [['dockhand', 'entry_container_1_zebra']] });
+    const alpha = makeDevice({ id: 'c-alpha', name: 'Forseti \u2013 Containers \u2013 alpha', identifiers: [['dockhand', 'container_1_alpha']] });
+    expect(getContainerDropdownOptions([zebra, alpha])).toEqual([
       { value: 'c-alpha', label: 'alpha' },
       { value: 'c-zebra', label: 'zebra' }
     ]);
   });
 
-  it('falls back to the device display name when the state entity/attribute is unavailable (pre-1.8.0 ha-dockhand)', () => {
-    const device = makeDevice({ id: 'c-old', name: 'Forseti \u2013 Containers \u2013 legacy', name_by_user: null });
-    const hass = makeHass({ devices: [device] });
-
-    const result = getContainerDropdownOptions(hass, [device]);
-    expect(result).toEqual([{ value: 'c-old', label: 'Forseti \u2013 Containers \u2013 legacy' }]);
+  it('falls back to the device name without a container identifier', () => {
+    const device = makeDevice({ id: 'c-old', name: 'Forseti \u2013 Containers \u2013 legacy', name_by_user: null, identifiers: [] });
+    expect(getContainerDropdownOptions([device])).toEqual([{ value: 'c-old', label: 'Forseti \u2013 Containers \u2013 legacy' }]);
   });
 });
 
 describe('getStackDropdownOptions', () => {
-  it('labels with the raw stack name attribute, not the full device display name, sorted alphabetically', () => {
-    const zebra = makeDevice({ id: 's-zebra', name: 'Forseti \u2013 Stacks \u2013 zebra-stack' });
-    const alpha = makeDevice({ id: 's-alpha', name: 'Forseti \u2013 Stacks \u2013 alpha-stack' });
-    const entities = [
-      makeEntity({ entity_id: 'sensor.zebra_status', device_id: 's-zebra', translation_key: 'status' }),
-      makeEntity({ entity_id: 'sensor.alpha_status', device_id: 's-alpha', translation_key: 'status' })
-    ];
-    const states = [
-      makeState({ entity_id: 'sensor.zebra_status', state: 'running', attributes: { name: 'zebra-stack' } }),
-      makeState({ entity_id: 'sensor.alpha_status', state: 'running', attributes: { name: 'alpha-stack' } })
-    ];
-    const hass = makeHass({ devices: [zebra, alpha], entities, states });
-
-    const result = getStackDropdownOptions(hass, [zebra, alpha]);
-    expect(result).toEqual([
+  it('labels with the stack name from the device identifier, not the full device name, sorted alphabetically', () => {
+    const zebra = makeDevice({ id: 's-zebra', name: 'Forseti \u2013 Stacks \u2013 zebra-stack', identifiers: [['dockhand', 'entry_stack_1_zebra-stack']] });
+    const alpha = makeDevice({ id: 's-alpha', name: 'Forseti \u2013 Stacks \u2013 alpha-stack', identifiers: [['dockhand', 'stack_1_alpha-stack']] });
+    expect(getStackDropdownOptions([zebra, alpha])).toEqual([
       { value: 's-alpha', label: 'alpha-stack' },
       { value: 's-zebra', label: 'zebra-stack' }
     ]);
@@ -202,14 +187,13 @@ describe('resolveScheduleEntities', () => {
       makeEntity({ entity_id: 'sensor.nginx_next_run', device_id: deviceId, translation_key: 'next_run' })
     ];
     const states = [
-      makeState({ entity_id: 'sensor.nginx_last_status', state: 'success', attributes: { name: 'Update container: nginx' } }),
+      makeState({ entity_id: 'sensor.nginx_last_status', state: 'success', attributes: {} }),
       makeState({ entity_id: 'sensor.nginx_next_run', state: '2026-08-01T00:00:00Z' })
     ];
     const hass = makeHass({ entities, states });
 
     const result = resolveScheduleEntities(hass, deviceId, ['lastStatus', 'nextRun']);
     expect(result.found.lastStatus?.entityId).toBe('sensor.nginx_last_status');
-    expect(result.found.lastStatus?.state.attributes.name).toBe('Update container: nginx');
     expect(result.found.nextRun?.entityId).toBe('sensor.nginx_next_run');
     expect(result.unavailable).toEqual([]);
   });

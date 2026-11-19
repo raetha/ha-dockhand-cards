@@ -4,10 +4,12 @@ name: Build
 # release is one squash-merged pull request from `dev` into `main`.
 # Every push and pull request: changelog check, `npm run verify` (typecheck, lint, tests, build,
 # npm audit) and HACS validation.
-# Push to main: if package.json's version has no `v<version>` tag yet, tag it and publish the
+# Push to main: if package.json's version has no `<version>` tag yet, tag it and publish the
 # GitHub release (the changelog section as notes, the built cards attached; HACS installs from
 # these), delete the test builds, then reset `dev` to `main` when they hold the same files.
-# Push to dev: publish a test build as a GitHub pre-release (`v<next patch>-dev.<run>`), which
+# Push to dev: publish a test build as a GitHub pre-release (`<version>-dev.<n>`, counting test
+# builds of that version, or the next
+# patch's while `dev` still holds the released version), which
 # HACS offers once the repository's Pre-release switch is on; older test builds are deleted.
 
 on:
@@ -42,16 +44,22 @@ jobs:
       - run: npm ci
 
       # On dev the version is the expected next one, undated until the release pull request;
-      # into and on main it must have its dated section.
+      # into and on main it must have its dated section. Released sections must match main's.
       - name: Check the changelog
         env:
           BASE_REF: ${{ github.base_ref }}
         run: |
+          git fetch --quiet --depth=1 origin main
+          git show FETCH_HEAD:CHANGELOG.md > "$RUNNER_TEMP/main-changelog.md"
           if [ "$BASE_REF" = main ] || [ "$GITHUB_REF" = refs/heads/main ]; then
-            node scripts/release.mjs check --release
+            node scripts/release.mjs check --release --released-from "$RUNNER_TEMP/main-changelog.md"
           else
-            node scripts/release.mjs check
+            node scripts/release.mjs check --released-from "$RUNNER_TEMP/main-changelog.md"
           fi
+
+      # One line per paragraph or list item, so renderers wrap them (scripts/markdown.py).
+      - name: Check Markdown line breaks
+        run: python3 scripts/markdown.py --check $(git ls-files '*.md')
 
       - name: Typecheck, lint, test, build, audit what ships
         run: npm run verify
@@ -103,21 +111,23 @@ jobs:
         run: |
           set -e
           version=$(node scripts/release.mjs version)
-          tag="v$version"
-          if gh api "repos/$GH_REPO/git/ref/tags/$tag" >/dev/null 2>&1; then
-            echo "$tag already exists: nothing to release"
+          # no leading "v": HACS shows tag names (releases up to 1.5.1 are tagged v<version>)
+          tag="$version"
+          if gh api "repos/$GH_REPO/git/ref/tags/$tag" >/dev/null 2>&1 ||
+             gh api "repos/$GH_REPO/git/ref/tags/v$tag" >/dev/null 2>&1; then
+            echo "$version is already released: nothing to release"
             exit 0
           fi
           node scripts/release.mjs notes "$version" > notes.md
-          gh release create "$tag" --target "$GITHUB_SHA" --title "Dockhand Cards $tag" \
-            --notes-file notes.md dist/ha-dockhand-cards.js dist/ha-dockhand-cards-editor.js
+          gh release create "$tag" --target "$GITHUB_SHA" --title "Dockhand Cards $version" \
+            --notes-file notes.md dist/*.js
           echo "Released $tag"
 
       - name: Delete test builds
         run: |
           set -e
           gh release list --limit 100 --json tagName,isPrerelease --jq '.[] | select(.isPrerelease) | .tagName' |
-            { grep -E '^v[0-9.]+-dev\.[0-9]+$' || true; } | while read -r old; do
+            { grep -E '^v?[0-9.]+-dev\.[0-9]+$' || true; } | while read -r old; do
               gh release delete "$old" --yes --cleanup-tag
             done
 
@@ -145,7 +155,7 @@ jobs:
 
   test-build:
     needs: [verify, hacs]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/dev'
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -157,27 +167,56 @@ jobs:
         with:
           persist-credentials: false
 
+      # A push that changes nothing users install (docs, tests, CI) publishes no
+      # test build. Run the workflow by hand on dev to publish one anyway.
+      - name: Check whether anything that ships changed
+        id: ships
+        run: |
+          set -e
+          ships='^(src/|package(-lock)?\.json$|rollup\.config\.mjs$|tsconfig\.json$|hacs\.json$)'
+          last=$(gh api "repos/$GH_REPO/releases?per_page=100" \
+            --jq '[.[] | select(.prerelease) | .tag_name | select(test("^v?[0-9.]+-dev\\.[0-9]+$"))][0] // ""')
+          echo "last=$last" >> "$GITHUB_OUTPUT"
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] || [ -z "$last" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          # Any doubt (no comparison, too many files to list) publishes.
+          files=$(gh api "repos/$GH_REPO/compare/$last...$GITHUB_SHA" \
+            --jq 'if (.files | length) >= 300 or .status == "behind" or .status == "diverged" then "*" else .files[].filename end') || files='*'
+          if [ "$files" = '*' ] || grep -qE "$ships" <<<"$files"; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Nothing that ships changed since $last: no test build." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: steps.ships.outputs.changed == 'true'
         with:
           node-version: 24
           cache: npm
 
       - run: npm ci
+        if: steps.ships.outputs.changed == 'true'
 
       - name: Build and publish the test build
+        if: steps.ships.outputs.changed == 'true'
+        env:
+          LAST: ${{ steps.ships.outputs.last }}
         run: |
           set -e
           version=$(node scripts/release.mjs version)
-          if gh api "repos/$GH_REPO/git/ref/tags/v$version" >/dev/null 2>&1; then tagged=true; else tagged=false; fi
-          dev=$(node scripts/release.mjs dev-version "$GITHUB_RUN_NUMBER" "$tagged")
-          tag="v$dev"
+          if gh api "repos/$GH_REPO/git/ref/tags/$version" >/dev/null 2>&1 ||
+             gh api "repos/$GH_REPO/git/ref/tags/v$version" >/dev/null 2>&1; then tagged=true; else tagged=false; fi
+          dev=$(node scripts/release.mjs dev-version "$LAST" "$tagged")
+          tag="$dev"
           CARD_VERSION="$dev" npm run build
-          node scripts/release.mjs notes Unreleased --test-build "$GITHUB_RUN_NUMBER" > notes.md
+          node scripts/release.mjs notes Unreleased --test-build "${dev##*-dev.}" > notes.md
           gh release create "$tag" --target "$GITHUB_SHA" --prerelease \
             --title "Dockhand Cards $tag (test build)" \
-            --notes-file notes.md dist/ha-dockhand-cards.js dist/ha-dockhand-cards-editor.js
+            --notes-file notes.md dist/*.js
           gh release list --limit 100 --json tagName,isPrerelease --jq '.[] | select(.isPrerelease) | .tagName' |
-            { grep -E '^v[0-9.]+-dev\.[0-9]+$' | grep -vx "$tag" || true; } | while read -r old; do
+            { grep -E '^v?[0-9.]+-dev\.[0-9]+$' | grep -vx "$tag" || true; } | while read -r old; do
               gh release delete "$old" --yes --cleanup-tag
             done
           echo "Published test build $tag"

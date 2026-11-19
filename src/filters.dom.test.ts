@@ -1,0 +1,183 @@
+// @vitest-environment jsdom
+/**
+ * Every list card's filters against the screenshot harness's mock data:
+ * which rows each filter keeps, the "hidden by filters" line, the
+ * nothing-matches message, and the editors' Filters section.
+ */
+import { describe, it, expect } from 'vitest';
+import './render.dom.test-elements';
+import { migrateIncludeGlobal } from './dockhand-schedules-card/editor';
+import { harnessHass, mount as mountTag, type Lit } from './common/mount.test-helpers';
+
+/** A card, or its editor, configured as that card. */
+const mount = (card: string, config: Record<string, unknown>, editor = false) => mountTag(`dockhand-${card}-card${editor ? '-editor' : ''}`, { type: `custom:dockhand-${card}-card`, ...config });
+
+const names = (el: Lit): string[] => [...el.shadowRoot!.querySelectorAll('.item-name')].map((n) => n.textContent!.trim());
+const note = (el: Lit): string | undefined => el.shadowRoot!.querySelector('.filtered-note')?.textContent?.trim();
+const message = (el: Lit): string | undefined => el.shadowRoot!.querySelector('.card-message')?.textContent?.trim();
+
+describe('Containers card filters', () => {
+  const nebula = { exclude_device_ids: ['env_2', 'env_3', 'env_4'] };
+
+  it('shows containers outside any stack (issue #4)', async () => {
+    const el = await mount('containers', { ...nebula, filters: { stack: ['(none)'] } });
+    expect(names(el)).toEqual(['backup']);
+    expect(note(el)).toBe('Hidden by filters: 5');
+  });
+
+  it('splits Exited by exit code, and chains with other filters', async () => {
+    expect(names(await mount('containers', { ...nebula, filters: { state: ['exited_error'] } }))).toEqual(['backup']);
+    expect(names(await mount('containers', { ...nebula, filters: { state: ['exited_ok'] } }))).toEqual([]);
+    const el = await mount('containers', { ...nebula, filters: { stack: ['monitoring'], health: ['healthy'], update: ['held'] } });
+    expect(names(el)).toEqual(['redis']);
+  });
+
+  it('excludes with "is not", and picks "no health check" and "no tags" on purpose', async () => {
+    expect(names(await mount('containers', { ...nebula, filters: { tags: { not: ['critical', 'edge'] } } }))).toEqual(['backup', 'redis', 'web', 'worker']);
+    expect(names(await mount('containers', { ...nebula, filters: { health: ['(none)'] } }))).toEqual(['backup', 'traefik']);
+    expect(names(await mount('containers', { ...nebula, filters: { update: ['up_to_date', 'pinned'] } }))).toEqual(['backup', 'worker']);
+  });
+
+  it('keeps problems in view with Always show problems', async () => {
+    const filters = { tags: ['critical'] };
+    expect(names(await mount('containers', { ...nebula, filters }))).toEqual(['postgres']);
+    // backup exited with an error, worker is unhealthy.
+    expect(names(await mount('containers', { ...nebula, filters, always_show_problems: true }))).toEqual(['backup', 'postgres', 'worker']);
+  });
+
+  it('says when nothing matches, and can leave out the count', async () => {
+    const el = await mount('containers', { ...nebula, filters: { state: ['dead'] }, show_filtered_count: false });
+    expect(message(el)).toBe('Nothing matches this card’s filters.');
+    expect(note(el)).toBeUndefined();
+  });
+});
+
+describe('Stacks card filters', () => {
+  it('filters by type, status, updates, git sync and tags', async () => {
+    const one = { exclude_device_ids: ['env_2', 'env_3', 'env_4'] };
+    expect(names(await mount('stacks', { ...one, filters: { type: ['git'] } }))).toEqual(['core']);
+    expect(names(await mount('stacks', { ...one, filters: { status: ['partial'] } }))).toEqual(['monitoring']);
+    expect(names(await mount('stacks', { ...one, filters: { git_sync: ['pending'], tags: ['critical'] } }))).toEqual(['core']);
+    expect(names(await mount('stacks', { ...one, filters: { updates: ['none'] } }))).toEqual(['monitoring']);
+  });
+});
+
+describe('Updates card filters', () => {
+  it('lists only matching updates, counts them in the header, and limits Update all to them', async () => {
+    const el = await mount('updates', { exclude_device_ids: ['env_2', 'env_3', 'env_4'], filters: { update: ['tag'] } });
+    expect([...el.shadowRoot!.querySelectorAll('.update-row .item-name')].map((n) => n.textContent)).toEqual(['postgres']);
+    expect(el.shadowRoot!.querySelector('.card-header .truncate')!.textContent).toContain('(1)');
+    // A newer tag can't be installed from here, so Update listed stays, disabled, saying why.
+    const updateListed = el.shadowRoot!.querySelector('.header-icon.filled')!;
+    expect(updateListed.textContent).toContain('Update listed');
+    expect(updateListed.getAttribute('title')).toMatch(/^Nothing listed can be installed/);
+    expect(note(el)).toMatch(/^Hidden by filters: \d+$/);
+  });
+
+  it('says no updates match rather than everything is up to date', async () => {
+    const el = await mount('updates', { filters: { stack: ['no-such-stack'] } });
+    expect(message(el)).toBe('No updates match this card’s filters.');
+  });
+});
+
+describe('Schedules card filters', () => {
+  it('filters by where, type, last result, enabled and origin', async () => {
+    expect(names(await mount('schedules', { filters: { scope: ['global'] } }))).toEqual(['Container event cleanup']);
+    const failed = await mount('schedules', { filters: { last_result: ['failed', 'warning'], scope: { not: ['global'] } } });
+    expect(names(failed)).toHaveLength(2);
+    expect(names(await mount('schedules', { filters: { origin: ['system'] } }))).toEqual(['Container event cleanup']);
+    expect(names(await mount('schedules', { filters: { enabled: ['disabled'] } }))).toEqual(['Update environment: Vega']);
+    expect(names(await mount('schedules', { filters: { type: ['image_prune'] } }))).toHaveLength(1);
+  });
+
+  it('still honours include_global: false', async () => {
+    expect(names(await mount('schedules', { include_global: false, filters: { scope: ['global'] } }))).toEqual([]);
+  });
+});
+
+describe('Schedules editor: include_global becomes the Where filter', () => {
+  it('turns include_global: false into "not global", once', () => {
+    expect(migrateIncludeGlobal({ type: 'custom:dockhand-schedules-card', include_global: false }, false)).toEqual({
+      type: 'custom:dockhand-schedules-card',
+      filters: { scope: { not: ['global'] } }
+    });
+    const kept = { type: 'custom:dockhand-schedules-card' as const, include_global: false, filters: { scope: ['global'] } };
+    expect(migrateIncludeGlobal(kept, false)).toEqual({ type: 'custom:dockhand-schedules-card', filters: { scope: ['global'] } });
+  });
+
+  it('leaves it alone when embedded in the Overview, or when it was on', () => {
+    const config = { type: 'custom:dockhand-schedules-card' as const, include_global: false };
+    expect(migrateIncludeGlobal(config, true)).toBe(config);
+    const on = { type: 'custom:dockhand-schedules-card' as const };
+    expect(migrateIncludeGlobal(on, false)).toBe(on);
+  });
+});
+
+describe('Filters section in the editors', () => {
+  type Form = HTMLElement & { schema: { name: string; title?: string; schema?: { schema?: { name: string; visible?: unknown }[] }[] }[]; data: Record<string, unknown> };
+  const filterForm = (el: Lit): Form => [...el.shadowRoot!.querySelectorAll<Form>('ha-form')].find((f) => f.schema[0]?.name === 'filters')!;
+
+  it.each([
+    ['containers', 'tags', 'critical'],
+    ['stacks', 'tags', 'critical'],
+    ['updates', 'tags', 'critical'],
+    ['schedules', 'type', 'backup']
+  ])('%s: counts active filters and writes changes back', async (card, key, value) => {
+    const el = await mount(card, { filters: { [key]: [value] } }, true);
+    const form = filterForm(el);
+    expect(form.schema[0].title).toBe('Filters · 1 active');
+    const seen: Record<string, unknown>[] = [];
+    el.addEventListener('config-changed', (ev) => seen.push((ev as CustomEvent).detail.config));
+    form.dispatchEvent(
+      new CustomEvent('value-changed', { detail: { value: { ...form.data, [`filter_${key}`]: [value], [`filter_${key}_match`]: 'is_not', show_filtered_count: false } } })
+    );
+    expect(seen[0]).toMatchObject({ filters: { [key]: { not: [value] } }, show_filtered_count: false });
+    // "is / is not" shows once values are picked, through ha-form's condition.
+    const [values, match] = form.schema[0].schema![0].schema!;
+    expect(match.visible).toEqual({ field: values.name, operator: 'exists' });
+  });
+
+  it.each([
+    ['containers', 'exited with an error'],
+    ['stacks', 'Git sync failed'],
+    ['schedules', 'last run failed']
+  ])('%s: offers Always show problems, saying what counts', async (card, says) => {
+    const el = await mount(card, {}, true);
+    const form = filterForm(el) as Form & { computeHelper: (s: { name: string }) => string | undefined };
+    expect(form.data.always_show_problems).toBe(false);
+    expect(form.computeHelper({ name: 'always_show_problems' })).toContain(says);
+    const seen: Record<string, unknown>[] = [];
+    el.addEventListener('config-changed', (ev) => seen.push((ev as CustomEvent).detail.config));
+    form.dispatchEvent(new CustomEvent('value-changed', { detail: { value: { ...form.data, always_show_problems: true } } }));
+    expect(seen.pop()).toMatchObject({ always_show_problems: true });
+    form.dispatchEvent(new CustomEvent('value-changed', { detail: { value: { ...form.data, always_show_problems: false } } }));
+    expect(seen.pop()).not.toHaveProperty('always_show_problems');
+  });
+
+  it('doesn’t offer Always show problems on the Updates card', async () => {
+    const el = await mount('updates', {}, true);
+    expect(filterForm(el).data).not.toHaveProperty('always_show_problems');
+  });
+
+  it('offers Dockhand’s tags, not image tags', async () => {
+    const hass = harnessHass();
+    // An image sensor's `tags` are its image tags, which no stack has.
+    hass.entities['sensor.nginx_image'] = { entity_id: 'sensor.nginx_image', platform: 'dockhand', translation_key: 'image', device_id: 'env_1' } as (typeof hass.entities)[string];
+    hass.states['sensor.nginx_image'] = { entity_id: 'sensor.nginx_image', state: 'latest', attributes: { tags: ['nginx:latest'] } } as unknown as (typeof hass.states)[string];
+    const el = await mountTag('dockhand-stacks-card-editor', { type: 'custom:dockhand-stacks-card' }, hass);
+    const schema = JSON.stringify(filterForm(el).schema);
+    expect(schema).toContain('"critical"');
+    expect(schema).not.toContain('nginx:latest');
+  });
+
+  it('offers no Where filter in the Overview', async () => {
+    const el = document.createElement('dockhand-schedules-card-editor') as Lit & { cardIsEmbedded: boolean };
+    el.cardIsEmbedded = true;
+    el.setConfig({ type: 'custom:dockhand-schedules-card' });
+    el.hass = harnessHass();
+    document.body.appendChild(el);
+    await el.updateComplete;
+    expect(JSON.stringify(filterForm(el).schema)).not.toContain('filter_scope');
+    el.remove();
+  });
+});

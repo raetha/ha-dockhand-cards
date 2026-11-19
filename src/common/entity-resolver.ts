@@ -9,6 +9,9 @@ import {
   type StackTranslationKey,
   type ScheduleTranslationKey
 } from './const';
+import { getContainerName, getStackName } from './device-utils';
+import { disabledEntitiesForDevice } from './disabled-entities';
+import { entitiesOnDevice } from './registry-index';
 import type { HomeAssistant, EntityRegistryEntry, DeviceRegistryEntry } from './ha-types';
 import type { HassEntity } from 'home-assistant-js-websocket';
 
@@ -30,9 +33,7 @@ export interface ResolutionResult<K extends string = string> {
 }
 
 function entitiesForDevice(hass: HomeAssistant, deviceId: string): EntityRegistryEntry[] {
-  return Object.values(hass.entities ?? {}).filter(
-    (e) => e.device_id === deviceId && e.platform === DOCKHAND_DOMAIN
-  );
+  return entitiesOnDevice(hass, deviceId).filter((e) => e.platform === DOCKHAND_DOMAIN);
 }
 
 /**
@@ -41,11 +42,11 @@ function entitiesForDevice(hass: HomeAssistant, deviceId: string): EntityRegistr
  * documents that format as an internal detail that can change between
  * releases. translation_key is the stable, intentional contract.
  *
- * A disabled entity still has an entity registry entry (with no matching
- * hass.states entry), so it's reported distinctly from a translation_key
- * that doesn't exist at all (e.g. an older ha-dockhand release that
- * predates that entity, or — for git-only keys on a non-git stack — one
- * that Dockhand simply never creates for this particular device).
+ * `hass.entities` lists enabled entities only, so a disabled one is found
+ * through the full registry an editor has loaded (disabled-entities.ts);
+ * anything else missing is `not_found`: a key this device doesn't have
+ * (git keys on a non-git stack, stats with stats off), or a disabled
+ * entity outside an editor.
  */
 export function resolveEntities<K extends string>(
   hass: HomeAssistant,
@@ -63,12 +64,8 @@ export function resolveEntities<K extends string>(
     const registryEntry = byTranslationKey.get(translationKey);
 
     if (!registryEntry) {
-      unavailable.push({ key, entityId: null, reason: 'not_found' });
-      continue;
-    }
-
-    if (registryEntry.disabled_by) {
-      unavailable.push({ key, entityId: registryEntry.entity_id, reason: 'disabled' });
+      const disabled = disabledEntitiesForDevice(deviceId).find((e) => e.translation_key === translationKey);
+      unavailable.push(disabled ? { key, entityId: disabled.entity_id, reason: 'disabled' } : { key, entityId: null, reason: 'not_found' });
       continue;
     }
 
@@ -141,8 +138,8 @@ export function findPrimaryEntityByDomain(
   deviceId: string,
   domain: string
 ): { entityId: string; state: HassEntity } | null {
-  const entry = Object.values(hass.entities ?? {}).find(
-    (e) => e.device_id === deviceId && e.platform === DOCKHAND_DOMAIN && e.entity_id.startsWith(`${domain}.`) && !e.translation_key && !e.disabled_by
+  const entry = entitiesOnDevice(hass, deviceId).find(
+    (e) => e.platform === DOCKHAND_DOMAIN && e.entity_id.startsWith(`${domain}.`) && !e.translation_key
   );
   if (!entry) return null;
   const state = hass.states[entry.entity_id];
@@ -156,26 +153,19 @@ export interface DeviceDropdownOption {
 }
 
 /** Editor dropdown options for a list of container/stack devices, using
- * the raw Docker/stack name (ha-dockhand 1.8.0+'s `name` attribute on the
- * state/status sensor — e.g. "traefik1") rather than the full device
- * display name (e.g. "Forseti – Containers – traefik1"), sorted
- * alphabetically by that same displayed label. Falls back to the device's
- * own name/id on an older ha-dockhand that doesn't expose the attribute
- * yet, so the dropdown still works, just without the shorter name. */
-export function getContainerDropdownOptions(hass: HomeAssistant, devices: DeviceRegistryEntry[]): DeviceDropdownOption[] {
+ * the raw Docker/stack name from the device identifier (e.g. "traefik1")
+ * rather than the full device display name (e.g. "Forseti – Containers –
+ * traefik1"), sorted alphabetically by that label. */
+export function getContainerDropdownOptions(devices: DeviceRegistryEntry[]): DeviceDropdownOption[] {
   const options = devices.map((d) => {
-    const { found } = resolveContainerEntities(hass, d.id, ['state']);
-    const rawName = found.state?.state.attributes.name as string | undefined;
-    return { value: d.id, label: rawName || d.name_by_user || d.name || d.id };
+    return { value: d.id, label: getContainerName(d) || d.name_by_user || d.name || d.id };
   });
   return options.sort((a, b) => a.label.localeCompare(b.label));
 }
 
-export function getStackDropdownOptions(hass: HomeAssistant, devices: DeviceRegistryEntry[]): DeviceDropdownOption[] {
+export function getStackDropdownOptions(devices: DeviceRegistryEntry[]): DeviceDropdownOption[] {
   const options = devices.map((d) => {
-    const { found } = resolveStackEntities(hass, d.id, ['status']);
-    const rawName = found.status?.state.attributes.name as string | undefined;
-    return { value: d.id, label: rawName || d.name_by_user || d.name || d.id };
+    return { value: d.id, label: getStackName(d) || d.name_by_user || d.name || d.id };
   });
   return options.sort((a, b) => a.label.localeCompare(b.label));
 }

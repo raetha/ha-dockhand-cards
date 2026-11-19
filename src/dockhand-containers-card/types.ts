@@ -1,5 +1,6 @@
 import type { LovelaceCardConfig } from 'custom-card-helpers';
 import type { EntityNameItem } from '../common/ha-types';
+import type { FiltersConfig } from '../common/filters';
 
 /** Each is an independently-toggleable piece of the per-row display —
  * status icon/name always show (they're the row's identity, not
@@ -11,27 +12,25 @@ import type { EntityNameItem } from '../common/ha-types';
  * is new alongside multi-environment support — same checkbox-group
  * convention as everything else here (docs/editor-design.md rule 5),
  * not a standalone toggle. */
-export type ContainersCardBadge = 'health' | 'updates' | 'cpu' | 'memory' | 'environment';
+export type ContainersCardBadge = 'health' | 'updates' | 'cpu' | 'memory' | 'environment' | 'tags' | 'controls';
 
-export const DEFAULT_CONTAINERS_BADGES: ContainersCardBadge[] = ['health', 'updates', 'cpu', 'memory'];
+/** The details in their order on a row (the name's side, then the
+ * columns), which the editor lists them in. */
+export const CONTAINERS_BADGE_ORDER: readonly ContainersCardBadge[] = ['environment', 'tags', 'updates', 'health', 'cpu', 'memory', 'controls'];
+
+export const DEFAULT_CONTAINERS_BADGES: ContainersCardBadge[] = ['health', 'updates', 'cpu', 'memory', 'tags'];
 
 /** No 'type' option, unlike Stacks' equivalent — containers don't have a
  * comparable per-row type concept to group by. */
 export type ContainersGroupBy = 'none' | 'environment' | 'status';
 
 /** 'status' sorts problems first, matching every other card's own
- * status-priority ordering. */
-export type ContainersSortBy = 'name' | 'status';
+ * status-priority ordering; 'cpu' and 'memory' put the busiest first.
+ * Ties fall back to the name. */
+export type ContainersSortBy = 'name' | 'status' | 'cpu' | 'memory';
 
 export interface DockhandContainersCardConfig extends LovelaceCardConfig {
   type: 'custom:dockhand-containers-card';
-  /** Legacy single-environment field — real, released since 1.0.0.
-   * Never written by this card's own editor anymore once
-   * environments_order/exclude_device_ids exist; kept purely so an
-   * already-saved config with only this field keeps working exactly as
-   * before, computed fresh each render rather than migrated in place.
-   * See resolveIncludedOrderedWithLegacy in environment-scope.ts. */
-  device_id?: string;
   environments_order?: string[];
   exclude_device_ids?: string[];
   /** Composed (Area/Device/Entity/Floor) or Custom (a plain string) —
@@ -41,4 +40,11 @@ export interface DockhandContainersCardConfig extends LovelaceCardConfig {
   visible_badges?: ContainersCardBadge[];
   group_by?: ContainersGroupBy;
   sort_by?: ContainersSortBy;
+  /** Which rows show; see common/filters.ts. */
+  filters?: FiltersConfig;
+  /** The "Hidden by filters" line; on unless false. */
+  show_filtered_count?: boolean;
+  /** Rows with a problem (see isProblem in card.ts) show whatever the
+   * filters say; off unless set. */
+  always_show_problems?: boolean;
 }

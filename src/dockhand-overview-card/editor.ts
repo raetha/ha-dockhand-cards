@@ -19,10 +19,7 @@ import { DEFAULT_CONTAINERS_BADGES, type DockhandContainersCardConfig } from '..
 import type { DockhandSchedulesCardConfig } from '../dockhand-schedules-card/types';
 import type { DockhandUpdatesCardConfig } from '../dockhand-updates-card/types';
 import {
-  DEFAULT_SECTION_ORDER,
-  getEnvironmentOrder,
-  getEnvironmentOverrides,
-  migrateOverviewConfig,
+  orderedSections,
   type DockhandOverviewCardConfig,
   type OverviewSection,
   type EnvironmentOverride
@@ -47,7 +44,7 @@ const EMBEDDED_EDITOR_TAGS = [
   'dockhand-updates-card-editor'
 ].join(', ');
 
-const SECTION_LABEL_KEY: Record<OverviewSection, EditorTranslationKey> = {
+export const SECTION_LABEL_KEY: Record<OverviewSection, EditorTranslationKey> = {
   environments: 'label_environments',
   vulnerabilities: 'label_vulnerabilities',
   stacks: 'label_stacks',
@@ -134,7 +131,7 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
       opacity: 0.5;
     }
     /* ha-expansion-panel margin/padding and .row-action-btn/.row-actions/
-     * .order-row's own gap all come from the shared sortableRowStyles now.
+     * .order-row's own gap come from the shared sortableRowStyles.
      * Two notes on choices that aren't obvious from the shared CSS alone:
      * the icon-buttons are deliberately NOT sized down to match the live
      * cards' compact .header-icon pattern — this is config UI, not a
@@ -143,26 +140,6 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
      * themselves, matching HA's own edit/remove icon-button pair in
      * hui-heading-badges-editor, which has no gap between them either
      * (each button's own internal padding provides the breathing room). */
-    .detail-header {
-      display: flex;
-      align-items: center;
-      gap: var(--ha-space-2, 8px);
-      margin-bottom: var(--ha-space-1, 4px);
-    }
-    .detail-title {
-      display: flex;
-      align-items: center;
-      gap: var(--ha-space-2, 8px);
-      min-width: 0;
-      flex: 1;
-    }
-    .detail-name {
-      font-size: var(--ha-font-size-m, 14px);
-      font-weight: 600;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
     .detail-badge {
       flex-shrink: 0;
       /* Matches HA's own ha-automation-row-event-chip.ts convention for
@@ -193,7 +170,7 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
   }
 
   setConfig(config: DockhandOverviewCardConfig): void {
-    this._config = migrateOverviewConfig({
+    this._config = {
       show_environments: true,
       show_vulnerabilities: false,
       show_stacks: false,
@@ -203,19 +180,14 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
       environment_mode: 'standard',
       align_columns: true,
       ...config
-    });
+    };
   }
 
-  /** Delegates to the shared resolveEnvironmentOrder (src/common/
-   * environment-scope.ts) rather than its own copy of this logic, which
-   * this used to be — same "unlisted sorts after, alphabetically"
-   * convention as everywhere else this pattern shows up now (Schedules'
-   * own environment order, badge_order), rather than Overview's own
-   * previous behavior of leaving unlisted environments in whatever order
-   * the device registry happened to iterate them in. */
+  /** The shared order: listed environments first, the rest after them
+   * alphabetically, as everywhere else. */
   private _orderedDevices() {
     if (!this._hass) return [];
-    return resolveEnvironmentOrder(getEnvironmentDevices(this._hass), getEnvironmentOrder(this._config));
+    return resolveEnvironmentOrder(getEnvironmentDevices(this._hass), this._config?.environments_order);
   }
 
   private _isSectionShown(section: OverviewSection): boolean {
@@ -233,14 +205,6 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
       case 'schedules':
         return this._config?.show_schedules ?? false;
     }
-  }
-
-  private _orderedSections(): OverviewSection[] {
-    const saved = this._config?.section_order;
-    if (!saved) return DEFAULT_SECTION_ORDER;
-    const known = new Set(saved);
-    const rest = DEFAULT_SECTION_ORDER.filter((s) => !known.has(s));
-    return [...saved, ...rest];
   }
 
   protected render(): TemplateResult {
@@ -269,7 +233,7 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
 
   private _renderList(): TemplateResult {
     if (!this._config || !this._hass) return html``;
-    const orderedSections = this._orderedSections();
+    const sections = orderedSections(this._config?.section_order);
 
     return html`
       <ha-expansion-panel outlined expanded>
@@ -283,7 +247,7 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
             <button class="link-btn" @click=${this._clearAllSections}>${t(this._hass, 'clear_all_environments')}</button>
           </div>
           <ha-sortable handle-selector=".order-handle" @item-moved=${this._sectionMoved}>
-            <div class="order-list">${orderedSections.map((s) => this._renderSectionOrderRow(s))}</div>
+            <div class="order-list">${sections.map((s) => this._renderSectionOrderRow(s))}</div>
           </ha-sortable>
         </div>
       </ha-expansion-panel>
@@ -475,13 +439,13 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
         </div>
         <div class="hint">${t(this._hass, 'detail_view_hint')}</div>
 
-        ${this._orderedSections().map((section) => this._renderDetailSection(section, deviceId))}
+        ${orderedSections(this._config?.section_order).map((section) => this._renderDetailSection(section, deviceId))}
       `
     )}`;
   }
 
   private _renderDetailSection(section: OverviewSection, deviceId: string): TemplateResult {
-    const overrides = getEnvironmentOverrides(this._config);
+    const overrides = this._config?.environments_overrides;
     // Starts expanded only if this section already has an override in
     // place — otherwise collapsed, matching rule 2's "collapsed unless
     // it's the thing you actually came here to look at" reasoning.
@@ -499,7 +463,7 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
   }
 
   private _renderDetailSectionContent(section: OverviewSection, deviceId: string): TemplateResult {
-    const overrides = getEnvironmentOverrides(this._config);
+    const overrides = this._config?.environments_overrides;
     switch (section) {
       case 'environments':
         return html`
@@ -563,13 +527,9 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
    * here, since after that this element's own config-changed events are
    * the sole source of truth for its section of the override, right up
    * until the user switches environments and a new element is mounted. */
-  /** `device_id` in the constraint is `string | undefined`, not `string`
-   * — Stacks (and, as more cards migrate, others) now declare it as an
-   * optional legacy field once they support multiple environments (see
-   * that card's own types.ts), even though this specific function always
-   * passes a real value below. Widening the constraint to match is
-   * simpler and more honest than keeping it stricter than the config
-   * shapes it actually needs to accept. */
+  /** Every embedded editor is told the environment it's editing through
+   * `device_id`, though the multi-environment cards' own configs don't
+   * have one, hence optional in the constraint. */
   private _mountEditor<C extends { type: string; device_id?: string }>(deviceId: string, type: C['type'], currentOverride: Partial<C> | undefined) {
     return (el?: Element) => {
       if (!el || !this._hass) return;
@@ -647,13 +607,9 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
    * under the embedded editor's own (unprefixed) field name. device_id
    * is a placeholder — harmless, since cardIsEmbedded means it's
    * never rendered or read by anything other than the schema entry
-   * that's already omitted. Genuinely safe to scan with no exceptions:
-   * the only 2 keys that would otherwise collide with the 'environments'
-   * prefix (environments_overrides, environments_order) are both
-   * plural, matching show_environments — only the deprecated, singular
-   * environment_overrides/environment_order collided, and setConfig()
-   * always migrates those away before this._config is ever read from
-   * here (see migrateOverviewConfig in types.ts). */
+   * that's already omitted. Safe to scan with no exceptions: the
+   * only keys sharing the 'environments' prefix (environments_overrides,
+   * environments_order) aren't fields of the Environment card. */
   private _globalEditorConfig(section: 'environments' | 'vulnerabilities' | 'stacks' | 'containers' | 'schedules' | 'updates'): Record<string, unknown> {
     const cfg = (this._config ?? {}) as unknown as Record<string, unknown>;
     const prefix = DockhandOverviewCardEditor.GLOBAL_SECTION_PREFIX[section];
@@ -692,11 +648,7 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
    * the user changed. This is what makes adding a new field to one of
    * these cards' editors "just work" on both the read and write-back
    * directions, with nothing in this file to remember to touch at all —
-   * see docs/architecture.md §4 for why this scan needs no exceptions
-   * of any kind now (environments_overrides/environments_order were
-   * renamed specifically to stop colliding with the 'environments'
-   * prefix; migrateOverviewConfig in types.ts, called from setConfig,
-   * keeps this._config in that shape from the moment it loads).
+   * see docs/architecture.md §4 for why this scan needs no exceptions.
    * Doesn't re-implement the Environment editor's own "drop
    * custom_sections once mode leaves custom" cleanup: that already
    * happened inside the embedded editor's own _valueChanged before
@@ -705,18 +657,10 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
    * it gets here — trusting that rather than duplicating the same
    * conditional a second time.
    *
-   * Also carries the ev.stopPropagation() every sibling section-changed
-   * handler needs — without it, the embedded editor's own raw
-   * config-changed event (still typed as e.g. custom:dockhand-stacks-card
-   * with an empty device_id, since that's its own config, not Overview's)
-   * keeps bubbling right past this listener and reaches HA's own
-   * card-editor dialog outside this component entirely. That outer
-   * dialog treats any config-changed bubbling from inside the mounted
-   * editor as the thing being edited, and tries to preview the embedded
-   * editor's raw config instead of Overview's own — which is exactly
-   * where "Please select a Dockhand environment." was coming from: the
-   * card being mistakenly previewed was dockhand-stacks-card with
-   * device_id: '', not dockhand-overview-card. */
+   * Stops the embedded editor's own config-changed (its own card type,
+   * with an empty device_id) from bubbling on to Home Assistant's card
+   * dialog, which would otherwise preview that config instead of the
+   * Overview's. */
   private _globalSectionChanged(section: 'environments' | 'vulnerabilities' | 'stacks' | 'containers' | 'schedules' | 'updates') {
     return (ev: CustomEvent<{ config: Record<string, unknown> }>): void => {
       ev.stopPropagation();
@@ -739,15 +683,9 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
   /** Merges one card-type section's override for one environment, pruning
    * empty leaves so a cleared-out override doesn't linger as `{}` in the
    * saved config — same hygiene as exclude_device_ids/environments_order
-   * elsewhere in this editor. Reads via getEnvironmentOverrides (so an
-   * old-style saved config still shows correctly) but always writes
-   * environments_overrides, never the deprecated environment_overrides
-   * — every edit through this method naturally migrates a config fully
-   * over to the new key, deleting the old one at the same time (see
-   * _updateConfig's own migration step for the case where the old key
-   * is still present but this specific method wasn't what changed). */
+   * elsewhere in this editor. */
   private _updateSectionOverride<K extends keyof EnvironmentOverride>(deviceId: string, section: K, value: EnvironmentOverride[K]): void {
-    const overrides: Record<string, EnvironmentOverride> = { ...(getEnvironmentOverrides(this._config) ?? {}) };
+    const overrides: Record<string, EnvironmentOverride> = { ...(this._config?.environments_overrides ?? {}) };
     const envOverride: EnvironmentOverride = { ...(overrides[deviceId] ?? {}) };
     const isEmpty = !value || Object.values(value).every((v) => v === undefined || v === '' || (Array.isArray(v) && v.length === 0));
 
@@ -766,25 +704,11 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
     this._updateConfig({ environments_overrides: Object.keys(overrides).length > 0 ? overrides : undefined });
   }
 
-  /** Consolidated replacement for what used to be 4 nearly-identical
-   * handlers (one per section type), each hand-picking which fields of
-   * ev.detail.config to extract into the override object. That approach
-   * had a real, silent bug: when visible_badges was added to the Stacks/
-   * Containers cards, the two handlers for those sections were never
-   * updated to extract it, so a per-environment override of that field
-   * was accepted by the UI and then silently dropped on the floor — the
-   * user would set it, see it reflected in the editor, and it would
-   * never actually be saved. Generic extraction (everything the embedded
-   * editor emits except type/device_id) makes that specific bug
-   * structurally impossible: a field the embedded editor's own schema
-   * doesn't have doesn't get emitted in the first place, and a field it
-   * does have is captured automatically, with nothing here to remember
-   * to update. Safe to do unconditionally here (unlike the global
-   * defaults' read side, see _globalEditorConfig) because the data fed
-   * into each embedded editor by _mountEditor is already narrowly scoped
-   * to just that one environment's override sub-object for this one
-   * section — never the whole Overview config — so there's no risk of
-   * an unrelated key leaking in. */
+  /** Takes everything the embedded editor emits except type/device_id, so
+   * a field added to one of those editors is saved here with nothing to
+   * update. Safe without the exceptions _globalEditorConfig's prefix scan
+   * reasons about, because each embedded editor is only ever given this
+   * one environment's override for this one section. */
   private _overrideSectionChanged<K extends 'environment' | 'vulnerabilities' | 'stacks' | 'containers' | 'schedules' | 'updates'>(deviceId: string, section: K) {
     return (ev: CustomEvent<{ config: Record<string, unknown> }>): void => {
       ev.stopPropagation();
@@ -800,7 +724,7 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
 
   private _sectionMoved(ev: CustomEvent<{ oldIndex: number; newIndex: number }>): void {
     ev.stopPropagation();
-    const newOrder = this._orderedSections();
+    const newOrder = orderedSections(this._config?.section_order);
     const [moved] = newOrder.splice(ev.detail.oldIndex, 1);
     newOrder.splice(ev.detail.newIndex, 0, moved);
     this._updateConfig({ section_order: newOrder });

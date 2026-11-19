@@ -19,6 +19,8 @@ export interface HaFormSelector {
   select?: {
     options: readonly HaFormSelectOption[] | readonly string[];
     multiple?: boolean;
+    /** Allows typing a value that isn't an option. */
+    custom_value?: boolean;
     mode?: 'list' | 'dropdown' | 'box';
   };
   text?: Record<string, never>;
@@ -34,15 +36,12 @@ export interface HaFormSelector {
   } | null;
 }
 
-export type HaFormConditionOperator = 'eq' | 'not_eq' | 'in' | 'not_in' | 'exists' | 'not_exists';
-
+/** ha-form's field conditions (HA 2026.8+, `conditions.ts`). */
 export interface HaFormFieldCondition {
   field: string;
-  operator?: HaFormConditionOperator;
+  operator?: 'eq' | 'not_eq' | 'in' | 'not_in' | 'exists' | 'not_exists';
   value?: unknown;
 }
-
-export type HaFormCondition = HaFormFieldCondition;
 
 export interface HaFormSchema {
   name: string;
@@ -52,18 +51,8 @@ export interface HaFormSchema {
   /** Applied only for display when the field is absent from `data` —
    * doesn't get written back unless the field is actually touched. */
   default?: unknown;
-  /** Real HA feature (merged into HA frontend 2026-07-17), but not used
-   * anywhere in this repo yet — verified directly against HA core's own
-   * frontend pin that it isn't in any released HA version as of this
-   * writing (2026.7.4, the latest release, still predates it). Every
-   * conditionally-shown field in this repo's editors (e.g. Environment
-   * card's custom_sections, Updates card's device_id) is instead included
-   * or omitted from the schema array in plain JS, which needs no
-   * unreleased HA functionality and produces the same visible behavior.
-   * Switch those over to `visible:` once it's actually shipped in a
-   * released HA version this repo's floor covers — don't use it before
-   * then even though the type/declaration exists here already. */
-  visible?: boolean | HaFormCondition | HaFormCondition[];
+  /** Shown while every condition holds; the value is kept when hidden. */
+  visible?: boolean | HaFormFieldCondition | HaFormFieldCondition[];
   selector?: HaFormSelector;
   /** Only meaningful together with type: 'multi_select'. */
   options?: Record<string, string> | readonly string[] | readonly (readonly [string, string])[];

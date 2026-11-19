@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { sortScheduleRows, groupScheduleRows, resolveGlobalInstanceLabels, type ScheduleRow } from './card';
+import { sortScheduleRows, groupScheduleRows, resolveGlobalInstanceLabels, isProblem, type ScheduleRow } from './card';
 
 function row(overrides: Partial<ScheduleRow> & { name: string }): ScheduleRow {
   return {
     entityId: `sensor.${overrides.name}`,
+    deviceId: `device_${overrides.name}`,
     type: 'container_update',
     enabled: true,
     status: 'success',
@@ -20,23 +21,21 @@ describe('sortScheduleRows', () => {
 
   it('breaks a name tie by environment name — e.g. two environments each with a git stack called "myapp"', () => {
     const rows = [
-      row({ name: 'Git sync: myapp', environment: 'Heimdall' }),
+      row({ name: 'Git sync: myapp', environment: 'Orion' }),
       row({ name: 'Git sync: myapp', environment: 'Aurora' })
     ];
-    expect(sortScheduleRows(rows, 'name').map((r) => r.environment)).toEqual(['Aurora', 'Heimdall']);
+    expect(sortScheduleRows(rows, 'name').map((r) => r.environment)).toEqual(['Aurora', 'Orion']);
   });
 
   it('sorts a global schedule (no environment) ahead of a same-named environment-scoped one in a tie', () => {
-    const rows = [row({ name: 'Cleanup', environment: 'Heimdall' }), row({ name: 'Cleanup', environment: undefined })];
-    expect(sortScheduleRows(rows, 'name').map((r) => r.environment)).toEqual([undefined, 'Heimdall']);
+    const rows = [row({ name: 'Cleanup', environment: 'Orion' }), row({ name: 'Cleanup', environment: undefined })];
+    expect(sortScheduleRows(rows, 'name').map((r) => r.environment)).toEqual([undefined, 'Orion']);
   });
 
   it("doesn't let environment resolution order silently influence tie-breaking — only the schedule's own name/environment values matter, not array position", () => {
-    // Same names, same environments, but rows arrive in the opposite order
-    // from what an environment-order-based iteration would naturally
-    // produce — result should be identical either way, since the tiebreak
-    // is now explicit rather than incidentally preserving input order
-    // (Array.sort is stable, so this used to matter).
+    // The same rows in opposite orders sort the same: the environment is
+    // an explicit tiebreak, not left to the input order a stable sort
+    // would keep.
     const forward = [row({ name: 'Backup', environment: 'Aurora' }), row({ name: 'Backup', environment: 'Bifrost' })];
     const reversed = [row({ name: 'Backup', environment: 'Bifrost' }), row({ name: 'Backup', environment: 'Aurora' })];
     const forwardResult = sortScheduleRows(forward, 'name').map((r) => r.environment);
@@ -124,15 +123,15 @@ describe('groupScheduleRows', () => {
     // own order is really what's driving bucket order — not a separate
     // re-derived comparison.
     const rows = [
-      row({ name: 'a', environment: 'Heimdall', environmentDeviceId: 'env_heimdall' }),
+      row({ name: 'a', environment: 'Orion', environmentDeviceId: 'env_orion' }),
       row({ name: 'b', environment: 'Bifrost', environmentDeviceId: 'env_bifrost' }),
       row({ name: 'c', environment: undefined })
     ];
     const groups = groupScheduleRows(rows, 'environment', 'name', [
-      { deviceId: 'env_heimdall', name: 'Heimdall' },
+      { deviceId: 'env_orion', name: 'Orion' },
       { deviceId: 'env_bifrost', name: 'Bifrost' }
     ]);
-    expect(groups.map((g) => g.label)).toEqual(['Global', 'Heimdall', 'Bifrost']);
+    expect(groups.map((g) => g.label)).toEqual(['Global', 'Orion', 'Bifrost']);
   });
 
   it('does not confuse a real environment literally named "Global" with the global-schedules bucket', () => {
@@ -225,5 +224,14 @@ describe('resolveGlobalInstanceLabels', () => {
     expect(labels.get('sched_1')).toBe('192.168.1.50:3000');
     expect(labels.has('sched_2')).toBe(false);
     expect(labels.has('orphan')).toBe(false);
+  });
+});
+
+describe('isProblem', () => {
+  it('is a schedule whose last run failed', () => {
+    expect(isProblem(row({ name: 'a', status: 'failed' }))).toBe(true);
+    expect(isProblem(row({ name: 'b', status: 'error' }))).toBe(true);
+    expect(['success', 'running', 'skipped', 'cancelled'].some((status) => isProblem(row({ name: 'c', status })))).toBe(false);
+    expect(isProblem(row({ name: 'd', status: undefined }))).toBe(false);
   });
 });

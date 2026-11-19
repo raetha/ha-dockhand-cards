@@ -7,10 +7,22 @@ import type { HomeAssistant } from '../common/ha-types';
 import { getEnvironmentDevices, getRepresentativeEntityId } from '../common/device-utils';
 import { cardNameFieldSchema } from '../common/card-name';
 import { t } from '../common/i18n-editor';
+import { stripUndefinedKeys } from '../common/config-utils';
 import { sortableRowStyles, editorFormStyles } from '../common/editor-styles';
 import { resolveIncludedOrdered } from '../common/environment-scope';
 import { renderEnvironmentOrderSection } from '../common/environment-scope-editor';
-import { type DockhandSchedulesCardConfig, type ScheduleGroupBy, resolveVisibleBadges } from './types';
+import { SCHEDULE_BADGE_ORDER, type DockhandSchedulesCardConfig, type ScheduleGroupBy, resolveVisibleBadges } from './types';
+import { schedulesFilterFields, renderFiltersForm } from '../common/filters-editor';
+
+/** `include_global: false` (before 2.0.0) is the Where filter set to "not
+ * Global"; the editor writes it that way from the first change on. An
+ * embedded editor leaves it alone: the Overview sets it for its columns. */
+export function migrateIncludeGlobal(config: DockhandSchedulesCardConfig, embedded: boolean): DockhandSchedulesCardConfig {
+  if (embedded || config.include_global !== false) return config;
+  const rest = { ...config };
+  delete rest.include_global;
+  return config.filters?.scope ? rest : { ...rest, filters: { ...rest.filters, scope: { not: ['global'] } } };
+}
 
 export class DockhandSchedulesCardEditor extends LitElement implements LovelaceCardEditor {
   static styles = [sortableRowStyles, editorFormStyles];
@@ -20,10 +32,10 @@ export class DockhandSchedulesCardEditor extends LitElement implements LovelaceC
   /** Set by an embedding editor (the Overview card's global-defaults and
    * per-environment override views) that already owns environment
    * scoping for every card it generates — this card's own Environments
-   * section, and the include_global toggle that travels with it (both
-   * meaningless once Overview forces every generated instance to one
-   * solo'd environment with include_global: false — see Overview's own
-   * card.ts), would be redundant/confusing there. Named to match
+   * section, and the Where filter (both meaningless once Overview forces
+   * every generated instance to one solo'd environment with
+   * include_global: false — see Overview's own card.ts), would be
+   * redundant/confusing there. Named to match
    * cardIsEmbedded on every other embeddable editor in this repo even
    * though this card never had a device_id-based picker to begin with —
    * same property name, same embedding mechanism
@@ -32,6 +44,10 @@ export class DockhandSchedulesCardEditor extends LitElement implements LovelaceC
    * itself when this editor is used standalone via getConfigElement(),
    * so default false preserves existing behavior. */
   @property({ type: Boolean }) cardIsEmbedded = false;
+  /** Set by the Dockhand dashboard's settings: the dashboard chooses the
+   * environments, so the editor leaves its Environments section out, but
+   * the card still spans several (unlike cardIsEmbedded). */
+  @property({ type: Boolean }) scopeFixed = false;
   /** See DockhandEnvironmentCardEditor's identical property for the full
    * reasoning. */
   @property({ type: Boolean }) hideTitle = false;
@@ -45,7 +61,7 @@ export class DockhandSchedulesCardEditor extends LitElement implements LovelaceC
       show_settings_link: true,
       show_stats: true,
       sort_by: 'status',
-      ...config
+      ...migrateIncludeGlobal(config, this.cardIsEmbedded)
     };
   }
 
@@ -69,18 +85,9 @@ export class DockhandSchedulesCardEditor extends LitElement implements LovelaceC
 
   private _rootSchema(): HaFormSchema[] {
     return [
-      // Renders before the Environments section (see render() below) —
-      // matching Stacks/Containers' own layout for the same three-
-      // component design, not the reverse order this briefly had.
-      ...(this.cardIsEmbedded ? [] : [{ name: 'include_global', default: true, selector: { boolean: {} } }]),
-      // Moved out of Content — unlike show_stats/show_settings_link/
-      // visible_badges (reasonable defaults few people will want to
-      // touch), group_by/sort_by are something a person is likely to
-      // want to set the moment they add this card to a dashboard, not
-      // leave at the default. Requiring an extra click into a collapsed
-      // panel for that isn't the "less used options in an accordion"
-      // trade this repo's own rule 0 is built on — these aren't the
-      // less-used options.
+      // Outside Content: unlike show_stats, show_settings_link and
+      // visible_badges, group_by and sort_by are what people set as soon
+      // as they add the card, so they aren't hidden in a collapsed panel.
       {
         name: 'group_by',
         default: this.cardIsEmbedded ? 'none' : 'environment',
@@ -147,11 +154,9 @@ export class DockhandSchedulesCardEditor extends LitElement implements LovelaceC
         // 1): the name is the very first thing on the card, then the
         // settings link and stats row both sit in the header area, then
         // visible_badges governs what's shown *within* each row — the
-        // last, most granular thing this section covers. group_by/
-        // sort_by used to sit here too — moved to root (_rootSchema
-        // above), since they're something a person is likely to want to
-        // set right away, not a reasonable-default-most-won't-touch
-        // field the rest of this section is for.
+        // last, most granular thing this section covers. group_by and
+        // sort_by sit at the root (_rootSchema) instead: people set them
+        // right away, unlike the defaults most leave alone here.
         schema: [
           ...(this.hideTitle ? [] : [cardNameFieldSchema(representativeEntityId, t(this._hass, 'label_schedules'))]),
           {
@@ -175,10 +180,9 @@ export class DockhandSchedulesCardEditor extends LitElement implements LovelaceC
           {
             name: 'visible_badges',
             type: 'multi_select',
-            options: {
-              next_run: t(this._hass, 'badge_next_run'),
-              ...(this.cardIsEmbedded ? {} : { environment: t(this._hass, 'badge_environment') })
-            }
+            options: Object.fromEntries(
+              SCHEDULE_BADGE_ORDER.filter((badge) => !(this.cardIsEmbedded && badge === 'environment')).map((badge) => [badge, t(this._hass, badge === 'controls' ? 'badge_schedule_controls' : `badge_${badge}`)])
+            )
           }
         ]
       }
@@ -205,21 +209,13 @@ export class DockhandSchedulesCardEditor extends LitElement implements LovelaceC
         : html``}
 
       <!--
-        No scope field, no device_id field — an earlier version of this
-        editor had both (all/selected/environment/global), conditionally
-        showing/hiding a device picker depending on which was chosen. This
-        section is now always shown (except when embedded — see
-        renderEnvironmentOrderSection's own hidden param), always fully
-        interactive (reorder + exclude + solo), and covers every one of
-        those cases on its own: "all" is nothing excluded, "one
-        environment" is solo-ing it (one click, via the target icon per
-        row — actually faster than the old two-step scope-then-device
-        picker), "some" is excluding a few, "none" is excluding all of
-        them. Renders after include_global/group_by/sort_by above, not
-        before — matching Stacks/Containers' own layout for the same
-        three-component design (Environments + group_by + sort_by), for
-        consistency across every card that has all three. Also means the
-        Environments section's own drag-enabled/disabled state (see
+        No scope or device_id field: this section (hidden when embedded,
+        see renderEnvironmentOrderSection's hidden param) covers every
+        case on its own: "all" is nothing excluded, "one environment" is
+        soloing it (the target icon per row), "some" is excluding a few,
+        "none" is excluding all of them. Renders after
+        include_global/group_by/sort_by, as on Stacks and Containers, so
+        the section's drag-enabled/disabled state (see
         allowReorder below) already reflects whatever group_by choice was
         just made above it, rather than a person seeing greyed-out drag
         handles before they've had a chance to set group_by to
@@ -235,7 +231,7 @@ export class DockhandSchedulesCardEditor extends LitElement implements LovelaceC
         headingKey: 'label_environments',
         hintKey: 'order_list_hint',
         icon: 'mdi:web',
-        hidden: this.cardIsEmbedded,
+        hidden: this.cardIsEmbedded || this.scopeFixed,
         order: this._config.environments_order,
         excluded: this._config.exclude_device_ids,
         showExcludeToggle: true,
@@ -260,6 +256,8 @@ export class DockhandSchedulesCardEditor extends LitElement implements LovelaceC
         onClearAll: () => this._updateConfig({ exclude_device_ids: getEnvironmentDevices(this._hass!).map((d) => d.deviceId) })
       })}
 
+      ${renderFiltersForm(this._hass, schedulesFilterFields(this.cardIsEmbedded), this._config, (patch) => this._updateConfig(patch), 'always_show_problems_schedules')}
+
       <ha-form
         .hass=${this._hass}
         .data=${{ ...this._config, group_by: groupBy, visible_badges: resolveVisibleBadges(this._config.visible_badges, groupBy) }}
@@ -272,14 +270,12 @@ export class DockhandSchedulesCardEditor extends LitElement implements LovelaceC
 
   private _updateConfig(patch: Partial<DockhandSchedulesCardConfig>): void {
     if (!this._config) return;
-    this._config = { ...this._config, ...patch };
+    this._config = stripUndefinedKeys({ ...this._config, ...patch }) as DockhandSchedulesCardConfig;
     fireEvent(this, 'config-changed', { config: this._config });
   }
 
   private _computeLabel = (schema: HaFormSchema): string => {
     switch (schema.name) {
-      case 'include_global':
-        return t(this._hass, 'include_global_schedules');
       case 'name':
         return t(this._hass, 'title_override');
       case 'show_settings_link':

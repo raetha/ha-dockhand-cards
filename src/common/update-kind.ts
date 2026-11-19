@@ -75,7 +75,21 @@ export function updateKindIcon(hass: HassLanguage, status: UpdateStatus): { icon
 
 /** The icon on its own, for a pill or a row that isn't itself the click
  * target. */
-export function renderUpdateKindIcon(hass: HassLanguage, status: UpdateStatus): TemplateResult {
+/** With `onClick`, a click on the icon itself does that instead of
+ * whatever the element around it does (a Stack card container pill opens
+ * the container's state; its update icon opens the update, to install it). */
+export function renderUpdateKindIcon(hass: HassLanguage, status: UpdateStatus, onClick?: () => void): TemplateResult {
   const { icon, color, title } = updateKindIcon(hass, status);
-  return html`<ha-icon icon=${icon} style="color:${color}" title=${title}></ha-icon>`;
+  if (!onClick) return html`<ha-icon icon=${icon} style="color:${color}" title=${title}></ha-icon>`;
+  // .clickable: its own hover highlight, and none on the element around it.
+  return html`<ha-icon
+    class="update-icon clickable"
+    icon=${icon}
+    style="color:${color}"
+    title=${title}
+    @click=${(e: Event) => {
+      e.stopPropagation();
+      onClick();
+    }}
+  ></ha-icon>`;
 }

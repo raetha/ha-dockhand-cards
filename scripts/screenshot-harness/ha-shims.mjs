@@ -4,9 +4,11 @@
 // HA frontend replacement.
 
 let iconPaths = {};
+let ENTITY_ICONS = {};
 export async function loadIconPaths() {
-  const res = await fetch('./icon-paths.json');
-  iconPaths = await res.json();
+  const [paths, entityIcons] = await Promise.all(['./icon-paths.json', './entity-icons.json'].map((f) => fetch(f).then((r) => r.json())));
+  iconPaths = paths;
+  ENTITY_ICONS = entityIcons;
 }
 
 function iconSvg(mdiName, size = 24, color = 'currentColor') {
@@ -40,6 +42,27 @@ class HaIcon extends HTMLElement {
   }
 }
 
+// Home Assistant's own icons for the entities ha-dockhand leaves to it.
+const DOMAIN_ICONS = {
+  switch: { on: 'mdi:toggle-switch-variant', off: 'mdi:toggle-switch-variant-off' },
+  update: { on: 'mdi:package-up', off: 'mdi:package' },
+  button: { default: 'mdi:button-pointer' }
+};
+
+/** An entity's icon as Home Assistant resolves it: the entity's own, then
+ * the integration's icon translation for its state (entity-icons.json,
+ * ha-dockhand's icons.json), then the domain's. */
+function stateIcon(state, hass) {
+  if (!state) return 'mdi:help-circle-outline';
+  if (state.attributes?.icon) return state.attributes.icon;
+  const domain = state.entity_id.split('.')[0];
+  const key = hass?.entities?.[state.entity_id]?.translation_key;
+  const translated = key ? ENTITY_ICONS[domain]?.[key] : undefined;
+  if (translated) return translated.state?.[state.state] ?? translated.default;
+  const fallback = DOMAIN_ICONS[domain];
+  return fallback?.[state.state] ?? fallback?.default ?? 'mdi:help-circle-outline';
+}
+
 class HaStateIcon extends HTMLElement {
   set stateObj(state) {
     this._stateObj = state;
@@ -56,11 +79,7 @@ class HaStateIcon extends HTMLElement {
   }
   render() {
     if (!this.isConnected) return;
-    const state = this._stateObj;
-    // Real ha-state-icon resolves via icon translations (icons.json's
-    // per-state mapping) + hass. We don't have that pipeline here, so
-    // the mock data includes an explicit `icon` attribute as a shortcut.
-    const icon = state?.attributes?.icon || 'mdi:help-circle-outline';
+    const icon = stateIcon(this._stateObj, this._hass);
     const size = getComputedStyle(this).getPropertyValue('--mdc-icon-size').trim() || '24px';
     this.style.display = 'inline-flex';
     this.style.width = size;
@@ -106,12 +125,37 @@ class HaFormfield extends HTMLElement {
   }
 }
 
+// Like HA's: a header row (leading icon, title, chevron) over the content,
+// which shows while `expanded` (property or attribute) is set.
 class HaExpansionPanel extends HTMLElement {
   connectedCallback() {
     this.style.display = 'block';
     this.style.border = '1px solid var(--divider-color, #444)';
     this.style.borderRadius = '8px';
-    this.style.padding = '8px';
+    if (this.shadowRoot) return;
+    this.attachShadow({ mode: 'open' }).innerHTML = `
+      <style>
+        .header { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 8px 0 12px; font-size: 16px; }
+        .header ::slotted(*) { margin: 0; font: inherit; }
+        .title { flex: 1; }
+        .chevron { color: var(--secondary-text-color); }
+        .content { padding: 0 8px 8px; }
+        .content[hidden] { display: none; }
+      </style>
+      <div class="header"><slot name="leading-icon"></slot><span class="title"><slot name="header"></slot></span><span class="chevron">\u02c5</span></div>
+      <div class="content"><slot></slot></div>`;
+    this._sync();
+  }
+  set expanded(value) {
+    this._expanded = value;
+    this._sync();
+  }
+  get expanded() {
+    return this._expanded ?? this.hasAttribute('expanded');
+  }
+  _sync() {
+    const content = this.shadowRoot?.querySelector('.content');
+    if (content) content.hidden = !this.expanded;
   }
 }
 
@@ -136,12 +180,8 @@ class HaIconButton extends HTMLElement {
     this.style.display = 'inline-flex';
     this.style.alignItems = 'center';
     this.style.justifyContent = 'center';
-    // Real ha-icon-button reads --ha-icon-button-size (default 48px) —
-    // this shim previously hard-coded 40px regardless, which meant any
-    // CSS setting that custom property had zero visible effect in a
-    // screenshot even though it worked correctly in real HA. Read via
-    // getComputedStyle so an ancestor rule (e.g. .row-action-btn) is
-    // respected the same way it would be for the real component.
+    // Like the real one, sized by --ha-icon-button-size (default 48px),
+    // so the cards' own setting (e.g. .row-action-btn) shows.
     const size = getComputedStyle(this).getPropertyValue('--ha-icon-button-size').trim() || '48px';
     this.style.width = size;
     this.style.height = size;
@@ -234,14 +274,8 @@ class HaButton extends HTMLElement {
       this.style.background = 'transparent';
       this.style.color = 'var(--primary-text-color)';
       this.style.border = 'none';
-      // Not part of the real component itself — this shim has no real
-      // shadow DOM/parts to apply an external ::part(base) rule against,
-      // so this reproduces this session's own real, external CSS
-      // override (shared-styles.ts) directly here instead, purely so a
-      // screenshot reflects the intended final result. The actual
-      // ::part(base) mechanism itself is confirmed only by reading the
-      // real component's own source (it exposes part="base"), not
-      // verified end-to-end through this harness.
+      // The cards color it through ::part(base) (shared-styles.ts),
+      // which a shim without shadow parts can't receive: applied here.
       const variantOverrideColor = { success: 'var(--dockhand-status-ok-color)', warning: 'var(--dockhand-status-warn-color)', danger: 'var(--dockhand-status-error-color)' }[variant];
       if (variantOverrideColor) this.style.color = variantOverrideColor;
     } else {
@@ -264,6 +298,98 @@ class HaButton extends HTMLElement {
 // selector/schema shapes this repo's own ha-form-types.ts declares
 // (select, boolean, text, multi_select) — extend alongside that file if a
 // new shape is ever added there, not preemptively.
+// ha-form's look, carried in what it renders: editors put their ha-form in
+// a shadow root, which the page's own styles don't reach.
+const FORM_CSS = `
+  .shim-form-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 4px;
+    border-bottom: 1px solid var(--divider-color);
+    flex-wrap: wrap;
+  }
+  .shim-form-row:last-child {
+    border-bottom: none;
+  }
+  .shim-expansion-panel {
+    border: 1px solid var(--divider-color, #444);
+    border-radius: 8px;
+    margin: 16px 0;
+    overflow: hidden;
+  }
+  .shim-expansion-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 8px;
+    font-weight: 500;
+  }
+  .shim-expansion-content {
+    padding: 4px 8px 8px;
+    border-top: 1px solid var(--divider-color, #444);
+  }
+  .shim-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px;
+  }
+  .shim-grid-cell .shim-form-row {
+    border-bottom: none;
+  }
+  .shim-form-label-col {
+    flex: 1;
+    min-width: 0;
+  }
+  .shim-form-label {
+    font-size: 0.95em;
+  }
+  .shim-form-helper {
+    font-size: 0.8em;
+    color: var(--secondary-text-color);
+    margin-top: 2px;
+  }
+  .shim-form-warning {
+    flex-basis: 100%;
+    font-size: 0.8em;
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.1);
+    padding: 6px 8px;
+    border-radius: 6px;
+  }
+  .shim-select,
+  .shim-textfield {
+    background: var(--primary-background-color);
+    color: var(--primary-text-color);
+    border: 1px solid var(--divider-color);
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 0.9em;
+    min-width: 160px;
+  }
+  .shim-form-row-stacked {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .shim-multiselect {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .shim-checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 4px 0;
+  }
+  .shim-checkbox-row input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary-color);
+  }
+`;
+
 class HaForm extends HTMLElement {
   set hass(h) {
     this._hass = h;
@@ -326,7 +452,7 @@ class HaForm extends HTMLElement {
         widget = `<div class="shim-multiselect">${Object.entries(opts)
           .map(([k, v]) => {
             const checked = Array.isArray(value) && value.includes(k);
-            return `<label class="shim-checkbox-row"><input type="checkbox" ${checked ? 'checked' : ''} disabled><span>${v}</span></label>`;
+            return `<label class="shim-checkbox-row"><input type="checkbox" ${checked ? 'checked' : ''} tabindex="-1" onclick="return false"><span>${v}</span></label>`;
           })
           .join('')}</div>`;
       } else if (field.selector?.boolean !== undefined) {
@@ -351,8 +477,11 @@ class HaForm extends HTMLElement {
       }
       const helperText = helper(field);
       const warningText = warning(field);
+      // HA lists a multi_select's few options as checkboxes, one a row,
+      // under its label.
+      const stacked = field.type === 'multi_select' ? ' shim-form-row-stacked' : '';
       return `
-        <div class="shim-form-row">
+        <div class="shim-form-row${stacked}">
           <div class="shim-form-label-col">
             <div class="shim-form-label">${label(field)}${field.required ? ' *' : ''}</div>
             ${helperText ? `<div class="shim-form-helper">${helperText}</div>` : ''}
@@ -363,7 +492,7 @@ class HaForm extends HTMLElement {
       `;
     };
 
-    this.innerHTML = this._schema.map(renderField).join('');
+    this.innerHTML = `<style>${FORM_CSS}</style>` + this._schema.map(renderField).join('');
   }
 }
 

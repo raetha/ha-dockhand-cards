@@ -30,6 +30,15 @@ describe('release tool', () => {
     expect(s.get('1.0.0')).toBe('- First.');
   });
 
+  it('keeps released sections frozen', () => {
+    const dev = CHANGELOG.replace('- New thing.', '- New thing.\n- Another.');
+    expect(check(dev, '1.2.0', false, CHANGELOG)).toEqual([]);
+    const edited = CHANGELOG.replace('- First.', '- First.\n- Slipped in.');
+    const problems = check(edited, '1.2.0', false, CHANGELOG);
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain('[1.0.0]');
+  });
+
   it('requires [Unreleased], and a dated section only for a release', () => {
     expect(check(CHANGELOG, '1.1.0')).toEqual([]);
     expect(check(CHANGELOG, '1.2.0')).toEqual([]); // expected next version on dev
@@ -39,14 +48,30 @@ describe('release tool', () => {
   });
 
   it('versions test builds above the installed release', () => {
-    expect(devVersion('1.5.0', 12, true)).toBe('1.5.1-dev.12');
-    expect(devVersion('1.6.0', 13, false)).toBe('1.6.0-dev.13');
-    expect(() => devVersion('1.6.0-beta', 1, true)).toThrow();
+    expect(devVersion('1.5.0', '', true)).toBe('1.5.1-dev.1');
+    expect(devVersion('1.6.0', '', false)).toBe('1.6.0-dev.1');
+    expect(() => devVersion('1.6.0-beta', '', true)).toThrow();
+  });
+
+  it('numbers test builds by test build, not by workflow run', () => {
+    expect(devVersion('2.0.0', '2.0.0-dev.43', false)).toBe('2.0.0-dev.44');
+    expect(devVersion('2.0.0', 'v2.0.0-dev.9', false)).toBe('2.0.0-dev.10');
+    expect(devVersion('2.1.0', '2.0.0-dev.43', false)).toBe('2.1.0-dev.1');
+    expect(devVersion('2.0.0', '2.0.0-dev.43', true)).toBe('2.0.1-dev.1');
   });
 
   it('builds notes from a section, with a test-build intro', () => {
     expect(notes(CHANGELOG, '1.1.0')).toMatch(/^### Fixed\n\n- A fix\.\n\n\*\*Install\*\*/);
     expect(notes(CHANGELOG, 'Unreleased', 7)).toMatch(/^\*\*Test build 7\*\*/);
     expect(() => notes(CHANGELOG, '9.9.9')).toThrow();
+  });
+
+  it('points a test build\u2019s images and docs at dev, where they are until the release', () => {
+    const img = '![x](https://raw.githubusercontent.com/raetha/ha-dockhand-cards/main/docs/images/x.png)';
+    const changelog = CHANGELOG.replace('- New thing.', `- New thing.\n\n${img}`).replace('- A fix.', `- A fix.\n\n${img}`);
+    expect(notes(changelog, 'Unreleased', 7)).toContain('/ha-dockhand-cards/dev/docs/images/x.png');
+    const doc = CHANGELOG.replace('- New thing.', '- New thing, [docs](https://github.com/raetha/ha-dockhand-cards/blob/main/docs/x.md).');
+    expect(notes(doc, 'Unreleased', 7)).toContain('/blob/dev/docs/x.md');
+    expect(notes(changelog, '1.1.0')).toContain('/ha-dockhand-cards/main/docs/images/x.png');
   });
 });

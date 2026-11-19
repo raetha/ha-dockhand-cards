@@ -1,12 +1,14 @@
-// Regenerates icon-paths.json by scanning the actual card source (../../src)
-// for every `mdi:xxx` reference and extracting just those icons' path data
-// from @mdi/js — not the whole ~7500-icon set. Run this after adding a new
-// icon anywhere in the cards, before regenerating screenshots.
+// Regenerates icon-paths.json: the path data, from @mdi/js, of every
+// `mdi:` icon the cards, this harness and ha-dockhand's entities use (not
+// the whole MDI set). Also copies ha-dockhand's entity icons (its
+// icons.json) to entity-icons.json, which the ha-state-icon shim resolves
+// states with, as Home Assistant does. Run it after adding an icon to the
+// cards or when ha-dockhand's icons change.
 //
-//   node extract-icons.mjs
+//   node extract-icons.mjs [path/to/ha-dockhand/custom_components/dockhand/icons.json]
 
 import * as mdi from '@mdi/js';
-import { writeFileSync, readdirSync, readFileSync, statSync } from 'fs';
+import { existsSync, writeFileSync, readdirSync, readFileSync, statSync } from 'fs';
 import { join } from 'path';
 
 const SRC_DIR = join(import.meta.dirname, '..', '..', 'src');
@@ -25,14 +27,20 @@ for (const file of walk(SRC_DIR)) {
   const text = readFileSync(file, 'utf-8');
   for (const m of text.matchAll(/mdi:([a-z0-9-]+)/g)) names.add(m[1]);
 }
-// Also scan this harness's own mock data — icon names referenced only as a
-// mock entity's own `icon` attribute (not hardcoded anywhere in the actual
-// card source, since real cards resolve icons dynamically via ha-state-icon)
-// would otherwise never be found, leaving those icons rendering empty.
 for (const file of ['mock-data.mjs', 'ha-shims.mjs']) {
   const text = readFileSync(join(import.meta.dirname, file), 'utf-8');
   for (const m of text.matchAll(/mdi:([a-z0-9-]+)/g)) names.add(m[1]);
 }
+
+// ha-dockhand's entity icons, from a checkout next to this repo by default.
+const iconsJson = process.argv[2] ?? join(import.meta.dirname, '..', '..', '..', 'ha-dockhand', 'custom_components', 'dockhand', 'icons.json');
+const entityIconsFile = join(import.meta.dirname, 'entity-icons.json');
+if (existsSync(iconsJson)) {
+  writeFileSync(entityIconsFile, JSON.stringify(JSON.parse(readFileSync(iconsJson, 'utf-8')).entity, null, 1) + '\n');
+} else {
+  console.error(`${iconsJson} not found: keeping entity-icons.json as it is`);
+}
+for (const m of readFileSync(entityIconsFile, 'utf-8').matchAll(/mdi:([a-z0-9-]+)/g)) names.add(m[1]);
 
 function toCamel(name) {
   return 'mdi' + name.split('-').map((p) => p[0].toUpperCase() + p.slice(1)).join('');

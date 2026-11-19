@@ -19,13 +19,13 @@ export function formatPercent(value: number, source: LocaleSource, digits = 1): 
   return `${formatDecimal(value, source, digits)}%`;
 }
 
-export function formatBytes(bytes: number | undefined | null, source?: LocaleSource): string {
+export function formatBytes(bytes: number | undefined | null, source?: LocaleSource, decimals = 1): string {
   if (bytes === undefined || bytes === null || Number.isNaN(bytes)) return '—';
   if (bytes === 0) return '0 B';
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
   const exponent = Math.min(Math.floor(Math.log(Math.abs(bytes)) / Math.log(1024)), units.length - 1);
   const value = bytes / Math.pow(1024, exponent);
-  return `${formatDecimal(value, source, exponent === 0 ? 0 : 1)} ${units[exponent]}`;
+  return `${formatDecimal(value, source, exponent === 0 ? 0 : decimals)} ${units[exponent]}`;
 }
 
 /** An entity state as a number, or undefined when it isn't one — HA reports
@@ -133,19 +133,10 @@ export function getInstanceLabel(configurationUrl: string | null | undefined): s
   }
 }
 
-/** Shared by every card's header-icon settings link — shown instead of the normal
- * clickable link when show_settings_link is on but getDockhandBaseUrl
- * couldn't resolve a valid URL. Deliberately not the same as the toggle
- * being off (which hides the icon entirely): this state exists precisely
- * so "the setting is on but broken" doesn't look identical to "the
- * setting is off", which was a real, confirmed source of confusion —
- * a malformed configured URL silently produced the exact same
- * appearance as choosing not to show the link at all, with nothing to
- * suggest anything needed fixing. The tooltip text itself is a
- * translated string (t(hass, 'settings_link_unavailable')), not a
- * constant here — this repo's live cards didn't translate any
- * rendered text at all until this string, so there's nothing to keep
- * consistent with; the icon has no such need, since it's not text. */
+/** Shown in place of a card's settings link when show_settings_link is
+ * on but getDockhandBaseUrl couldn't resolve a valid URL, so "on but
+ * broken" doesn't look like "off" (which hides the icon). Its tooltip is
+ * translated (t(hass, 'settings_link_unavailable')). */
 export const SETTINGS_LINK_UNAVAILABLE_ICON = 'mdi:link-off';
 
 /** Compact relative time for a schedule's next run or an event — "in 4h" /

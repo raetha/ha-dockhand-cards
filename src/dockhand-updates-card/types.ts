@@ -1,20 +1,11 @@
 import type { LovelaceCardConfig } from 'custom-card-helpers';
 import type { EntityNameItem } from '../common/ha-types';
-import type { EnvironmentScope } from '../common/environment-scope';
+import type { FiltersConfig } from '../common/filters';
 
 export type UpdatesGroupBy = 'none' | 'environment';
 
 export interface DockhandUpdatesCardConfig extends LovelaceCardConfig {
   type: 'custom:dockhand-updates-card';
-  /** Legacy fields — real, released since 1.1.0 (`scope: 'all' |
-   * 'environment'`; `scope: 'selected'` was added later in this same
-   * still-unreleased cycle and never shipped). Never written by this
-   * card's own editor anymore once environments_order/exclude_device_ids
-   * exist; kept purely so an already-saved config keeps working exactly
-   * as before, computed fresh each render rather than migrated in place.
-   * See resolveIncludedOrderedForUpdates in environment-scope.ts. */
-  scope?: EnvironmentScope;
-  device_id?: string;
   /** Device ids, in display order — which environments are included
    * (paired with exclude_device_ids) and what order groups display in.
    * Environments not listed sort after, alphabetically — same
@@ -22,13 +13,10 @@ export interface DockhandUpdatesCardConfig extends LovelaceCardConfig {
    * environments_order. */
   environments_order?: string[];
   exclude_device_ids?: string[];
-  /** Defaults to 'environment' when unset (not 'none', unlike Schedules'
-   * own default) — this card grouped by environment automatically,
-   * unconditionally, before this field existed, so an already-saved
-   * config with no group_by needs to keep doing exactly that rather
-   * than silently switching to a flat list. 'none' is the new option:
-   * every pending update across every included environment in one flat
-   * list, sorted by name — there's no other meaningful sort available
+  /** Defaults to 'environment' when unset (unlike the Schedules card), so
+   * a saved config without group_by keeps its groups. 'none' is one flat
+   * list of every pending update in the included environments, sorted
+   * by name — there's no other meaningful sort available
    * here (unlike Stacks/Containers/Schedules' own name/status/etc.
    * choices), so this is really just "grouped or not," not a fuller
    * sort_by-style control. */
@@ -50,4 +38,8 @@ export interface DockhandUpdatesCardConfig extends LovelaceCardConfig {
    * is on; left alone (or absent) otherwise, same as it would be for
    * any other card a user configures this way by hand. */
   visibility?: Record<string, unknown>[];
+  /** Which rows show; see common/filters.ts. */
+  filters?: FiltersConfig;
+  /** The "Hidden by filters" line; on unless false. */
+  show_filtered_count?: boolean;
 }

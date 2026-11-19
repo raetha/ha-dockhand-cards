@@ -1,11 +1,12 @@
+import { loadDisabledEntities } from '../common/disabled-entities';
 import { LitElement, html, type TemplateResult } from 'lit';
-import { state } from 'lit/decorators.js';
+import { property, state } from 'lit/decorators.js';
 import { fireEvent, type LovelaceCardEditor } from 'custom-card-helpers';
 import type { HaFormSchema } from '../common/ha-form-types';
 
-import type { HomeAssistant } from '../common/ha-types';
-import { getEnvironmentDevices, getContainerDevicesForEnvironment, getEnvIdForContainerDevice, getEnvDeviceIdForEnvId, getRepresentativeEntityId } from '../common/device-utils';
-import { cardNameFieldSchema, migrateTitleToName } from '../common/card-name';
+import type { EntityNameItem, HomeAssistant } from '../common/ha-types';
+import { defaultCardName, getEnvironmentDevices, getContainerDevicesForEnvironment, getEnvIdForContainerDevice, getEnvDeviceIdForEnvId, getRepresentativeEntityId } from '../common/device-utils';
+import { cardNameFieldSchema } from '../common/card-name';
 import { resolveContainerEntities, getContainerDropdownOptions } from '../common/entity-resolver';
 import { t } from '../common/i18n-editor';
 import { editorFormStyles } from '../common/editor-styles';
@@ -21,15 +22,21 @@ const SECTION_LABEL_KEY = {
 export class DockhandContainerCardEditor extends LitElement implements LovelaceCardEditor {
   @state() private _config?: DockhandContainerCardConfig;
   @state() private _hass?: HomeAssistant;
+  /** Set by the Dockhand dashboard's settings, which edit the one set of
+   * settings every container page's cards share: no container to pick, and no
+   * name (each card is named after its own container). */
+  @property({ type: Boolean }) cardIsEmbedded = false;
 
   static styles = [editorFormStyles];
 
   set hass(hass: HomeAssistant) {
     this._hass = hass;
+    // A disabled sensor is only in the full registry: load it to name it.
+    void loadDisabledEntities(hass).then((loaded) => loaded && this.requestUpdate());
   }
 
   setConfig(config: DockhandContainerCardConfig): void {
-    this._config = migrateTitleToName(config as Record<string, unknown>) as DockhandContainerCardConfig;
+    this._config = config;
   }
 
   /** Falls back to deriving the environment from the currently configured
@@ -55,14 +62,19 @@ export class DockhandContainerCardEditor extends LitElement implements LovelaceC
   }
 
   private _schema(envDevices: ReturnType<typeof getEnvironmentDevices>, containerOptions: { value: string; label: string }[]): HaFormSchema[] {
+    const pickers: HaFormSchema[] = this.cardIsEmbedded
+      ? []
+      : [
+          { name: 'environment_device_id', required: true, selector: { select: { mode: 'dropdown' as const, options: envDevices.map((d) => ({ value: d.deviceId, label: d.name })) } } },
+          {
+            name: 'device_id',
+            required: true,
+            disabled: containerOptions.length === 0,
+            selector: { select: { mode: 'dropdown' as const, options: containerOptions } }
+          }
+        ];
     return [
-      { name: 'environment_device_id', required: true, selector: { select: { mode: 'dropdown' as const, options: envDevices.map((d) => ({ value: d.deviceId, label: d.name })) } } },
-      {
-        name: 'device_id',
-        required: true,
-        disabled: containerOptions.length === 0,
-        selector: { select: { mode: 'dropdown' as const, options: containerOptions } }
-      },
+      ...pickers,
       // Content is everything shaping how this container is displayed —
       // Name and the settings link. Named and ordered to match every
       // other card's Content section. Represents from the container's
@@ -75,7 +87,7 @@ export class DockhandContainerCardEditor extends LitElement implements LovelaceC
         icon: 'mdi:text-short',
         title: t(this._hass, 'content_section_heading'),
         schema: [
-          cardNameFieldSchema(this._config?.device_id && this._hass ? getRepresentativeEntityId(this._hass, this._config.device_id) : undefined, [{ type: 'device' }]),
+          ...(this.cardIsEmbedded ? [] : [cardNameFieldSchema(this._config?.device_id && this._hass ? getRepresentativeEntityId(this._hass, this._config.device_id) : undefined, this._defaultName())]),
           { name: 'icon', selector: { icon: {} } },
           { name: 'show_settings_link', default: true, selector: { boolean: {} } },
           { name: 'show_controls', default: true, selector: { boolean: {} } },
@@ -89,6 +101,12 @@ export class DockhandContainerCardEditor extends LitElement implements LovelaceC
     ];
   }
 
+  /** What the card shows with no name set, as the Name field's preview. */
+  private _defaultName(): string | EntityNameItem[] {
+    const device = this._config?.device_id ? this._hass?.devices?.[this._config.device_id] : undefined;
+    return (device && this._hass && defaultCardName(this._hass, device)) || [{ type: 'device' }];
+  }
+
   protected render(): TemplateResult {
     if (!this._hass || !this._config) return html``;
 
@@ -100,7 +118,7 @@ export class DockhandContainerCardEditor extends LitElement implements LovelaceC
     const envDeviceId = this._resolvedEnvDeviceId();
     const envDevice = envDeviceId ? this._hass.devices[envDeviceId] : undefined;
     const containerDevices = envDevice ? getContainerDevicesForEnvironment(this._hass, envDevice) : [];
-    const containerOptions = getContainerDropdownOptions(this._hass, containerDevices);
+    const containerOptions = getContainerDropdownOptions(containerDevices);
     const noContainersFound = envDevice !== undefined && containerDevices.length === 0;
 
     return html`
@@ -138,9 +156,7 @@ export class DockhandContainerCardEditor extends LitElement implements LovelaceC
   };
 
   /** Attached to the device_id field via ha-form's own native
-   * .warning/computeWarning mechanism (a real HA feature, confirmed
-   * against source, present since well before our HA floor — unlike
-   * `visible:`, this one's actually shipped) rather than a hand-built
+   * .warning/computeWarning mechanism rather than a hand-built
    * .hint-box below the form, matching how HA's own editors surface a
    * field-specific caveat: a real <ha-alert> renders right at the field
    * it's about, not a disconnected box at the bottom of an unrelated
@@ -172,18 +188,19 @@ export class DockhandContainerCardEditor extends LitElement implements LovelaceC
     return { device_id: t(this._hass, 'availability_hint', { names }) };
   }
 
-  /** Plain passthrough — same as every other converted editor.
-   * environment_device_id changing doesn't touch device_id here, matching
-   * the previous hand-rendered picker's actual behavior: switching
-   * environment only ever re-scoped which containers the dropdown
-   * offered, it never silently cleared or rewrote a previously-chosen
-   * device_id on its own. If the two end up mismatched (environment
-   * changed, container not yet re-picked), the container schema options
-   * are already scoped to the new environment on the very next render,
-   * so the stale value simply won't appear as a valid choice until the
-   * user picks again — no separate cleanup needed. */
+  /** A container belongs to one environment, so choosing another clears it
+   * rather than leaving its device ID showing in the container field, and the
+   * card naming a container that isn't there. */
   private _valueChanged(ev: CustomEvent<{ value: DockhandContainerCardConfig }>): void {
-    fireEvent(this, 'config-changed', { config: ev.detail.value });
+    const config = { ...ev.detail.value };
+    if (this.cardIsEmbedded) {
+      delete config.environment_device_id;
+      fireEvent(this, 'config-changed', { config });
+      return;
+    }
+    const before = this._resolvedEnvDeviceId();
+    if (before && config.environment_device_id !== before) config.device_id = '';
+    fireEvent(this, 'config-changed', { config });
   }
 }
 

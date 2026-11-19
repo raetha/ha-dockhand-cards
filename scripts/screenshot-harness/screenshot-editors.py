@@ -4,15 +4,12 @@ from playwright.async_api import async_playwright
 
 OUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "out")
 
-# Not meant to cover every card/config combination — this exists so Claude
-# (or anyone) can visually sanity-check an editor's layout after changing
-# it, the same way screenshot.py lets you sanity-check a card. Add/adjust
-# entries here as needed while actively working on a given editor; there's
-# no expectation these stay in sync with every editor this repo has, the
-# way screenshot.py's CARDS list does for the README.
+# For looking at an editor's layout after changing it: add or adjust
+# entries for the editor at hand (unlike screenshot.py's CARDS, which the
+# docs use).
 EDITORS = [
     ("dockhand-schedules-card", {"group_by": "environment"}, "editor-schedules.png", 480, 750),
-    ("dockhand-updates-card", {"scope": "selected"}, "editor-updates.png", 480, 550),
+    ("dockhand-updates-card", {}, "editor-updates.png", 480, 550),
     ("dockhand-overview-card", {"show_environments": True, "show_stacks": True}, "editor-overview.png", 480, 900),
 ]
 

@@ -3,12 +3,9 @@ import { describe, it, expect } from 'vitest';
 import { DockhandStackCard } from './card';
 import { makeDevice, makeEntity, makeHass, makeState } from '../common/test-fixtures';
 import type { HomeAssistant } from '../common/ha-types';
+import { mount as mountTag, type Lit } from '../common/mount.test-helpers';
 
-type StackCardElement = HTMLElement & {
-  hass: HomeAssistant;
-  setConfig(config: Record<string, unknown>): void;
-  updateComplete: Promise<boolean>;
-};
+type StackCardElement = Lit;
 
 const TAG = 'dockhand-stack-card-under-test';
 if (!customElements.get(TAG)) customElements.define(TAG, DockhandStackCard);
@@ -24,7 +21,7 @@ const STATS: [string, string, Record<string, unknown>][] = [
 ];
 
 function hassWithStack(withStats: boolean) {
-  const stack = makeDevice({ id: 'stack-dev', identifiers: [['dockhand', 'entry_stack_1_core']], config_entries: ['entry'], name: 'core', model: 'Internal Stack' });
+  const stack = makeDevice({ id: 'stack-dev', identifiers: [['dockhand', 'entry_stack_1_core']], config_entry_id: 'entry', name: 'core', model: 'Internal Stack' });
   const entities = [makeEntity({ entity_id: 'sensor.core_status', device_id: 'stack-dev', translation_key: 'status' })];
   const states = [makeState({ entity_id: 'sensor.core_status', state: 'running', attributes: { type: 'internal' } })];
   if (withStats) {
@@ -36,14 +33,8 @@ function hassWithStack(withStats: boolean) {
   return makeHass({ devices: [stack], entities, states });
 }
 
-async function mount(hass: HomeAssistant, config: Record<string, unknown> = {}): Promise<StackCardElement> {
-  const card = document.createElement(TAG) as StackCardElement;
-  card.setConfig({ type: 'custom:dockhand-stack-card', device_id: 'stack-dev', show_controls: false, ...config });
-  card.hass = hass;
-  document.body.appendChild(card);
-  await card.updateComplete;
-  return card;
-}
+const mount = (hass: HomeAssistant, config: Record<string, unknown> = {}) =>
+  mountTag<StackCardElement>(TAG, { type: 'custom:dockhand-stack-card', device_id: 'stack-dev', show_controls: false, ...config }, hass);
 
 describe('Stack card resource stats', () => {
   it('shows the CPU and memory bars and the network/disk grid from the stack totals', async () => {
@@ -51,7 +42,6 @@ describe('Stack card resource stats', () => {
     const root = card.shadowRoot!;
     expect(root.querySelectorAll('.bar-track')).toHaveLength(2);
     expect(root.querySelectorAll('.grid-2 .row')).toHaveLength(4);
-    card.remove();
   });
 
   it('opens the CPU entity when its row is clicked', async () => {
@@ -60,7 +50,6 @@ describe('Stack card resource stats', () => {
     card.addEventListener('hass-more-info', (e) => events.push((e as CustomEvent<{ entityId: string }>).detail.entityId));
     (card.shadowRoot!.querySelector('.stacked-pair .row') as HTMLElement).click();
     expect(events).toEqual(['sensor.core_stack_cpu_percent']);
-    card.remove();
   });
 
   it('shows memory as usage over limit with no percentage, and opens the usage entity', async () => {
@@ -75,32 +64,33 @@ describe('Stack card resource stats', () => {
     card.addEventListener('hass-more-info', (e) => events.push((e as CustomEvent<{ entityId: string }>).detail.entityId));
     memoryRow.click();
     expect(events).toEqual(['sensor.core_stack_memory_usage']);
-    card.remove();
   });
 
   it('adds nothing when ha-dockhand has no stack stats (older release, or stats off)', async () => {
     const card = await mount(hassWithStack(false));
     expect(card.shadowRoot!.querySelector('.bar-track')).toBeNull();
     expect(card.shadowRoot!.querySelector('.grid-2')).toBeNull();
-    card.remove();
   });
 
   it('hides the sections that are turned off', async () => {
     const card = await mount(hassWithStack(true), { visible_sections: ['status', 'io'] });
     expect(card.shadowRoot!.querySelector('.bar-track')).toBeNull();
     expect(card.shadowRoot!.querySelectorAll('.grid-2 .row')).toHaveLength(4);
-    card.remove();
   });
 });
 
 describe('Stack card container pills', () => {
   function hassWithContainers() {
-    const env = makeDevice({ id: 'env-dev', identifiers: [['dockhand', 'entry_env_1']], config_entries: ['entry'], name: 'Nebula' });
-    const stack = makeDevice({ id: 'stack-dev', identifiers: [['dockhand', 'entry_stack_1_core']], config_entries: ['entry'], name: 'core' });
+    const env = makeDevice({ id: 'env-dev', identifiers: [['dockhand', 'entry_env_1']], config_entry_id: 'entry', name: 'Nebula' });
+    const stack = makeDevice({ id: 'stack-dev', identifiers: [['dockhand', 'entry_stack_1_core']], config_entry_id: 'entry', name: 'core' });
     const devices = [env, stack];
-    const entities = [makeEntity({ entity_id: 'sensor.core_status', device_id: 'stack-dev', translation_key: 'status' })];
+    const entities = [
+      makeEntity({ entity_id: 'sensor.core_status', device_id: 'stack-dev', translation_key: 'status' }),
+      makeEntity({ entity_id: 'sensor.core_containers', device_id: 'stack-dev', translation_key: 'containers_in_stack' })
+    ];
     const states = [
-      makeState({ entity_id: 'sensor.core_status', state: 'running', attributes: { type: 'internal', container_names: ['web', 'db', 'proxy', 'cache', 'idle'] } })
+      makeState({ entity_id: 'sensor.core_status', state: 'running', attributes: { type: 'internal' } }),
+      makeState({ entity_id: 'sensor.core_containers', state: '5', attributes: { containers: ['web', 'db', 'proxy', 'cache', 'idle'] } })
     ];
     const updates: Record<string, Record<string, unknown>> = {
       web: { installed_version: 'a', latest_version: 'update-pending' },
@@ -110,12 +100,12 @@ describe('Stack card container pills', () => {
       idle: { off: true, installed_version: 'i', latest_version: 'i' }
     };
     for (const [name, attrs] of Object.entries(updates)) {
-      devices.push(makeDevice({ id: `dev-${name}`, identifiers: [['dockhand', `entry_container_1_${name}`]], config_entries: ['entry'], name }));
+      devices.push(makeDevice({ id: `dev-${name}`, identifiers: [['dockhand', `entry_container_1_${name}`]], config_entry_id: 'entry', name }));
       entities.push(makeEntity({ entity_id: `sensor.${name}_state`, device_id: `dev-${name}`, translation_key: 'state' }));
       entities.push(makeEntity({ entity_id: `update.${name}`, device_id: `dev-${name}` }));
-      states.push(makeState({ entity_id: `sensor.${name}_state`, state: 'running', attributes: { name } }));
+      states.push(makeState({ entity_id: `sensor.${name}_state`, state: 'running' }));
       const { off, ...rest } = attrs;
-      states.push(makeState({ entity_id: `update.${name}`, state: off ? 'off' : 'on', attributes: { name, ...rest } }));
+      states.push(makeState({ entity_id: `update.${name}`, state: off ? 'off' : 'on', attributes: rest }));
     }
     return makeHass({ devices, entities, states });
   }
@@ -130,7 +120,29 @@ describe('Stack card container pills', () => {
     expect(icon('proxy').getAttribute('icon')).toBe('mdi:pin-outline');
     expect(icon('cache').getAttribute('icon')).toBe('mdi:clock-outline');
     expect(icon('cache').getAttribute('title')).toBe('Update held: 6 h left of the minimum image age');
-    expect(pills.find((p) => p.textContent?.trim() === 'idle')!.querySelector('ha-icon')).toBeNull();
-    card.remove();
+    expect(pills.find((p) => p.textContent?.trim() === 'idle')!.querySelector('.update-icon')).toBeNull();
+  });
+
+  it('shows each container’s state as the Container card does, after any update icon', async () => {
+    const hass = hassWithContainers();
+    hass.states['sensor.db_state'] = { ...hass.states['sensor.db_state'], state: 'exited' };
+    hass.states['sensor.idle_state'] = { ...hass.states['sensor.idle_state'], state: 'paused' };
+    const card = await mount(hass);
+    const pill = (name: string) => [...card.shadowRoot!.querySelectorAll<HTMLElement>('.label-row .label-pill')].find((p) => p.textContent?.trim() === name)!;
+    const icons = (name: string) => [...pill(name).querySelectorAll('ha-icon')].map((i) => `${i.getAttribute('icon')} ${i.getAttribute('class') ?? ''}`.trim());
+    expect(icons('web')).toEqual(['mdi:arrow-up-circle update-icon clickable', 'mdi:play-circle pill-state ok']);
+    expect(icons('db')).toEqual(['mdi:tag-arrow-up-outline update-icon clickable', 'mdi:stop-circle pill-state error']);
+    expect(icons('idle')).toEqual(['mdi:pause-circle pill-state warn']);
+    expect(pill('idle').querySelector('.pill-state')!.getAttribute('title')).toBe('Paused');
+  });
+
+  it('opens the update from a pill’s update icon, and the container’s state from the rest of it', async () => {
+    const card = await mount(hassWithContainers());
+    const events: string[] = [];
+    card.addEventListener('hass-more-info', (e) => events.push((e as CustomEvent<{ entityId: string }>).detail.entityId));
+    const web = [...card.shadowRoot!.querySelectorAll<HTMLElement>('.label-row .label-pill')].find((p) => p.textContent?.trim() === 'web')!;
+    web.querySelector<HTMLElement>('.update-icon')!.click();
+    web.querySelector<HTMLElement>('.pill-state')!.click();
+    expect(events).toEqual(['update.web', 'sensor.web_state']);
   });
 });

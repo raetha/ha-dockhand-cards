@@ -22,6 +22,7 @@ export const sharedStyles = css`
      */
     --dockhand-accent-color: var(--primary-color);
     --dockhand-status-ok-color: var(--success-color, #43a047);
+    --dockhand-status-off-color: var(--secondary-text-color, #727272);
     --dockhand-status-warn-color: var(--warning-color, #ffa600);
     --dockhand-status-error-color: var(--error-color, #db4437);
     --dockhand-status-info-color: var(--info-color, #039be5);
@@ -92,15 +93,8 @@ export const sharedStyles = css`
    * icon-badge + name, or a list row's own leading icon + name/pill —
    * flex, explicitly vertically centered rather than relying on
    * flexbox's own default (stretch), plus the standard 8px gap every
-   * current usage needs. Previously two separate classes (.header-left,
-   * .row-left) differing only in .header-left's own flex: 1 — tested
-   * directly against a real, overflowing header before merging, and
-   * confirmed to make zero visible difference (identical width with
-   * and without it): space-between already positions the two groups
-   * regardless, and min-width: 0 here already does the actual work of
-   * letting a child (a name, an item-name) shrink and truncate when
-   * space is tight. Not carried into this merged class, since it
-   * wasn't doing anything to carry. */
+   * current usage needs. min-width: 0 lets a child (a name) shrink and
+   * truncate when space is tight. */
   .row-left {
     display: flex;
     align-items: center;
@@ -168,31 +162,6 @@ export const sharedStyles = css`
    * the two never compete for the same element at all — its own
    * padding here is genuinely larger and intentional (12px, not the
    * standard 4px), for the single most prominent value on a card. */
-  /* Container/Stack start/stop/restart/deploy buttons, directly under the
-   * hero status. Wraps rather than overflowing on a narrow card. */
-  .control-row {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: var(--ha-space-2, 8px);
-    padding-bottom: 12px;
-  }
-  .control-button {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--ha-space-1, 4px);
-    height: 32px;
-    padding: 0 var(--ha-space-3, 12px);
-    border-radius: 16px;
-    background: rgb(from var(--dockhand-accent-color) r g b / 0.1);
-    color: var(--dockhand-accent-text-color);
-    font-size: var(--ha-font-size-m, 14px);
-    font-weight: 500;
-    --mdc-icon-size: 18px;
-  }
-  .control-button:hover {
-    background: rgb(from var(--dockhand-accent-color) r g b / 0.18);
-  }
   .hero-row {
     display: flex;
     align-items: center;
@@ -335,7 +304,7 @@ export const sharedStyles = css`
    * wrongly *after* the line (padding comes after border in the box
    * model) on top of .divider's own correct margin, roughly doubling
    * the gap after every divider on the page. */
-  .body > *:not(.section):not(.grid-2):not(.divider):not(.hero-row),
+  .body > *:not(.section):not(.grid-2):not(.divider):not(.hero-row):not(.list),
   .section > *,
   .list > *,
   .grid-2 > * {
@@ -420,9 +389,7 @@ export const sharedStyles = css`
    * Also the shape for Environment's own connection-type icon (a
    * card's own header-left content, not header-right — position comes
    * entirely from wherever it's placed in the DOM, not from this
-   * class) — merged from what was once a separate .conn-icon class, once
-   * nothing distinguished them but a stray flex-shrink:0, folded in
-   * below rather than kept as a second, near-identical class. */
+   * class). */
   .header-icon {
     display: inline-flex;
     align-items: center;
@@ -481,19 +448,6 @@ export const sharedStyles = css`
   .label-pill ha-icon,
   .row .label-pill ha-icon {
     --mdc-icon-size: 12px;
-  }
-  /* Same color as the update icon it sits beside — both are update badges —
-   * on a tint of it, the way the Vulnerability card's severity boxes are
-   * (and Dockhand's own badge: amber at 10%, 20% on hover). */
-  .version-tag-pill {
-    color: var(--dockhand-status-warn-text-color);
-    background: rgb(from var(--dockhand-status-warn-color) r g b / 0.1);
-  }
-  .version-tag-pill ha-icon {
-    color: var(--dockhand-status-warn-color);
-  }
-  .version-tag-pill.clickable:hover:not(:has(.clickable:hover)) {
-    background: rgb(from var(--dockhand-status-warn-color) r g b / 0.2);
   }
   /* The shared shape for any message that takes over a card (or a
    * card's own body) in place of its normal content — a required
@@ -592,22 +546,75 @@ export const sharedStyles = css`
     background: var(--dockhand-status-error-color);
   }
 
-  /* The list mechanism — two shapes, for two genuinely different needs.
-   *
-   * .list: no column alignment across rows (Stacks/Containers, plural,
-   * list cards — each row's own badge count varies, so there's no
-   * consistent set of columns to align in the first place, and — per
-   * direct instruction — for column-aligned lists too (Schedules,
-   * Updates, Recent Events, Top Containers), abandoning subgrid-based
-   * cross-row column alignment for simplicity: rows just group their
-   * own left/right content via .row's own justify-content, rather
-   * than sharing column tracks across the whole list. No box of its
-   * own — its rows become effectively direct children of whatever
-   * actually wraps them (.body/.section), getting the standard
-   * context padding above via the .list > * selector there, same as
-   * any other row would. */
+  /* A list card's rows. .list has no box of its own: its rows are laid out
+   * by .row (name on the left, details on the right) and get the standard
+   * context padding through .list > *. .list.aligned, below, lines the
+   * details up in columns instead. */
   .list {
     display: contents;
+  }
+  /* .list.aligned (renderAlignedList() in aligned-list.ts): the row details
+   * on the right line up in columns down the whole list. The card sets the columns: the name
+   * side, then one per detail shown that some row has, each as wide as its
+   * widest value (auto). Rows take the list's columns (subgrid) and keep a
+   * cell in every column, empty when they have nothing for it; group
+   * headers and dividers span them all. */
+  .list.aligned {
+    display: grid;
+    column-gap: var(--ha-space-2, 8px);
+  }
+  /* When even the name's minimum doesn't fit beside the columns
+   * (RowFitController), the list scrolls sideways and the controls stay at
+   * its right edge, over the rest, as in Dockhand's own tables. */
+  .list.aligned.overflowing {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+  }
+  .list.aligned.overflowing > .row > .row-actions {
+    position: sticky;
+    right: 0;
+    background: var(--ha-card-background, var(--card-background-color, #fff));
+    box-shadow: calc(-1 * var(--ha-space-2, 8px)) 0 0 var(--ha-card-background, var(--card-background-color, #fff));
+  }
+  /* Its rows carry the context padding (.list > *), not the list. */
+  .section > .list.aligned {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  .list.aligned > * {
+    grid-column: 1 / -1;
+  }
+  .list.aligned > .divider {
+    padding: 0;
+  }
+  .list.aligned > .row {
+    display: grid;
+    grid-template-columns: subgrid;
+  }
+  /* The name side fills its column and no more (a flex row's margin-right:
+   * auto for controls, below, would size it to its content here). */
+  .list.aligned > .row > .row-left {
+    margin-right: 0;
+  }
+  /* The name side's pills follow the name rather than the name filling
+   * its column and pushing them to its far end. */
+  .list.aligned > .row > .row-left .item-name {
+    flex-grow: 0;
+    flex-basis: auto;
+  }
+  /* Right-aligned instead: the Containers card's updates column (a newer
+   * tag, then the update, icons only), so a row with just one lines up
+   * with the others' last, and the Updates card's version text. */
+  .list.aligned > .row > .cell.end {
+    justify-content: flex-end;
+  }
+  /* Left-aligned, so the icons of a column line up. */
+  .list.aligned > .row > .cell {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--ha-space-2, 8px);
+    line-height: 1;
   }
   /* The large, prominent status text at the top of a single-device card
    * (a container's own state, a stack's own status) — inherits its own
@@ -645,22 +652,18 @@ export const sharedStyles = css`
   .hero-word.error {
     color: var(--dockhand-status-error-text-color);
   }
+  .hero-word.info {
+    color: var(--dockhand-status-info-text-color);
+  }
   .hero-word.neutral {
     color: var(--secondary-text-color);
   }
   /* The standard data-row shape — icon+label pushed to one side, an
    * optional value pushed to the other (space-between naturally has no
    * visible effect with only one child, so this is safe even for
-   * label-only rows with nothing on the right). Covers what were
-   * previously two separate classes (.split-row + .item-row) — in
-   * practice every row in this repo either wants both behaviors
-   * together or neither, so there was no real case that needed one
-   * without the other. .row-left (above) stays separate for a
-   * different role: the tightly-grouped "left group" nested *within*
-   * a .row (an icon + name + optional pill(s) together, with the row's
-   * own value still pushed to the far side) rather than a standalone
-   * space-between row on its own — the same shape a card's own header
-   * uses too, merged from what was once a separate .header-left. */
+   * label-only rows with nothing on the right). .row-left (above) is the
+   * tightly grouped left part within a .row or a card header (icon, name,
+   * pills), with the value still pushed to the far side. */
   .row {
     display: flex;
     align-items: center;
@@ -721,6 +724,9 @@ export const sharedStyles = css`
   .row-icon.error {
     color: var(--dockhand-status-error-color);
   }
+  .row-icon.info {
+    color: var(--dockhand-status-info-color);
+  }
   .row-icon.accent {
     color: var(--dockhand-accent-color);
   }
@@ -730,15 +736,36 @@ export const sharedStyles = css`
   /* A secondary bit of metadata at the end of a row (Schedules' own
    * next-run time, Updates' own version info) — and a card header's own
    * right-side content (the Dockhand link, an update chip, feature
-   * toggles). Previously two separate, identical classes (.header-right,
-   * .row-right); merged once there was nothing left distinguishing
-   * them. */
+   * toggles). */
   .row-right {
     display: flex;
     align-items: center;
     gap: var(--ha-space-2, 8px);
     flex-shrink: 0;
     line-height: 1;
+  }
+  /* A list row's controls (Controls, under Row details): two fixed 16px slots, the same
+   * on every row, so controls line up down the card and the values before
+   * them do too. A row-icon is 16px (below). */
+  .row-actions {
+    display: grid;
+    grid-template-columns: repeat(var(--row-control-slots, 2), 16px);
+    column-gap: var(--ha-space-2, 8px);
+    align-items: center;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  /* With a third part, .row's space-between would also open a gap before
+   * the actions column; the free space goes after the left part instead,
+   * so the values sit against the column on every row. */
+  .row:has(> .row-actions) > .row-left {
+    margin-right: auto;
+  }
+  /* How many rows a list card's filters hide: quiet, under the list. */
+  .filtered-note {
+    color: var(--secondary-text-color);
+    font-size: var(--ha-font-size-s, 12px);
+    text-align: center;
   }
   /* See renderFitParts (fit-parts.ts): pieces that don't fit wrap onto a
    * second line that the one-line height hides. Unlike a plain .row-right it
@@ -773,6 +800,40 @@ export const sharedStyles = css`
     white-space: nowrap;
     line-height: 1;
   }
+  /* A row's Dockhand tags give way before its name: the name keeps its
+   * whole width (any shrinking at all, even a fraction of a pixel, shows
+   * an ellipsis) up to the full row, and the tags take what's left,
+   * clipping the last pills when the row is narrow. */
+  .row-left:has(.tag-pills) .item-name {
+    flex: 0 0 auto;
+    max-width: 100%;
+  }
+  /* With the tags left out, the name gives way after all. */
+  .row.no-tags .row-left:has(.tag-pills) .item-name {
+    flex-shrink: 1;
+  }
+  .tag-pills {
+    display: flex;
+    gap: var(--ha-space-1, 4px);
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+  }
+  /* RowFitController (row-fit.ts): on a row too narrow for them, the tags
+   * fold into one pill with their count before the name gets cut, and the
+   * name's other pills give way before it's cut short. */
+  .tag-summary {
+    display: none;
+    flex-shrink: 0;
+  }
+  .row.compact-tags .tag-pills,
+  .row.no-tags .tag-pills,
+  .row.no-labels .name-label {
+    display: none;
+  }
+  .row.compact-tags .tag-summary {
+    display: inline-flex;
+  }
   /* Icon+count summary row (Environment card's container stats,
    * Schedules card's status counts) — spread evenly across the full card
    * width via flex, not a fixed-column grid: a grid needs its column
@@ -794,14 +855,9 @@ export const sharedStyles = css`
   /* A standalone class, not scoped under any ancestor (e.g. not
    * .stats-row .stat .group-header) — an over-scoped selector that only
    * works nested several levels deep in one specific card's own layout
-   * doesn't read as something safe to reuse elsewhere, which is exactly
-   * why this shape had drifted into multiple local copies before being
-   * unified here (see architecture.md §11). */
-  /* Moved here from the Schedules card's own styles.ts once Stacks
-   * needed the identical thing for its own new group_by support —
-   * shared, not duplicated, the same principle this repo already
-   * applies to editor code (docs/editor-design.md rule 5's own
-   * reasoning). Same font-size as .section-title (Environment card's
+   * doesn't read as something safe to reuse elsewhere (see
+   * architecture.md §11). Shared by every card that groups rows. Same
+   * font-size as .section-title (Environment card's
    * own content-header style, below) — both are the same concept, a
    * header for a chunk of content, one just happens to be a group
    * divider rather than an icon-prefixed section label. Sentence case
@@ -854,35 +910,16 @@ export const sharedStyles = css`
    * modifier (the same four semantic names read consistently across
    * every icon-class tier in this file, not reinvented per shape).
    *
-   * There used to be a second, smaller "status icon" tier alongside
-   * this one (.status-icon — a container's own update-available badge,
-   * a stack's own warning), consolidated from five near-identical
-   * definitions that had drifted apart across Environment/Vulnerability/
-   * Stack/Container/Updates. It's since been eliminated entirely rather
-   * than just consolidated: both of its own remaining uses (Container's
-   * own header-positioned update-chip, its own hero-row-positioned
-   * health-chip) already belonged to one of the four primary icon-class
-   * tiers this file is organized around (header/hero-row/item-row/pill —
-   * see each one's own comment for its own size and color-modifier set),
-   * so giving them a third, separate class purely for color dressed up
-   * an ordinary header/hero-row icon as if it were a distinct shape,
-   * when the only thing it ever needed beyond that context was a color.
+   * A status-colored icon in a header or hero row (Container's update
+   * and health chips) uses that tier's class plus a color modifier, not a
+   * separate status-icon class.
    *
    * Neither this banner nor an icon carrying one of these color
    * modifiers signals "clicking this does something" on its own — most
    * usages either do nothing on click or only open a more-info dialog,
-   * informational either way. A card with a *real* action button (one
-   * that actually triggers something, not just more-info) shouldn't
-   * reuse this shape at all — see the Updates card's own "Update all"/
-   * "Check for updates," which use the real <ha-button> component
-   * instead (confirmed safe to use directly: it's a transitive import of
-   * <ha-icon-button>, which is loaded by hui-root.ts, the Lovelace
-   * dashboard root itself — see docs/architecture.md §11). Its own
-   * native variant values already carry this repo's own semantic
-   * colors (brand≈accent, success≈ok, warning≈warn, danger≈error), so
-   * there's no reason to hand-roll a status-chip-based button when the
-   * real component already does the job, and does it more consistently
-   * with the rest of HA's own UI besides. */
+   * informational either way. Real actions (the Updates card's Update
+   * all and Check for updates) are header icons with .filled and a
+   * busy spinner instead (docs/architecture.md §17). */
   .status-banner {
     display: flex;
     align-items: center;
@@ -894,15 +931,8 @@ export const sharedStyles = css`
     font-size: var(--ha-font-size-s, 12px);
     font-weight: 500;
   }
-  /* Found identically redeclared locally on several different cards
-   * (Container's own .update-chip, plus two others, since eliminated,
-   * on Environment and Stack — all real modifier classes layered on
-   * top of .status-banner for local layout needs, but each also
-   * carrying its own copy of this exact icon-size rule) before being
-   * moved here once. .section-title/.stats-row's own icons folded in
-   * the same way once this session's icon-size baseline change
-   * (13px/14px → 16px) landed all three on the identical value —
-   * restating one declaration three times stopped being justified. */
+  /* One icon size for section titles, stat rows and status banners
+   * (and the modifier classes layered on .status-banner). */
   .section-title ha-icon,
   .stats-row .stat ha-icon,
   .status-banner ha-icon {

@@ -17,3 +17,4 @@ import './dockhand-stack-card/editor';
 import './dockhand-stacks-card/editor';
 import './dockhand-updates-card/editor';
 import './dockhand-vulnerability-card/editor';
+import './dockhand-strategy/editor';

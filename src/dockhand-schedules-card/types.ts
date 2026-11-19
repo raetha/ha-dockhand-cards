@@ -1,11 +1,15 @@
 import type { LovelaceCardConfig } from 'custom-card-helpers';
 import type { EntityNameItem } from '../common/ha-types';
+import type { FiltersConfig } from '../common/filters';
 
 export type ScheduleSortBy = 'name' | 'next_run' | 'status';
 
 export type ScheduleGroupBy = 'none' | 'environment' | 'type' | 'status';
 
-export type ScheduleBadge = 'next_run' | 'environment';
+export type ScheduleBadge = 'next_run' | 'environment' | 'controls';
+
+/** The details in their order on a row, which the editor lists them in. */
+export const SCHEDULE_BADGE_ORDER: readonly ScheduleBadge[] = ['environment', 'next_run', 'controls'];
 
 export interface DockhandSchedulesCardConfig extends LovelaceCardConfig {
   type: 'custom:dockhand-schedules-card';
@@ -41,12 +45,11 @@ export interface DockhandSchedulesCardConfig extends LovelaceCardConfig {
    * boolean. */
   visible_badges?: ScheduleBadge[];
   group_by?: ScheduleGroupBy;
-  /** Device ids, in display order — the SAME list serves three jobs now:
+  /** Device ids, in display order — the same list serves three jobs:
    * which environments are included at all (paired with
    * exclude_device_ids), what order groups display in when group_by:
    * 'environment', and — via the editor's per-row "solo" action — the
-   * fast path for "just this one environment," which used to be a
-   * separate scope: 'environment' + device_id pair. Environments not
+   * fast path for "just this one environment". Environments not
    * listed sort after, alphabetically — same convention as Overview's
    * own environments_order. Everything included by default (nothing
    * excluded) until something actually is — see
@@ -61,13 +64,17 @@ export interface DockhandSchedulesCardConfig extends LovelaceCardConfig {
    * environments_order/exclude_device_ids' own default). */
   include_global?: boolean;
   sort_by?: ScheduleSortBy;
+  /** Which rows show; see common/filters.ts. */
+  filters?: FiltersConfig;
+  /** The "Hidden by filters" line; on unless false. */
+  show_filtered_count?: boolean;
+  /** Rows with a problem (see isProblem in card.ts) show whatever the
+   * filters say; off unless set. */
+  always_show_problems?: boolean;
 }
 
-/** Context-sensitive default for visible_badges — matches what
- * show_environment_pill/show_next_run's own defaults were before this
- * became one array field: 'next_run' always included, 'environment'
- * included except specifically when grouped by environment (redundant
- * with the group header there). Only applied when the person hasn't
+/** The default for visible_badges: 'next_run' always, and 'environment'
+ * unless grouped by environment (the group header already says it). Only applied when the person hasn't
  * explicitly set visible_badges themselves at all — an explicit array
  * (including a deliberately empty one, hiding both) is respected as-is,
  * not silently overridden the next time group_by changes. This is the

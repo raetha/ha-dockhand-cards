@@ -1,5 +1,6 @@
 import { DOCKHAND_DOMAIN } from './const';
 import type { DeviceRegistryEntry, HomeAssistant } from './ha-types';
+import { entitiesOnDevice } from './registry-index';
 
 // ha-dockhand's environment device identifier format:
 //   Pre-1.9.0:  env_{env_id}                          (e.g. "env_1")
@@ -57,21 +58,12 @@ export function getEnvId(device: DeviceRegistryEntry): number | null {
  * instance numbers its own first environment `1`, so the numeric env_id
  * alone is never enough to scope a lookup to "this environment": two
  * separate instances' `env_1` need to stay distinct even though they
- * share a number. `config_entries` is HA's own record of which config
- * entry created a device — set by HA itself regardless of identifier
- * format, so it works for pre-1.9.0 (bare, entry_id-less) identifiers
- * too — and is the actual source of truth for "same instance", not
- * something this repo has to reconstruct by parsing entry_id back out
- * of an identifier string. */
+ * share a number. `config_entry_id` is HA's own record of which config
+ * entry created a device, set whatever the identifier format (so it also
+ * covers pre-1.9.0 identifiers without an entry_id), and the source of
+ * truth for "same instance" rather than parsing identifiers. */
 function sameConfigEntry(device: DeviceRegistryEntry, envDevice: DeviceRegistryEntry): boolean {
-  // HA 2026.8 gave each device a single `config_entry_id` and schedules the
-  // `config_entries` list for removal from the device registry API in 2027.8.
-  // The frontend still fills `config_entries` in today, so either may be the
-  // one present depending on HA version.
-  if (device.config_entry_id && envDevice.config_entry_id) return device.config_entry_id === envDevice.config_entry_id;
-  const entries = (d: DeviceRegistryEntry) => d.config_entries ?? (d.config_entry_id ? [d.config_entry_id] : []);
-  const envEntries = entries(envDevice);
-  return entries(device).some((id) => envEntries.includes(id));
+  return device.config_entry_id != null && device.config_entry_id === envDevice.config_entry_id;
 }
 
 // ha-dockhand container device identifier format:
@@ -149,6 +141,48 @@ export function getEnvIdForContainerDevice(device: DeviceRegistryEntry): number 
   return null;
 }
 
+/** A stack device's stack name, from ha-dockhand's identifier
+ * (`{entry_id}_stack_{env_id}_{name}`, or `stack_{env_id}_{name}` before
+ * 1.9.0; an entry id has no underscores). */
+export function getStackName(device: DeviceRegistryEntry): string | null {
+  for (const [domain, id] of device.identifiers ?? []) {
+    if (domain !== DOCKHAND_DOMAIN) continue;
+    const match = /^(?:[^_]+_)?stack_\d+_(.+)$/.exec(id);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+/** A container device's container name, from ha-dockhand's identifier
+ * (`{entry_id}_container_{env_id}_{name}`, or `container_{env_id}_{name}`
+ * before 1.9.0). */
+export function getContainerName(device: DeviceRegistryEntry): string | null {
+  for (const [domain, id] of device.identifiers ?? []) {
+    if (domain !== DOCKHAND_DOMAIN) continue;
+    const match = /^(?:[^_]+_)?container_\d+_(.+)$/.exec(id);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+const SCHEDULE_NAME_SEPARATOR = ' – Schedules – ';
+
+/** A schedule's own name: ha-dockhand names its device "{environment or
+ * Dockhand} – Schedules – {name}", and the device's own name (not one the
+ * user gave it) keeps that form. */
+export function getScheduleName(device: DeviceRegistryEntry): string | null {
+  const name = device.name ?? '';
+  const at = name.indexOf(SCHEDULE_NAME_SEPARATOR);
+  return at >= 0 ? name.slice(at + SCHEDULE_NAME_SEPARATOR.length) : null;
+}
+
+/** The stack a container device belongs to (its parent device in
+ * ha-dockhand), or null when it runs on its own. */
+export function getStackNameForContainerDevice(hass: HomeAssistant, device: DeviceRegistryEntry): string | null {
+  const parent = device.via_device_id ? hass.devices?.[device.via_device_id] : undefined;
+  return parent && isStackDevice(parent) ? getStackName(parent) : null;
+}
+
 /** Reverse of getStackDevicesForEnvironment — which env does this stack device belong to. */
 export function getEnvIdForStackDevice(device: DeviceRegistryEntry): number | null {
   for (const [domain, id] of device.identifiers ?? []) {
@@ -173,6 +207,21 @@ export function getEnvDeviceForEnvId(hass: HomeAssistant, envId: number, referen
     if (sameConfigEntry(device, referenceDevice)) return device;
   }
   return null;
+}
+
+/** A Stack or Container card's name when none is set: "{environment} –
+ * {name}". The device's own name, "{environment} – Stacks – {name}", says
+ * "Stacks" or "Containers", which the card's icon already shows. A name
+ * given to the device in Home Assistant wins. */
+export function defaultCardName(hass: HomeAssistant, device: DeviceRegistryEntry): string | null {
+  if (device.name_by_user) return device.name_by_user;
+  const stack = isStackDevice(device);
+  const own = stack ? getStackName(device) : getContainerName(device);
+  if (!own) return device.name ?? null;
+  const envId = stack ? getEnvIdForStackDevice(device) : getEnvIdForContainerDevice(device);
+  const env = envId === null ? null : getEnvDeviceForEnvId(hass, envId, device);
+  const envName = env?.name_by_user || env?.name;
+  return envName ? `${envName} – ${own}` : own;
 }
 
 /** Convenience wrapper over getEnvDeviceForEnvId for callers that only
@@ -291,8 +340,7 @@ export function getEnvIdForScheduleDevice(hass: HomeAssistant, device: DeviceReg
  * not "whichever happened to register first"). Returns undefined if the
  * device has no entities yet. */
 export function getRepresentativeEntityId(hass: HomeAssistant, deviceId: string): string | undefined {
-  const candidates = Object.values(hass.entities ?? {})
-    .filter((e) => e.device_id === deviceId)
+  const candidates = entitiesOnDevice(hass, deviceId)
     .map((e) => e.entity_id)
     .sort();
   return candidates[0];

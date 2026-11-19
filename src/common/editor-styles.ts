@@ -54,17 +54,34 @@ export const editorFormStyles = css`
     display: block;
     margin-bottom: var(--ha-space-4, 16px);
   }
+  /* The header of a card's own settings, opened from a list (the Overview
+   * card's sections and environments, the dashboard's cards): a back
+   * button, the name, and anything beside it. */
+  .detail-header {
+    display: flex;
+    align-items: center;
+    gap: var(--ha-space-2, 8px);
+    margin-bottom: var(--ha-space-1, 4px);
+  }
+  .detail-title {
+    display: flex;
+    align-items: center;
+    gap: var(--ha-space-2, 8px);
+    min-width: 0;
+    flex: 1;
+  }
+  .detail-name {
+    font-size: var(--ha-font-size-l, 16px);
+    font-weight: var(--ha-font-weight-medium, 500);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 `;
 
 /**
- * Generic drag-to-reorder + eye-icon-to-hide row list, pairs with HA's own
- * `<ha-sortable>` element. Extracted from the Overview card editor's
- * env-order-row pattern (still using its own locally-scoped classes there
- * as of this writing — not yet migrated to share these, to avoid touching
- * already-working, already-shipped editor code as a side effect of adding
- * a second, unrelated use case). Generic naming (not "env-" prefixed)
- * since the Schedules card editor's row-detail-order list is the second
- * user of this exact pattern, and it isn't ordering environments.
+ * Drag-to-reorder and eye-icon-to-hide row lists, with HA's own
+ * `<ha-sortable>`: every editor's environment, section and badge lists.
  */
 export const sortableRowStyles = css`
   ha-expansion-panel {
@@ -112,23 +129,11 @@ export const sortableRowStyles = css`
    * flex-direction:column; gap: var(--ha-space-2) (8px), with each row
    * itself (.badge) carrying no padding or margin of its own at all —
    * every bit of inter-row spacing lives on the container as a single
-   * gap, not spread across N rows' own margins. That's the one thing an
-   * earlier version of this file got structurally wrong before
-   * comparing against this specific reference: it used margin-top per
-   * row (closer to a *different* HA reference, hui-entities-card-row-
-   * editor.ts), which works but isn't what this repo's own closest
-   * precedent actually does.
+   * gap, not spread across N rows' own margins.
    *
-   * var(--ha-space-N, fallback) throughout, not a bare pixel value —
-   * these are real HA design tokens (confirmed against
-   * resources/theme/core.globals.ts), and using them means this
-   * automatically tracks whatever HA's own spacing scale resolves to on
-   * a person's actual install, including if HA changes those values in
-   * a future release, rather than this repo's own copy silently
-   * drifting from HA's current one. The fallback is only ever a safety
-   * net for an HA version old enough to predate these tokens — the
-   * design intent is still "use HA's own current value," not "use this
-   * fallback." */
+   * HA's spacing tokens (resources/theme/core.globals.ts) rather than
+   * pixels, so this follows HA's scale; the fallbacks are for versions
+   * without them. */
   .order-list {
     display: flex;
     flex-direction: column;

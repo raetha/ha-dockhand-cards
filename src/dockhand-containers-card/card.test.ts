@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { sortContainerRows, groupContainerRows } from './card';
+import { sortContainerRows, groupContainerRows, isProblem } from './card';
 import type { EnvironmentDeviceOption } from '../common/device-utils';
 
 function row(overrides: Partial<Parameters<typeof sortContainerRows>[0][number]> = {}) {
   return {
+    deviceId: 'container_device',
     name: 'container',
     status: 'running',
     environment: 'Nebula',
@@ -29,6 +30,25 @@ describe('sortContainerRows', () => {
     const rows = [row({ name: 'z', status: 'running' }), row({ name: 'a', status: 'dead' }), row({ name: 'm', status: 'paused' })];
     const sorted = sortContainerRows(rows, 'status');
     expect(sorted.map((r) => r.status)).toEqual(['dead', 'paused', 'running']);
+  });
+
+  it('sorts the busiest first by CPU or memory, then by name; rows without a value last', () => {
+    const usage = (cpu: string | undefined, mem: string | undefined) =>
+      ({
+        cpuPercent: cpu === undefined ? undefined : { state: { state: cpu } },
+        memoryPercent: mem === undefined ? undefined : { state: { state: mem } }
+      }) as never;
+    const rows = [
+      row({ name: 'idle', found: usage('0', '1') }),
+      row({ name: 'plex', found: usage('112', '3') }),
+      row({ name: 'stopped', found: usage(undefined, undefined) }),
+      row({ name: 'immich', found: usage('0', '4') }),
+      row({ name: 'adguard', found: usage('0', 'unavailable') }),
+      // Shows 0%, like idle and immich: sorts with them by name.
+      row({ name: 'busybox', found: usage('0.43', '0.4') })
+    ];
+    expect(sortContainerRows(rows, 'cpu').map((r) => r.name)).toEqual(['plex', 'adguard', 'busybox', 'idle', 'immich', 'stopped']);
+    expect(sortContainerRows(rows, 'memory').map((r) => r.name)).toEqual(['immich', 'plex', 'idle', 'busybox', 'adguard', 'stopped']);
   });
 });
 
@@ -61,5 +81,20 @@ describe('groupContainerRows', () => {
     const rows = [row({ status: 'running' }), row({ status: 'dead' }), row({ status: 'paused' })];
     const groups = groupContainerRows(rows, 'status', 'name');
     expect(groups.map((g) => g.label)).toEqual(['Dead', 'Paused', 'Running']);
+  });
+});
+
+describe('isProblem', () => {
+  it('is an exited, dead or restarting container, or an unhealthy one', () => {
+    const found = (state: string, exitCode?: number, health = 'healthy') =>
+      ({ state: { state: { state, attributes: exitCode === undefined ? {} : { exit_code: exitCode } } }, health: { state: { state: health } } }) as never;
+    expect(isProblem(row({ found: found('exited', 137) }))).toBe(true);
+    expect(isProblem(row({ found: found('dead') }))).toBe(true);
+    expect(isProblem(row({ found: found('restarting') }))).toBe(true);
+    expect(isProblem(row({ found: found('running', undefined, 'unhealthy') }))).toBe(true);
+    // A clean exit, or one without an exit code, isn't a problem.
+    expect(isProblem(row({ found: found('exited', 0) }))).toBe(false);
+    expect(isProblem(row({ found: found('exited') }))).toBe(false);
+    expect(['running', 'paused', 'created'].some((state) => isProblem(row({ found: found(state) })))).toBe(false);
   });
 });

@@ -2,20 +2,36 @@
 // in a headless browser, with no real instance data at all — every name,
 // ID, and value below is made up for demonstration purposes.
 
-const ENTRY_ID = 'demo_entry';
+// A config entry id as Home Assistant makes them (a ULID).
+const ENTRY_ID = '01JDEMO0ENTRY000000000000';
 
+// Shaped like Home Assistant's own hass.devices entries (the device
+// registry, config/device_registry/list) and hass.entities entries (the
+// display registry, config/entity_registry/list_for_display, which holds
+// enabled entities only and leaves out absent fields).
 function device(id, identifiers, name, extra = {}) {
   return {
     id,
     name,
     name_by_user: null,
     model: extra.model ?? null,
+    model_id: null,
     manufacturer: 'Dockhand',
-    identifiers: identifiers.map((i) => ['dockhand', i]),
+    // ha-dockhand prefixes every identifier with its config entry's id.
+    identifiers: identifiers.map((i) => ['dockhand', `${ENTRY_ID}_${i}`]),
+    connections: [],
+    config_entry_id: ENTRY_ID,
     config_entries: [ENTRY_ID],
+    primary_config_entry: ENTRY_ID,
     configuration_url: extra.configuration_url ?? null,
+    sw_version: null,
     hw_version: extra.hw_version ?? null,
-    via_device_id: extra.via_device_id ?? null
+    serial_number: null,
+    via_device_id: extra.via_device_id ?? null,
+    area_id: null,
+    labels: [],
+    entry_type: extra.entry_type ?? null,
+    disabled_by: null
   };
 }
 
@@ -25,11 +41,9 @@ function entity(entityId, deviceId, translationKey, state, attributes = {}, extr
       entity_id: entityId,
       device_id: deviceId,
       platform: 'dockhand',
-      translation_key: translationKey,
-      unique_id: `${ENTRY_ID}_${entityId}`,
-      disabled_by: extra.disabled_by ?? null,
-      hidden_by: null,
-      entity_category: extra.entity_category ?? null
+      labels: [],
+      ...(translationKey ? { translation_key: translationKey } : {}),
+      ...(extra.entity_category ? { entity_category: extra.entity_category } : {})
     },
     state: {
       entity_id: entityId,
@@ -41,25 +55,29 @@ function entity(entityId, deviceId, translationKey, state, attributes = {}, extr
   };
 }
 
-// Matches ha-dockhand's icons.json exactly, so the harness's ha-state-icon
-// shim (which can't do real icon-translation resolution — see ha-shims.mjs)
-// shows the right glyph via an explicit `icon` attribute shortcut instead.
-// Passed inside `attributes`, not `extra` — `entity()` only merges
-// `attributes` into the mock state's attributes object.
-const ONLINE_ICON = { true: 'mdi:wifi', false: 'mdi:wifi-off' };
-const CONNECTION_ICON = {
-  socket: 'mdi:power-plug',
-  direct: 'mdi:docker',
-  'hawser-standard': 'mdi:transit-connection-variant',
-  'hawser-edge': 'mdi:undo-variant'
-};
-const STATUS_ICON = {
-  auto_update: 'mdi:arrow-up-circle',
-  update_checks: 'mdi:arrow-up-circle-outline',
-  vulnerability_scanning: 'mdi:shield-check',
-  activity_logging: 'mdi:pulse',
-  metrics_collection: 'mdi:cpu-64-bit'
-};
+// Home Assistant's update entity attributes, with ha-dockhand's own:
+// Install, release notes and progress where Dockhand would update the
+// container (21), release notes alone where it can't (16).
+const INSTALLABLE = 21;
+const NOTES_ONLY = 16;
+function updateAttrs(installed, latest, supportedFeatures, extra = {}) {
+  return {
+    auto_update: false,
+    display_precision: 0,
+    installed_version: installed,
+    in_progress: false,
+    latest_version: latest,
+    release_summary: null,
+    release_url: null,
+    skipped_version: null,
+    title: null,
+    update_percentage: null,
+    supported_features: supportedFeatures,
+    ...extra
+  };
+}
+
+const SYNC_ERROR = 'Merge conflict in docker-compose.yml — manual resolution required.';
 
 /** Builds one fictional environment's device + entities: the environment
  * itself, its containers, and its stacks. Every environment gets the same
@@ -79,44 +97,46 @@ function buildEnvironment(addDevice, addEntity, opts) {
       hw_version: connectionType
     })
   );
+  // ha-dockhand's group devices: stacks sit under Stacks, and containers
+  // under their stack or, on their own, under Containers.
+  for (const group of ['Stacks', 'Containers']) {
+    addDevice(device(`env_${envId}_${group}`, [`env_${envId}_${group}`], `${name} – ${group}`, { model: 'Environment Group', via_device_id: envDeviceId }));
+  }
 
-  const onlineAttrs = { name, icon: ONLINE_ICON[online] };
-  if (hostPort) {
-    onlineAttrs.connection_host = hostPort.host;
-    onlineAttrs.connection_port = hostPort.port;
-  }
-  if (labels) {
-    onlineAttrs.labels = labels;
-  }
-  addEntity(entity(`binary_sensor.${slug}_online`, envDeviceId, 'online', online ? 'on' : 'off', onlineAttrs));
-  if (autoUpdate) {
-    addEntity(entity(`binary_sensor.${slug}_auto_update`, envDeviceId, 'auto_update', 'on', { name: `${name} auto-update`, icon: STATUS_ICON.auto_update }, { friendly_name: `${name} auto-update` }));
-  }
-  if (updateChecks) {
-    addEntity(entity(`binary_sensor.${slug}_update_checks`, envDeviceId, 'update_checks', 'on', { name: `${name} update checks`, icon: STATUS_ICON.update_checks }, { friendly_name: `${name} update checks` }));
-  }
   addEntity(
-    entity(
-      `sensor.${slug}_connection_type`,
-      envDeviceId,
-      'connection_type',
-      connectionType,
-      { icon: CONNECTION_ICON[connectionType] },
-      { entity_category: 'diagnostic' }
-    )
+    entity(`binary_sensor.${slug}_online`, envDeviceId, 'online', online ? 'on' : 'off', {
+      connection_host: hostPort?.host ?? null,
+      connection_port: hostPort?.port ?? null,
+      labels: labels ?? []
+    })
   );
+  // The environment's settings, as ha-dockhand 2.0 has them: switches,
+  // with scanning a sensor plus the scanner select.
+  const setting = (domain, key, on) =>
+    addEntity(entity(`${domain}.${slug}_${key}`, envDeviceId, key, on ? 'on' : 'off', { friendly_name: `${name} ${key.replace(/_/g, ' ')}` }, { entity_category: 'config' }));
+  // showStatusIcons turns every setting on, so each header icon shows in color.
+  setting('switch', 'auto_update', autoUpdate);
+  setting('switch', 'update_checks', showStatusIcons || updateChecks || autoUpdate);
+  setting('switch', 'activity_logging', showStatusIcons || online);
+  setting('switch', 'metrics_collection', showStatusIcons || (online && !autoUpdate));
+  setting('binary_sensor', 'vulnerability_scanning', true);
+  addEntity(entity(`select.${slug}_vulnerability_scanner`, envDeviceId, 'vulnerability_scanner', 'grype', { options: ['none', 'grype', 'trivy', 'both'] }, { entity_category: 'config' }));
+  addEntity(entity(`sensor.${slug}_connection_type`, envDeviceId, 'connection_type', connectionType, { options: ['socket', 'direct', 'hawser-standard', 'hawser-edge'] }, { entity_category: 'diagnostic' }));
 
-  if (showStatusIcons) {
-    for (const [key, iconName] of Object.entries(STATUS_ICON)) {
-      const label = `${name} ${key.replace(/_/g, ' ')}`;
-      addEntity(entity(`binary_sensor.${slug}_${key}`, envDeviceId, key, 'on', { name: label, icon: iconName }, { friendly_name: label }));
-    }
+  // Host details, shown as the dashboard's environment page badges; the
+  // agent version only for Hawser connections, as ha-dockhand creates it.
+  if (online) {
+    const diagnostic = { entity_category: 'diagnostic' };
+    const detail = (key, state, attrs) => addEntity(entity(`sensor.${slug}_${key}`, envDeviceId, key, state, attrs, diagnostic));
+    detail('host_platform', 'Ubuntu 24.04.3 LTS', { friendly_name: `${name} Host platform`, architecture: 'x86_64' });
+    detail('uptime', new Date(Date.now() - 16 * 86400000).toISOString(), { friendly_name: `${name} Uptime`, device_class: 'timestamp' });
+    if (connectionType.startsWith('hawser')) detail('hawser_agent_version', '0.9.4', { friendly_name: `${name} Hawser agent version`, agent_name: slug, agent_id: `${slug}-agent` });
+    detail('host_docker_version', '29.1.2', { friendly_name: `${name} Docker version` });
   }
 
   addEntity(
     entity(`sensor.${slug}_cpu_usage`, envDeviceId, 'cpu_usage', online ? '3.8' : '0', {
       unit_of_measurement: '%',
-      icon: 'mdi:cpu-64-bit',
       cpu_count: 8,
       top_containers: online
         ? [
@@ -130,29 +150,19 @@ function buildEnvironment(addDevice, addEntity, opts) {
     })
   );
   addEntity(
-    entity(`sensor.${slug}_memory_usage`, envDeviceId, 'memory_usage', online ? '41.2' : '0', {
-      unit_of_measurement: '%',
-      icon: 'mdi:memory',
-      memory_used_bytes: online ? 6618980352 : 0,
-      memory_total_bytes: 16072835072
-    })
+    entity(`sensor.${slug}_memory_usage`, envDeviceId, 'memory_usage', online ? '41.2' : '0', { unit_of_measurement: '%' })
   );
-  addEntity(
-    entity(`sensor.${slug}_stacks`, envDeviceId, 'stacks', online ? '4' : '0', {
-      icon: 'mdi:layers-outline',
-      running: online ? 3 : 0,
-      partial: online ? 1 : 0,
-      stopped: online ? 0 : 4
-    })
-  );
-  addEntity(entity(`sensor.${slug}_image_count`, envDeviceId, 'image_count', '31', { icon: 'mdi:package-variant-closed' }));
-  addEntity(entity(`sensor.${slug}_volume_count`, envDeviceId, 'volume_count', '9', { icon: 'mdi:database-outline' }));
-  addEntity(entity(`sensor.${slug}_network_count`, envDeviceId, 'network_count', '6', { icon: 'mdi:lan' }));
+  // ha-dockhand's counts and sizes are each their own sensor; sizes are
+  // native bytes shown in MiB, as Home Assistant reports them.
+  const valueSensor = (key, value, attributes = {}) => addEntity(entity(`sensor.${slug}_${key}`, envDeviceId, key, String(value), attributes));
+  const mibSensor = (key, bytes) => valueSensor(key, bytes / 1024 ** 2, { unit_of_measurement: 'MiB' });
+  mibSensor('memory_used', online ? 6618980352 : 0);
+  mibSensor('memory_total', 16072835072);
+  valueSensor('image_count', 31);
+  valueSensor('volume_count', 9);
+  valueSensor('network_count', 6);
   addEntity(
     entity(`sensor.${slug}_activity_events`, envDeviceId, 'activity_events', online ? '3' : '0', {
-      icon: 'mdi:pulse',
-      today: online ? 3 : 0,
-      total: 512,
       recent_events: online
         ? [
             { container_name: 'web', action: 'health_status: healthy', timestamp: new Date(Date.now() - 3600e3).toISOString() },
@@ -164,23 +174,17 @@ function buildEnvironment(addDevice, addEntity, opts) {
   );
   addEntity(
     entity(`sensor.${slug}_disk_usage`, envDeviceId, 'disk_usage', '20480', {
-      unit_of_measurement: 'MiB',
-      images_size_bytes: 12884901888,
-      containers_size_bytes: 419430400,
-      volumes_size_bytes: 6979321856,
-      build_cache_size_bytes: 1191182336
+      unit_of_measurement: 'MiB'
     })
   );
-  addEntity(
-    entity(`sensor.${slug}_vulnerabilities`, envDeviceId, 'vulnerabilities', '7', {
-      critical: 0,
-      high: 2,
-      medium: 4,
-      low: 1,
-      images_scanned: 24,
-      total_images: 31
-    })
-  );
+  valueSensor('activity_events_today', online ? 3 : 0);
+  mibSensor('disk_usage_images', 12884901888);
+  mibSensor('disk_usage_containers', 419430400);
+  mibSensor('disk_usage_volumes', 6979321856);
+  mibSensor('disk_usage_build_cache', 1191182336);
+  addEntity(entity(`sensor.${slug}_vulnerabilities`, envDeviceId, 'vulnerabilities', '7'));
+  for (const [key, value] of Object.entries({ critical: 0, high: 2, medium: 4, low: 1 })) valueSensor(`vulnerabilities_${key}`, value);
+  valueSensor('images_scanned', 24);
   addEntity(entity(`button.${slug}_env_bulk_update`, envDeviceId, 'env_bulk_update', 'unknown'));
   addEntity(entity(`button.${slug}_check_updates`, envDeviceId, 'check_updates', 'unknown'));
 
@@ -221,15 +225,11 @@ function buildEnvironment(addDevice, addEntity, opts) {
       update: 'pinned',
       image: 'ghcr.io/nebula/worker:latest@sha256:5c1d9e0f7a2b'
     },
-    { name: 'backup', state: 'exited', health: null, cpu: 0, mem: 0, memLimit: 256, update: 'none', image: 'restic/restic:0.17', netRx: 0, netTx: 0, blkRead: 0, blkWrite: 0 }
+    { name: 'backup', state: 'exited', health: null, cpu: 0, mem: 0, memLimit: 256, update: 'none', exitCode: 1, image: 'restic/restic:0.17', netRx: 0, netTx: 0, blkRead: 0, blkWrite: 0 }
   ];
 
-  // Computed from the container list above, not hand-maintained separately
-  // — the exact drift risk this repo hit a real bug from once already
-  // (mock/real data disagreeing silently). systemContainer is never set
-  // in this mock data, so pending_system_updates is always 0 here; a
-  // future test of that specific case should add one rather than
-  // hand-editing these numbers directly.
+  // Counted from the containers above, so the counts and the update
+  // entities can't disagree. No container here is a system container.
   const onKinds = ['hash', 'generic', 'tag', 'pinned', 'held'];
   const pendingUpdateCount = containers.filter((c) => onKinds.includes(c.update)).length;
   const pendingVersionUpdateCount = containers.filter((c) => c.update === 'tag').length;
@@ -237,34 +237,68 @@ function buildEnvironment(addDevice, addEntity, opts) {
   const heldCount = containers.filter((c) => c.update === 'held').length;
   const systemContainers = containers.filter((c) => c.systemContainer);
   const pendingSystemUpdateCount = systemContainers.filter((c) => onKinds.includes(c.update)).length;
-  addEntity(
-    entity(`sensor.${slug}_containers`, envDeviceId, 'containers', online ? '14' : '0', {
-      running: online ? 12 : 0,
-      stopped: online ? 1 : 14,
-      paused: 0,
-      restarting: 0,
-      unhealthy: online ? 1 : 0,
-      pending_updates: online ? pendingUpdateCount - pendingSystemUpdateCount - pendingVersionUpdateCount - pendingPinnedDigestCount - heldCount : 0,
-      pending_system_updates: online ? pendingSystemUpdateCount : 0,
-      pending_version_updates: online ? pendingVersionUpdateCount : 0,
-      pending_pinned_digest_updates: online ? pendingPinnedDigestCount : 0,
-      pending_held_updates: online ? heldCount : 0,
-      pending_updates_total: online ? pendingUpdateCount : 0
-    })
-  );
+  // An offline environment's containers all count as stopped.
+  const count = (pred) => (online ? containers.filter(pred).length : 0);
+  valueSensor('containers', containers.length);
+  for (const [key, value] of Object.entries({
+    containers_running: count((c) => c.state === 'running'),
+    containers_stopped: online ? containers.filter((c) => c.state === 'exited').length : containers.length,
+    containers_paused: count((c) => c.state === 'paused'),
+    containers_restarting: count((c) => c.state === 'restarting'),
+    containers_unhealthy: count((c) => c.health === 'unhealthy'),
+    pending_updates: online ? pendingUpdateCount : 0,
+    installable_updates: online ? pendingUpdateCount - pendingSystemUpdateCount - pendingVersionUpdateCount - pendingPinnedDigestCount - heldCount : 0,
+    system_updates: online ? pendingSystemUpdateCount : 0,
+    version_tag_updates: online ? pendingVersionUpdateCount : 0,
+    pinned_digest_updates: online ? pendingPinnedDigestCount : 0,
+    held_updates: online ? heldCount : 0
+  }))
+    valueSensor(key, value);
 
+  // ── Stacks ─────────────────────────────────────────────────────────
+  const stacks = [
+    { name: 'core', status: 'running', containerCount: 3, type: 'git', containerNames: ['traefik', 'web', 'worker'], git: true, syncStatus: 'pending', syncError: true, lastSyncHoursAgo: 3, lastCommit: 'a3f29e17c8b4' },
+    { name: 'monitoring', status: 'partial', containerCount: 2, type: 'internal', containerNames: ['postgres', 'redis'] }
+  ];
+  valueSensor('stacks', stacks.length);
+  valueSensor('stacks_running', online ? stacks.filter((st) => st.status === 'running').length : 0);
+  valueSensor('stacks_partial', online ? stacks.filter((st) => st.status === 'partial').length : 0);
+  valueSensor('stacks_stopped', online ? stacks.filter((st) => st.status === 'stopped').length : stacks.length);
+  // A container's device sits under its stack's, as in ha-dockhand; backup
+  // runs on its own.
+  const stackOf = Object.fromEntries(stacks.flatMap((st) => st.containerNames.map((n) => [n, st.name])));
   for (const c of containers) {
     const devId = `container_${envId}_${c.name}`;
-    addDevice(device(devId, [`container_${envId}_${c.name}`], c.name, { model: 'Container', configuration_url: `http://${slug}.example.internal:2376/containers` }));
+    addDevice(
+      device(devId, [`container_${envId}_${c.name}`], `${name} – Containers – ${c.name}`, {
+        model: 'Container',
+        configuration_url: `http://${slug}.example.internal:2376/containers`,
+        via_device_id: stackOf[c.name] ? `stack_${envId}_${stackOf[c.name]}` : `env_${envId}_Containers`
+      })
+    );
     addEntity(
-      entity(`sensor.${slug}_${c.name}_state`, devId, 'state', c.state, { name: c.name, type: 'Compose', image: c.image }, { friendly_name: c.name })
+      entity(
+        `sensor.${slug}_${c.name}_state`,
+        devId,
+        'state',
+        c.state,
+        {
+          image: c.image,
+          restart_count: null,
+          exit_code: c.state === 'exited' ? (c.exitCode ?? 0) : null,
+          networks: c.state === 'running' ? { [`${stackOf[c.name] ?? 'bridge'}${stackOf[c.name] ? '_default' : ''}`]: `172.18.0.${containers.indexOf(c) + 2}` } : {},
+          system_container: false,
+          ...mockTags(c.name)
+        },
+        { friendly_name: c.name }
+      )
     );
     if (c.health) {
       addEntity(entity(`sensor.${slug}_${c.name}_health`, devId, 'health', c.health));
     }
     // ha-dockhand creates neither control entity for a system container.
     if (!c.systemContainer) {
-      addEntity(entity(`switch.${slug}_${c.name}`, devId, null, c.state === 'running' ? 'on' : 'off', { name: c.name }, { friendly_name: c.name }));
+      addEntity(entity(`switch.${slug}_${c.name}`, devId, null, c.state === 'running' ? 'on' : 'off', {}, { friendly_name: c.name }));
       addEntity(entity(`button.${slug}_${c.name}_restart`, devId, 'restart', 'unknown'));
     }
     // Like ha-dockhand, stats sensors are unavailable for a container that
@@ -273,9 +307,9 @@ function buildEnvironment(addDevice, addEntity, opts) {
     // ha-dockhand's data-size sensors are native bytes with a suggested MiB
     // display unit, so HA's state is in MiB — mirror that, not raw bytes.
     const mib = (bytes) => stat(String(bytes / 1024 ** 2));
-    addEntity(entity(`sensor.${slug}_${c.name}_cpu_percent`, devId, 'container_cpu_percent', stat(c.cpu.toFixed(1)), { unit_of_measurement: '%', icon: 'mdi:cpu-64-bit' }));
+    addEntity(entity(`sensor.${slug}_${c.name}_cpu_percent`, devId, 'container_cpu_percent', stat(c.cpu.toFixed(1)), { unit_of_measurement: '%' }));
     addEntity(
-      entity(`sensor.${slug}_${c.name}_memory_percent`, devId, 'container_memory_percent', stat(c.mem.toFixed(1)), { unit_of_measurement: '%', icon: 'mdi:memory' })
+      entity(`sensor.${slug}_${c.name}_memory_percent`, devId, 'container_memory_percent', stat(c.mem.toFixed(1)), { unit_of_measurement: '%' })
     );
     addEntity(
       entity(`sensor.${slug}_${c.name}_memory_usage`, devId, 'container_memory_usage', mib(Math.round(c.memLimit * (c.mem / 100) * 1024 * 1024)), {
@@ -289,89 +323,45 @@ function buildEnvironment(addDevice, addEntity, opts) {
       addEntity(entity(`sensor.${slug}_${c.name}_block_read`, devId, 'container_block_read', mib(c.blkRead), { unit_of_measurement: 'MiB' }));
       addEntity(entity(`sensor.${slug}_${c.name}_block_write`, devId, 'container_block_write', mib(c.blkWrite), { unit_of_measurement: 'MiB' }));
     }
-    if (c.update === 'hash') {
-      addEntity(
-        entity(`update.${slug}_${c.name}_update`, devId, null, 'on', {
-          name: c.name,
-          installed_version: 'a3f29e1',
-          latest_version: 'b82d4f0',
-          ...(c.newer ? { newer_version: c.newer, newer_version_bump: c.newerBump, newer_versions_count: c.newerCount } : {})
-        })
-      );
-    } else if (c.update === 'generic') {
-      addEntity(
-        entity(`update.${slug}_${c.name}_update`, devId, null, 'on', {
-          name: c.name,
-          installed_version: 'latest',
-          latest_version: 'update-pending',
-          ...(c.newer ? { newer_version: c.newer, newer_version_bump: c.newerBump, newer_versions_count: c.newerCount } : {})
-        })
-      );
-    } else if (c.update === 'tag') {
-      // A newer version tag is the only update: ha-dockhand shows it as
-      // latest_version too, and withholds Install.
-      addEntity(
-        entity(`update.${slug}_${c.name}_update`, devId, null, 'on', {
-          name: c.name,
-          installed_version: c.image.split(':')[1],
-          latest_version: c.newer,
-          newer_version: c.newer,
-          newer_version_bump: c.newerBump,
-          newer_versions_count: c.newerCount
-        })
-      );
-    } else if (c.update === 'pinned') {
-      addEntity(
-        entity(`update.${slug}_${c.name}_update`, devId, null, 'on', {
-          name: c.name,
-          installed_version: 'latest',
-          latest_version: 'update-pending',
-          pinned_digest_moved: true
-        })
-      );
-    } else if (c.update === 'held') {
-      addEntity(
-        entity(`update.${slug}_${c.name}_update`, devId, null, 'on', {
-          name: c.name,
-          installed_version: c.image.split(':')[1],
-          latest_version: 'update-pending',
-          update_held_hours: c.heldHours
-        })
-      );
-    } else {
-      addEntity(entity(`update.${slug}_${c.name}_update`, devId, null, 'off', { name: c.name }));
-    }
+    const newer = c.newer ? { newer_version: c.newer, newer_version_bump: c.newerBump, newer_versions_count: c.newerCount } : {};
+    const tag = c.image.split(':')[1];
+    const update = {
+      hash: () => ['on', updateAttrs('a3f29e1', 'b82d4f0', INSTALLABLE, newer)],
+      generic: () => ['on', updateAttrs('latest', 'update-pending', INSTALLABLE, newer)],
+      // A newer version tag alone: it's latest_version too, and Install
+      // is withheld, since the pinned tag has to change.
+      tag: () => ['on', updateAttrs(tag, c.newer, NOTES_ONLY, newer)],
+      pinned: () => ['on', updateAttrs('latest', 'update-pending', NOTES_ONLY, { pinned_digest_moved: true })],
+      held: () => ['on', updateAttrs(tag, 'update-pending', NOTES_ONLY, { update_held_hours: c.heldHours })],
+      none: () => ['off', updateAttrs(tag, tag, INSTALLABLE)]
+    }[c.update]();
+    addEntity(entity(`update.${slug}_${c.name}_update`, devId, null, ...update));
   }
 
-  // ── Stacks ─────────────────────────────────────────────────────────
-  const stacks = [
-    { name: 'core', status: 'running', containerCount: 3, type: 'Git', containerNames: ['traefik', 'web', 'worker'], updateCount: 2, git: true, syncStatus: 'pending', syncError: true, lastSyncHoursAgo: 3, lastCommit: 'a3f29e17c8b4' },
-    { name: 'monitoring', status: 'partial', containerCount: 2, type: 'Internal', containerNames: ['postgres', 'redis'], updateCount: 1 }
-  ];
   for (const s of stacks) {
     const devId = `stack_${envId}_${s.name}`;
-    addDevice(device(devId, [`stack_${envId}_${s.name}`], s.name, { model: `${s.type} Stack`, configuration_url: `http://${slug}.example.internal:2376/stacks` }));
+    addDevice(device(devId, [`stack_${envId}_${s.name}`], `${name} – Stacks – ${s.name}`, { model: `${s.type} Stack`, configuration_url: `http://${slug}.example.internal:2376/stacks`, via_device_id: `env_${envId}_Stacks` }));
     // Same as ha-dockhand: on while running or partially running.
-    addEntity(entity(`switch.${slug}_stacks_${s.name}`, devId, null, s.status === 'running' || s.status === 'partial' ? 'on' : 'off', { name: s.name }, { friendly_name: s.name }));
+    addEntity(entity(`switch.${slug}_stacks_${s.name}`, devId, null, s.status === 'running' || s.status === 'partial' ? 'on' : 'off', {}, { friendly_name: s.name }));
     addEntity(entity(`button.${slug}_stacks_${s.name}_restart`, devId, 'restart', 'unknown'));
-    // A git stack's button relabels itself "Deploy"/"Sync from Git" (rocket/refresh icon) by whether
-    // the stack is deployed; an internal stack's is "Redeploy".
+    // A git stack's button names itself "Deploy" or "Sync from Git", with
+    // its own icon, by whether the stack is deployed; an internal stack's
+    // is "Redeploy".
     addEntity(
       s.git
         ? entity(`button.${slug}_stacks_${s.name}_git_deploy`, devId, 'git_stack_deploy', 'unknown', { icon: 'mdi:refresh' }, { friendly_name: `${s.name} Sync from Git` })
-        : entity(`button.${slug}_stacks_${s.name}_deploy`, devId, 'stack_deploy', 'unknown', { icon: 'mdi:rocket-launch-outline' }, { friendly_name: `${s.name} Redeploy` })
+        : entity(`button.${slug}_stacks_${s.name}_deploy`, devId, 'stack_deploy', 'unknown', {}, { friendly_name: `${s.name} Redeploy` })
     );
     addEntity(
       entity(`sensor.${slug}_${s.name}_status`, devId, 'status', s.status, {
-        name: s.name,
         type: s.type,
-        container_count: s.containerCount,
-        container_names: s.containerNames
+        system_container: false,
+        ...mockTags(s.name)
       })
     );
     addEntity(
       entity(`sensor.${slug}_${s.name}_containers_in_stack`, devId, 'containers_in_stack', s.containerCount, {
-        container_names: s.containerNames
+        containers: s.containerNames
       })
     );
     // Stack totals as Dockhand's /api/stack-stats reports them (via
@@ -390,27 +380,28 @@ function buildEnvironment(addDevice, addEntity, opts) {
         ['network_rx', mibOf(sum((c) => c.netRx)), 'MiB'],
         ['network_tx', mibOf(sum((c) => c.netTx)), 'MiB'],
         ['block_read', mibOf(sum((c) => c.blkRead)), 'MiB'],
-        ['block_write', mibOf(sum((c) => c.blkWrite)), 'MiB']
+        ['block_write', mibOf(sum((c) => c.blkWrite)), 'MiB'],
+        ['running_containers', String(running.length), undefined]
       ];
       for (const [key, value, unit] of totals) {
         addEntity(
           entity(`sensor.${slug}_${s.name}_${key}`, devId, `stack_${key}`, value, {
-            unit_of_measurement: unit,
-            running_containers: running.length,
-            ...(key === 'cpu_percent' ? { icon: 'mdi:cpu-64-bit' } : key === 'memory_usage' ? { icon: 'mdi:memory' } : {})
+            ...(unit ? { unit_of_measurement: unit } : {})
           })
         );
       }
     }
-    if (s.updateCount) {
-      addEntity(entity(`binary_sensor.${slug}_${s.name}_updates_available`, devId, 'stack_updates_available', 'on', { update_count: s.updateCount }));
-    } else {
-      addEntity(entity(`binary_sensor.${slug}_${s.name}_updates_available`, devId, 'stack_updates_available', 'off'));
-    }
+    // Dockhand's count of the stack's containers with an update to install.
+    const pending = containers.filter((c) => s.containerNames.includes(c.name) && ['hash', 'generic'].includes(c.update)).map((c) => c.name);
+    addEntity(entity(`sensor.${slug}_${s.name}_pending_updates`, devId, 'stack_pending_updates', String(pending.length)));
+    addEntity(entity(`binary_sensor.${slug}_${s.name}_updates_available`, devId, 'stack_updates_available', pending.length ? 'on' : 'off', { pending_container_names: pending }));
     if (s.git) {
       addEntity(
         entity(`sensor.${slug}_${s.name}_git_sync_status`, devId, 'git_stack_sync_status', s.syncStatus, {
-          last_commit: s.lastCommit
+          last_commit: s.lastCommit,
+          sync_error: s.syncError ? SYNC_ERROR : null,
+          auto_update: false,
+          webhook_enabled: false
         })
       );
       addEntity(
@@ -422,24 +413,16 @@ function buildEnvironment(addDevice, addEntity, opts) {
         )
       );
       addEntity(
-        entity(`binary_sensor.${slug}_${s.name}_git_sync_error`, devId, 'git_stack_sync_error', s.syncError ? 'on' : 'off', s.syncError ? { sync_error: 'Merge conflict in docker-compose.yml — manual resolution required.' } : {})
+        entity(`binary_sensor.${slug}_${s.name}_git_sync_error`, devId, 'git_stack_sync_error', s.syncError ? 'on' : 'off', { sync_error: s.syncError ? SYNC_ERROR : null })
       );
     }
   }
 }
 
-/** Builds fictional schedule devices/entities matching ha-dockhand's real
- * 1.9.0+ device hierarchy: a flat schedules_hub for genuinely global
- * schedules, an env_{id}_Schedules group per environment for env-scoped
- * ones, and individual schedule_{id}_{type} devices parented to whichever
- * of those applies via via_device_id — see that repo's helpers.py
- * _sched_device()/_schedule_group_device() for the real thing this
- * mirrors. Each schedule device carries next_run (translation_key
- * 'next_run', state = an ISO timestamp) and last_status (translation_key
- * 'last_status', state = a status string, attributes carry name/
- * description/is_system/cron_expression/enabled/environment/
- * schedule_type) — last_status is the comprehensive/primary entity, per
- * that repo's own CHANGELOG on why. */
+/** Schedule devices as ha-dockhand makes them (helpers.py's
+ * _sched_device()): global schedules under the schedules hub, an
+ * environment's under its Schedules group, each with a Next run and a
+ * Last status sensor. */
 function buildSchedules(addDevice, addEntity) {
   const inHours = (h) => new Date(Date.now() + h * 3600e3).toISOString();
 
@@ -476,16 +459,27 @@ function buildSchedules(addDevice, addEntity) {
     );
     addEntity(
       entity(`sensor.${devId}_last_status`, devId, 'last_status', status, {
-        name,
         description,
         is_system: isSystem,
         cron_expression: '0 */4 * * *',
         enabled,
         environment: environment ?? null,
         schedule_type: type,
-        ...(errorMessage ? { error_message: errorMessage } : {})
+        triggered_by: status === 'queued' ? null : 'cron',
+        triggered_at: status === 'queued' ? null : new Date(Date.now() - 3600e3).toISOString(),
+        duration_ms: ['success', 'failed', 'warning', 'skipped'].includes(status) ? 4210 : null,
+        error_message: errorMessage ?? null,
+        updates_found: type.endsWith('update') || type === 'env_update_check' ? 0 : null
       })
     );
+    // ha-dockhand 2.0's Run now and Enabled (not offered for env reports
+    // and stack deploys, or Enabled for container updates and git syncs).
+    if (type !== 'env_report' && type !== 'stack_deploy') {
+      addEntity(entity(`button.${devId}_run`, devId, 'schedule_run', 'unknown'));
+    }
+    if (type !== 'container_update' && type !== 'git_stack_sync') {
+      addEntity(entity(`switch.${devId}_enabled`, devId, 'schedule_enabled', enabled ? 'on' : 'off'));
+    }
   }
 
   schedule({
@@ -582,6 +576,18 @@ function buildSchedules(addDevice, addEntity) {
     status: 'queued',
     nextRunIso: null
   });
+}
+
+// ha-dockhand 2.0's Dockhand tags, on a few containers and stacks (Dockhand's palette).
+const MOCK_TAGS = {
+  traefik: [['edge', '#0ea5e9']],
+  postgres: [['database', '#8b5cf6'], ['critical', '#ef4444']],
+  monitoring: [['observability', '#22c55e']],
+  core: [['critical', '#ef4444']]
+};
+function mockTags(name) {
+  const tags = MOCK_TAGS[name];
+  return tags ? { tags: tags.map(([n]) => n), tag_colors: Object.fromEntries(tags) } : {};
 }
 
 export function buildMockHass() {

@@ -1,51 +1,64 @@
 # Audits
 
-Quality, security and housekeeping reviews of the cards, their tooling and CI. Repeat before a
-release when asked, and whenever the owner asks for a full review; record each one below, newest
-first.
+Quality, security and housekeeping reviews of the cards, their tooling and CI. Repeat before a release when asked, and whenever the owner asks for a full review; record each one below, newest first.
 
 ## Checklist for a full review
 
-1. **Open pull requests**, Dependabot's especially
-   (`gh api "repos/raetha/ha-dockhand-cards/pulls?state=open"`; sessions have the REST API, not
-   GraphQL, so `gh pr list` fails). For each: read the diff; check its CI passed
-   (`gh api repos/raetha/ha-dockhand-cards/commits/<sha>/check-runs`); for a GitHub Action, check
-   the pinned commit is the tag it claims
-   (`git ls-remote https://github.com/<owner>/<action> refs/tags/<tag>`); for an npm package, its
-   release notes. Squash-merge good ones into `dev`
-   (`gh api -X PUT repos/raetha/ha-dockhand-cards/pulls/<n>/merge -f merge_method=squash`), never
-   into `main`. Record any held back, and why.
-2. **Security alerts.** Sessions can't read the repository's code scanning, Dependabot or secret
-   scanning alerts (403): ask the owner for their titles, and run the checks here: `npm audit`,
-   and CodeQL (the bundle from `github/codeql-action` releases;
-   `codeql database create --build-mode=none` over a copy of the tracked files only, then
-   `database analyze` with the `javascript-security-and-quality` and `actions-security-and-quality`
-   suites).
+1. **Open pull requests**, Dependabot's especially (`gh api "repos/raetha/ha-dockhand-cards/pulls?state=open"`; sessions have the REST API, not GraphQL, so `gh pr list` fails). For each: read the diff; check its CI passed (`gh api repos/raetha/ha-dockhand-cards/commits/<sha>/check-runs`); for a GitHub Action, check the pinned commit is the tag it claims (`git ls-remote https://github.com/<owner>/<action> refs/tags/<tag>`); for an npm package, its release notes. Squash-merge good ones into `dev` (`gh api -X PUT repos/raetha/ha-dockhand-cards/pulls/<n>/merge -f merge_method=squash`), never into `main`. Record any held back, and why.
+2. **Security alerts.** Sessions can't read the repository's code scanning, Dependabot or secret scanning alerts (403): ask the owner for their titles, and run the checks here: `npm audit`, and CodeQL (the bundle from `github/codeql-action` releases; `codeql database create --build-mode=none` over a copy of the tracked files only, then `database analyze` with the `javascript-security-and-quality` and `actions-security-and-quality` suites).
 3. **Tests and build:** `npm run verify`; `scripts/screenshot-harness/a11y.py` (no violations).
 4. **Quality bar:** every item in `docs/quality.md` still true of the code.
-5. **Security of the design:** the cards only read Home Assistant state (never Dockhand's API);
-   nothing a card renders is inserted as raw HTML; links built from entity data (release notes,
-   configuration URLs) are safe to open.
-6. **Workflows:** `contents: read` at the top, write only on the jobs that release or push;
-   actions pinned to commit SHAs; no `${{ }}` expansions inside `run:` scripts; no secrets used on
-   pull requests.
-7. **Leftovers:** finished experiments, backward compatibility nobody needs (see
-   `docs/backlog.md`'s 2.0.0 items), unused code, stale comments and docs (`CLAUDE.md`,
-   `docs/development.md`, the README).
-8. **Record it:** a dated section below, and changelog lines for anything users notice.
+5. **Security of the design:** the cards only read Home Assistant state (never Dockhand's API); nothing a card renders is inserted as raw HTML; links built from entity data (release notes, configuration URLs) are safe to open.
+6. **Workflows:** `contents: read` at the top, write only on the jobs that release or push; actions pinned to commit SHAs; no `${{ }}` expansions inside `run:` scripts; no secrets used on pull requests.
+7. **Tests and tooling:** test data and the screenshot harness's `mock-data.mjs` shaped like ha-dockhand's current entities (translation keys, states and attributes checked against its code, counts agreeing with the data; `docs/development.md` → "Test data looks like Home Assistant's"); `entity-icons.json` and `icon-paths.json` refreshed (`extract-icons.mjs`); DOM tests use `common/mount.test-helpers.ts`; the harness README describes how it works now; screenshots regenerated in both themes after any visible change. Comments in the code, tests and harness explain why, never history.
+8. **Performance:** measure, don't just read. Serve the harness and run `scripts/screenshot-harness/bench.py` (`--copies`, `--others` set the size): each card's first render and its update when an unrelated state changes, which Home Assistant sends many times a second. Look for work that grows with devices × entities, and for work an update repeats when nothing the card shows changed. Also the shipped bundle's size.
+9. **Leftovers:** finished experiments, backward compatibility nobody needs (see `docs/backlog.md`'s 2.0.0 items), unused code, stale comments and docs (`CLAUDE.md`, `docs/development.md`, the README).
+10. **Record it:** a dated section below, and changelog lines for anything users notice.
+
+## 2026-11-18: final review for 2.0.0
+
+- Open pull requests: only the release pull request. Every action pin matches its tag and is the latest release. Held until after the release, being one or two days old: custom-card-helpers 2.2.1 (it ships in the bundle), typescript-eslint 8.73.0 and rollup 4.68.5. TypeScript 7 still held.
+- `npm audit --omit=dev`: nothing. The full audit now lists 15 high advisories with one cause, picomatch ≤4.0.7 (ReDoS on crafted globs, GHSA-fc5q-39xc-vjpf), through rollup's plugins and vitest; there's no fixed release yet, and it only ever sees the build's and tests' own globs, so it waits for one (npm's suggested fix is downgrading every tool a major version). CodeQL ran on the latest `dev` push and passed.
+- Changes since the 2026-11-15 review read through: aligned list columns on every list card, the name side's pills giving way (`.no-labels`), sideways scrolling with sticky controls, Controls under Row details, the Updates card's version column and tag pill, the editors' row detail order, tabs and badges on the dashboard, container state colors, stack CPU and memory. `npm run verify` and `a11y.py` (both themes): pass. Measured at 260–420 px with every detail on: names stay readable, lists that fit never scroll.
+- `bench.py` (377 devices, 9,318 entities): every card updates in 0.2–6 ms on an unrelated state change. The card bundle is 172 KB (45 KB gzipped), smaller than 1.5.1's 214 KB despite the new features.
+- Changelog re-read as release notes: the download sizes quoted for the language split were from before this release's features; they're now measured against 1.5.1. `docs/architecture.md` and `docs/styling.md` gained the new row classes (`.cell.end`, `.no-labels`, `.compact-version`, `.overflowing`, `.version-tag-pill`).
+
+## 2026-11-15: final review for 2.0.0
+
+- Open pull requests: none. `npm audit`: only deepmerge, the known build-tooling alert; nothing that ships.
+- Changes since the 2026-11-14 review: the Environment page's cards no longer repeat the environment's name, theme-matched screenshots, shared DOM test helpers, the harness's mock data and icons, comments, and test build notes pointing at `dev`. Typecheck, lint, tests, build: pass.
+- Tests and tooling (the new checklist item): reviewed with the harness cleanup; the sample data's environment names are all made up now.
+- Changelog re-read as release notes; the dashboard screenshot shows the current cards in both themes.
+- Missed, then found after ha-dockhand#96: the checklist had no performance item. Measured with `bench.py` (377 devices, 9,318 entities): every card searched all of `hass.entities` per device on every render, so the Updates card took 460 ms and the Overview card 560 ms per state change anywhere in Home Assistant. Now indexed per registry object (1 ms and 9 ms), and the row and grid fitting skips renders that changed nothing. Screenshots pixel-identical, axe clean.
+
+## 2026-11-14: review before releasing 2.0.0
+
+- Open pull requests: none. `npm audit --omit=dev`: nothing. custom-card-helpers 2.1.0 came out today; left for Dependabot after the release rather than taking a day-old runtime dependency into it. TypeScript 7 still held (typescript-eslint 8.72.2 accepts below 6.1).
+- CodeQL (JavaScript/TypeScript) on the cards' source: no findings.
+- Changes since the 2026-11-13 review checked: environment page badges, shorter Stack and Container names, header controls in Dockhand's order with pause, resume and deploy, Dockhand's schedule icons, and the README split into `docs/cards/` and `docs/dashboard.md`. `npm run verify` and `a11y.py` (both themes): pass.
+- Changelog re-read as release notes: the row controls are new in this release, so their order, deploy and the schedule icons belong in **Added**, not as changes; `docs/cards/schedules.md` described the old toggle.
+
+## 2026-11-13: full review
+
+- Open pull requests: none. Every action pin matches its tag and is the latest release. Updated within their ranges: eslint 10.15.0, typescript-eslint 8.72.2, jsdom 31.0.1, rollup 4.68.3. Held: TypeScript 7 (typescript-eslint 8.72 still accepts `typescript <6.1`; 7.1 is in nightlies), and `custom-card-helpers` reports 1.9.0 as "latest" only because its 2.0.0 is tagged differently.
+- `npm audit --omit=dev`: nothing. The two low advisories are deepmerge in the build (`@rollup/plugin-node-resolve`), still without a fixed release (the owner confirmed the open alert is this one). CodeQL 2.27.4 (JavaScript/TypeScript, Actions): no findings.
+- Workflows: top-level `contents: read`, write only on release, sync-dev and test-build, no credentials kept on checkouts outside sync-dev, `CI passed` covering `verify` and `hacs`. The header comment's test-build version was out of date.
+- `npm run verify` and `a11y.py` (both themes): pass, no violations.
+- Screenshots: most README images predated the tag pills, the Environment card's header icons and the always-present Update all, and are regenerated. The mock update entities now offer Install, as ha-dockhand's do, so Update all is shown enabled.
+- Documentation: `editor-design.md` rewritten without the history, and for the dashboard settings (collapsible environment section, embedded editors); `architecture.md` gains `scopeFixed`, the Stack and Container editors' `cardIsEmbedded` and Always show problems; `quality.md`, the README's version examples and requirements, the backlog's TypeScript 7 note and the environment section's comment brought up to date.
+
+## 2026-11-09: full review before testing 2.0.0
+
+- Dependabot's four pull requests (#55–#58: d3-shape, rollup, @rollup/plugin-terser, jsdom 31) applied together in #63 and closed. jsdom 31 needs Node 22.22+/24.15+; CI uses Node 24.
+- Tests now drive every card and editor control (#64); the coverage floor rose from about 72% to about 98% of lines.
+- `npm audit --omit=dev`: nothing. The deepmerge alert is in the build only (`@rollup/plugin-node-resolve`), still with no fixed release. CodeQL (JavaScript/TypeScript, Actions): no findings. Every action pin matches its tag and is the latest release. The build's `"this" has been rewritten` warnings come from `@formatjs/intl-utils` (via custom-card-helpers) and are harmless.
+- `a11y.py`: no violations in either theme. The harness's copied language files are now gitignored like the card files.
+- Home Assistant 2026.11 frontend changes (removed `ha-md-list`, `ha-radio`, `mwc-progress-bar`; `ha-button` sizes): none used here.
+- `docs/quality.md` claimed `setConfig` throws and that no render tests exist; both corrected. History comments rewritten to say why across the cards; a comment still described `ha-button` on the Updates card, which uses header icons. `docs/architecture.md` rewritten afterwards (about 1,090 lines to 440): the same rules and reasons, without the development history, and two stale claims fixed (Updates is in the Overview's section-default map; embedded editors do get later `hass` updates).
 
 ## 2026-11-02: moved to the dev/main workflow
 
-- `ci.yml` and `release.yml` replaced by one `build.yml` (changelog check, `npm run verify`, HACS
-  validation; releases created by CI from `main`; test builds from `dev`; sync-dev). Actions
-  pinned to commit SHAs, verified against their tags with `git ls-remote`. `hacs/action` was on
-  `@main`; now pinned to 22.5.0.
+- `ci.yml` and `release.yml` replaced by one `build.yml` (changelog check, `npm run verify`, HACS validation; releases created by CI from `main`; test builds from `dev`; sync-dev). Actions pinned to commit SHAs, verified against their tags with `git ls-remote`. `hacs/action` was on `@main`; now pinned to 22.5.0.
 - Dependabot targets `dev`, weekly for npm (was daily).
-- The six open Dependabot pull requests (#32–#37) targeted `main` and each rewrote the lockfile,
-  so their updates were applied together in one pull request into `dev` (taking the newest
-  release in each range), and the six were closed.
-- `npm audit` found 14 advisories, all in build tooling. Fixed: minimatch (forced to 11 with an
-  override; eslint and typescript-eslint still ask for 10), serialize-javascript (lockfile
-  refresh); undici via Dependabot's pull request. Left: deepmerge (low, pulled in by
-  `@rollup/plugin-node-resolve`; no fixed deepmerge release exists yet). The `nanoid` override was
-  no longer needed and is gone.
+- The six open Dependabot pull requests (#32–#37) targeted `main` and each rewrote the lockfile, so their updates were applied together in one pull request into `dev` (taking the newest release in each range), and the six were closed.
+- `npm audit` found 14 advisories, all in build tooling. Fixed: minimatch (forced to 11 with an override; eslint and typescript-eslint still ask for 10), serialize-javascript (lockfile refresh); undici via Dependabot's pull request. Left: deepmerge (low, pulled in by `@rollup/plugin-node-resolve`; no fixed deepmerge release exists yet). The `nanoid` override was no longer needed and is gone.

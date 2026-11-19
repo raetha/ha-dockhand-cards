@@ -48,12 +48,8 @@ describe('renderSettingsLink', () => {
   });
 
   it('is keyboard-activatable via Enter, same as clicking it', () => {
-    // Regression coverage for the real bug this consolidation fixed: the
-    // Dockhand link used to be keyboard-*focusable* (tabindex="0") but
-    // not keyboard-*activatable* at all, since nothing wired up a keydown
-    // handler for it specifically. renderIcon() now derives this
-    // automatically from onClick, so there's no longer a call site that
-    // can accidentally ship without it.
+    // renderIcon() wires Enter and Space from onClick, so anything
+    // focusable can also be activated from the keyboard.
     const result = renderSettingsLink({ hass: undefined, show: true, href: 'https://dh.test/schedules', tooltipKey: 'settings_link_view_schedules' }) as TemplateResult;
     const el = renderToDom(result);
     const span = el.querySelector('span')!;
@@ -118,12 +114,8 @@ describe('renderIcon', () => {
   });
 
   it('stops keydown propagation on Enter/Space, so a nested icon inside a clickable parent row does not also trigger the parent row\u2019s own keydown handler', () => {
-    // Regression coverage for a real bug: an earlier version only called
-    // preventDefault() here, not stopPropagation() — Enter/Space on this
-    // icon would then still bubble up and also fire a parent row's own
-    // keydown handler, double-firing both. Confirmed directly against a
-    // real render before this test existed (two hass-more-info events
-    // instead of one).
+    // Without stopPropagation(), Enter on the icon would also reach the
+    // row's own keydown handler and open two more-info dialogs.
     const onClick = vi.fn();
     const el = renderToDom(renderIcon({ baseClass: 'row-icon', icon: 'mdi:cpu-64-bit', title: 'x', onClick }));
     const span = el.querySelector('span')!;
@@ -144,14 +136,9 @@ describe('renderIcon', () => {
     expect(stopSpy).toHaveBeenCalledOnce();
   });
 
-  // The "present but not clickable, no stopPropagation" state this used to
-  // support (Stacks' own container-count badge when its own dedicated
-  // entity wasn't available on an older ha-dockhand release) was removed
-  // once that fallback itself was dropped — onClick is now required
-  // unless disabled: true is set explicitly, enforced by the discriminated
-  // union in renderIcon()'s own type, not something left to a runtime
-  // check/test: `renderIcon({ baseClass: 'row-icon', icon: 'mdi:docker' })`
-  // with neither onClick nor disabled is now a compile error.
+  // An icon that's neither clickable, disabled nor static can't be
+  // written: renderIcon()'s type requires one of onClick, disabled: true
+  // or static: true, so it's a compile error rather than a test.
 
   it('static renders with no tabindex/role/clickable class, and no click handler at all', () => {
     const el = renderToDom(renderIcon({ baseClass: 'card-badge', icon: 'mdi:docker', static: true }));

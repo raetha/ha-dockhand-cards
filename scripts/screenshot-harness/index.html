@@ -3,24 +3,13 @@
 <head>
 <meta charset="utf-8">
 <title>ha-dockhand-cards preview</title>
-<!-- Real, self-hosted Roboto (via @fontsource/roboto, harness-only
-     dependency — see package.json) rather than relying on the browser's
-     font-family fallback chain, which silently resolved to whatever
-     system font this sandbox happens to have installed (DejaVu Sans,
-     not Roboto) since Google Fonts isn't a reachable domain here. Real
-     HA loads real Roboto, and different fonts have genuinely different
-     line-height/glyph metrics — a screenshot rendered with the wrong
-     font can show an alignment discrepancy that doesn't exist in the
-     actual product, or hide one that does. Only the weights this repo
-     actually uses (400 default, 500, 600 — confirmed by grepping every
-     font-weight declaration in src/, not guessed). -->
+<!-- Roboto, as Home Assistant loads it: another font's metrics would move
+     text and alignment in the screenshots. Only the weights the cards use. -->
 <link rel="stylesheet" href="node_modules/@fontsource/roboto/400.css">
 <link rel="stylesheet" href="node_modules/@fontsource/roboto/500.css">
 <link rel="stylesheet" href="node_modules/@fontsource/roboto/600.css">
 <script>
-  // Read before any rendering happens, so there's no flash of the wrong
-  // theme — .light on <html> only ever needs to be present or absent by
-  // the time CSS starts applying, not toggled dynamically afterward.
+  // Set before anything renders, so nothing is drawn in the wrong theme.
   if (new URLSearchParams(location.search).get('theme') === 'light') {
     document.documentElement.classList.add('light');
   }
@@ -30,6 +19,7 @@
     color-scheme: dark;
     --primary-background-color: #111111;
     --card-background-color: #1c1c1c;
+    --secondary-background-color: #282828;
     --primary-text-color: #e1e1e1;
     --secondary-text-color: #9b9b9b;
     --divider-color: #333333;
@@ -43,13 +33,8 @@
     --info-color: #039be5;
     --ha-card-border-radius: 12px;
     --ha-card-box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-    /* Real HA typography tokens (px-based, scaled by
-       --ha-font-size-scale in production — not em; see
-       docs/architecture.md §12) rather than leaving these undefined,
-       which would exercise only this repo's own CSS fallback values
-       instead of the actual, real-token code path a production HA
-       dashboard uses. Values from HA's own frontend source
-       (src/resources/styles.ts: h1=2xl, h2=xl, h3=l, body=m). */
+    /* Home Assistant's typography tokens (src/resources/styles.ts), so
+       the cards use them rather than their fallbacks. */
     --ha-font-size-xs: 10px;
     --ha-font-size-s: 12px;
     --ha-font-size-m: 14px;
@@ -57,14 +42,12 @@
     --ha-font-size-xl: 20px;
     --ha-font-size-2xl: 24px;
   }
-  /* HA's own real light-theme defaults — genuinely additive on top of
-   * the dark :root block above (which stays the harness's own
-   * default), not a restructure. Font-size tokens are theme-
-   * independent (already correct above), so nothing to override there. */
+  /* Home Assistant's light theme, over the dark default above. */
   html.light {
     color-scheme: light;
     --primary-background-color: #fafafa;
     --card-background-color: #ffffff;
+    --secondary-background-color: #e5e5e5;
     --primary-text-color: #212121;
     --secondary-text-color: #727272;
     --divider-color: #e0e0e0;
@@ -93,89 +76,85 @@
     border-radius: 8px;
     padding: 16px;
   }
-  /* Styling for HaForm's own shimmed output (ha-shims.mjs) — deliberately
-   * plain/utilitarian, not trying to pixel-match HA's real ha-form/
-   * ha-selector widgets exactly. The goal is "readable enough to judge
-   * spacing and layout," not a pixel-perfect HA clone — see this
-   * directory's README for why that distinction is fine for what this
-   * harness is actually for. */
-  .shim-form-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 10px 4px;
-    border-bottom: 1px solid var(--divider-color);
-    flex-wrap: wrap;
+  /* Stand-in for Home Assistant's sections view (mountDashboard). */
+  .dashboard {
+    background: var(--primary-background-color);
+    padding: 16px 24px 24px;
+    width: max-content;
+    font-family: Roboto, sans-serif;
+    color: var(--primary-text-color);
   }
-  .shim-form-row:last-child {
-    border-bottom: none;
+  .dashboard-title {
+    font-size: var(--ha-font-size-xl);
+    margin: 0 0 16px;
+    white-space: pre;
   }
-  .shim-expansion-panel {
-    border: 1px solid var(--divider-color, #444);
-    border-radius: 8px;
-    margin: 16px 0;
-    overflow: hidden;
-  }
-  .shim-expansion-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 8px;
-    font-weight: 500;
-  }
-  .shim-expansion-content {
-    padding: 4px 8px 8px;
-    border-top: 1px solid var(--divider-color, #444);
-  }
-  .shim-grid {
+  .dashboard-sections {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 24px;
+    align-items: start;
+  }
+  .dashboard-section,
+  .dashboard-stack {
+    display: grid;
     gap: 8px;
   }
-  .shim-grid-cell .shim-form-row {
-    border-bottom: none;
-  }
-  .shim-form-label-col {
-    flex: 1;
+  .dashboard-section > *,
+  .dashboard-stack > * {
     min-width: 0;
   }
-  .shim-form-label {
-    font-size: 0.95em;
-  }
-  .shim-form-helper {
-    font-size: 0.8em;
-    color: var(--secondary-text-color);
-    margin-top: 2px;
-  }
-  .shim-form-warning {
-    flex-basis: 100%;
-    font-size: 0.8em;
-    color: #f59e0b;
-    background: rgba(245, 158, 11, 0.1);
-    padding: 6px 8px;
-    border-radius: 6px;
-  }
-  .shim-select,
-  .shim-textfield {
-    background: var(--primary-background-color);
-    color: var(--primary-text-color);
-    border: 1px solid var(--divider-color);
-    border-radius: 4px;
-    padding: 6px 8px;
-    font-size: 0.9em;
-    min-width: 160px;
-  }
-  .shim-multiselect {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .shim-checkbox-row {
+  .dashboard-heading {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 0.9em;
+    gap: 8px;
+    min-height: 32px;
+    font-size: var(--ha-font-size-l);
+    font-weight: 500;
+  }
+  .dashboard-heading.subtitle {
+    font-size: var(--ha-font-size-m);
+    font-weight: 400;
+    color: var(--secondary-text-color);
+  }
+  .dashboard-heading .chevron {
+    color: var(--secondary-text-color);
+    font-size: 20px;
+  }
+  .dashboard-heading ha-icon {
+    --mdc-icon-size: 18px;
+    color: var(--secondary-text-color);
+  }
+  /* Home Assistant's view badges: pills centred above the sections. */
+  .dashboard-badges {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin: 0 0 16px;
+  }
+  .dashboard-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 36px;
+    padding: 0 16px 0 8px;
+    border-radius: 18px;
+    border: 1px solid var(--divider-color);
+    background: var(--card-background-color);
+    font-size: 12px;
+    line-height: 16px;
+  }
+  .dashboard-badge ha-icon {
+    --mdc-icon-size: 18px;
+    color: var(--state-icon-color, var(--secondary-text-color));
+  }
+  .dashboard-badge .badge-name {
+    font-size: 10px;
+    color: var(--secondary-text-color);
+  }
+  .dashboard-badge .badge-text {
+    display: flex;
+    flex-direction: column;
   }
 </style>
 </head>
@@ -199,8 +178,8 @@
     entities,
     states,
     language: 'en',
-    locale: { language: 'en' },
-    themes: { darkMode: true },
+    locale: { language: 'en', number_format: 'language', time_format: 'language' },
+    themes: { darkMode: !document.documentElement.classList.contains('light') },
     callApi: async (method, path) => {
       // Fake 24h-ish history for the CPU/Memory sparklines: a short,
       // gently varying series so the chart has something to draw.
@@ -237,11 +216,8 @@
 
   window.__mount = mount;
 
-  // Editor classes are only registered lazily, via each card class's own
-  // getConfigElement() (a dynamic import() under the hood) — exactly how
-  // HA itself instantiates an editor, never document.createElement on the
-  // editor tag directly, since nothing else ever triggers that import to
-  // actually run.
+  // Editors load through each card's getConfigElement(), as Home
+  // Assistant loads them: nothing else imports the editor bundle.
   async function mountEditor(tag, config, width) {
     const wrap = document.createElement('div');
     wrap.className = 'editor-slot';
@@ -258,6 +234,120 @@
   }
 
   window.__mountEditor = mountEditor;
+
+  // A Dockhand dashboard page as the strategies build it: the real cards
+  // in a stand-in for Home Assistant's sections view (columns of grid
+  // sections, a 12-column grid inside each, headings and vertical stacks),
+  // which the harness doesn't have. `page` is 'overview', or
+  // { env, kind? } for an environment's page or its Stacks/Containers page.
+  async function mountDashboard(id, settings, page, columnWidth) {
+    const config = { type: 'custom:dockhand', ...settings };
+    const { views } = await customElements.get('ll-strategy-dashboard-dockhand').generate(config, hass);
+    let view;
+    if (page === 'overview') {
+      view = views[0];
+    } else {
+      const match = views.find((v) => v.strategy?.device_id === page.env && (page.kind ? v.strategy.kind === page.kind : v.strategy.type === 'custom:dockhand-environment'));
+      const tag = page.kind ? 'll-strategy-view-dockhand-devices' : 'll-strategy-view-dockhand-environment';
+      view = { ...match, ...(await customElements.get(tag).generate(match.strategy, hass)) };
+    }
+    const wrap = document.createElement('div');
+    wrap.className = 'dashboard';
+    wrap.id = id;
+    wrap.style.setProperty('--col', (columnWidth || 400) + 'px');
+    const title = document.createElement('div');
+    title.className = 'dashboard-title';
+    title.textContent = (view.subview ? '\u2190  ' : '') + view.title;
+    wrap.appendChild(title);
+    if (view.badges?.length) wrap.appendChild(renderBadges(view.badges));
+    const grid = document.createElement('div');
+    grid.className = 'dashboard-sections';
+    grid.style.gridTemplateColumns = `repeat(${view.max_columns}, var(--col))`;
+    for (const section of view.sections) {
+      const el = document.createElement('div');
+      const span = section.column_span ?? 1;
+      el.className = 'dashboard-section';
+      el.style.gridColumn = `span ${span}`;
+      el.style.gridTemplateColumns = `repeat(${12 * span}, 1fr)`;
+      for (const card of section.cards) el.appendChild(renderCard(card, span));
+      grid.appendChild(el);
+    }
+    wrap.appendChild(grid);
+    document.getElementById('cards').appendChild(wrap);
+  }
+
+  function renderBadges(badges) {
+    const row = document.createElement('div');
+    row.className = 'dashboard-badges';
+    for (const badge of badges) {
+      const state = hass.states[badge.entity];
+      const device = hass.devices[hass.entities[badge.entity]?.device_id]?.name ?? '';
+      const name = (state.attributes.friendly_name ?? badge.entity).replace(device, '').trim();
+      let text = state.state;
+      if (state.attributes.device_class === 'timestamp') {
+        const days = Math.round((Date.parse(state.state) - Date.now()) / 86400000);
+        text = new Intl.RelativeTimeFormat('en', { numeric: 'auto' }).format(days, 'day');
+      }
+      const el = document.createElement('div');
+      el.className = 'dashboard-badge';
+      el.innerHTML = '<ha-icon></ha-icon><span class="badge-text"><span class="badge-name"></span><span class="badge-state"></span></span>';
+      el.querySelector('ha-icon').setAttribute('icon', state.attributes.icon ?? '');
+      if (badge.show_name) el.querySelector('.badge-name').textContent = name;
+      else el.querySelector('.badge-name').remove();
+      el.querySelector('.badge-state').textContent = text;
+      row.appendChild(el);
+    }
+    return row;
+  }
+
+  function renderCard(card, span) {
+    let el;
+    if (card.type === 'heading') {
+      el = document.createElement('div');
+      el.className = `dashboard-heading ${card.heading_style ?? 'title'}`;
+      el.innerHTML = `<ha-icon icon="${card.icon ?? ''}"></ha-icon><span></span>${card.tap_action ? '<span class="chevron">\u203a</span>' : ''}`;
+      el.querySelector('span').textContent = card.heading;
+    } else if (card.type === 'vertical-stack') {
+      el = document.createElement('div');
+      el.className = 'dashboard-stack';
+      for (const child of card.cards) el.appendChild(renderCard(child, 1));
+    } else if (card.type === 'markdown') {
+      el = document.createElement('div');
+      el.className = 'dashboard-heading subtitle';
+      el.textContent = card.content;
+    } else {
+      const tag = card.type.replace('custom:', '');
+      el = document.createElement(tag);
+      el.setConfig(card);
+      el.hass = hass;
+    }
+    const columns = card.grid_options?.columns;
+    el.style.gridColumn = `span ${columns === undefined || columns === 'full' ? 12 * span : columns}`;
+    return el;
+  }
+
+  window.__mountDashboard = mountDashboard;
+
+  // The dashboard's settings: the editor HA shows from the strategy's
+  // getConfigElement(), with its folded panels opened.
+  async function mountDashboardEditor(id, settings, width) {
+    const wrap = document.createElement('div');
+    wrap.className = 'editor-slot';
+    wrap.style.setProperty('--slot-width', (width || 600) + 'px');
+    wrap.id = id;
+    document.getElementById('cards').appendChild(wrap);
+    const el = await customElements.get('ll-strategy-dashboard-dockhand').getConfigElement();
+    el.hass = hass;
+    el.setConfig({ type: 'custom:dockhand', ...settings });
+    wrap.appendChild(el);
+    await el.updateComplete;
+    for (const panel of el.shadowRoot.querySelectorAll('ha-expansion-panel[data-layout]')) {
+      panel.dispatchEvent(new CustomEvent('expanded-changed', { detail: { expanded: true } }));
+    }
+    await el.updateComplete;
+  }
+
+  window.__mountDashboardEditor = mountDashboardEditor;
   window.__renderDone = true;
 </script>
 </body>

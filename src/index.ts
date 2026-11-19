@@ -20,7 +20,19 @@ import { DockhandContainersCard } from './dockhand-containers-card/card';
 import { DockhandUpdatesCard } from './dockhand-updates-card/card';
 import { DockhandOverviewCard } from './dockhand-overview-card/card';
 import { DockhandSchedulesCard } from './dockhand-schedules-card/card';
+import { DockhandDashboardStrategy, DockhandDevicesViewStrategy, DockhandEnvironmentViewStrategy } from './dockhand-strategy/strategy';
 import { t } from './common/i18n-card';
+import { pageLanguageReady } from './common/i18n-loader';
+
+/** A multi-environment card limited to one environment, the way its
+ * editor's solo action writes it. */
+function only(hass: HomeAssistant, envDeviceId: string): { exclude_device_ids: string[] } {
+  return { exclude_device_ids: Object.values(hass.devices ?? {}).filter((d) => isEnvironmentDevice(d) && d.id !== envDeviceId).map((d) => d.id) };
+}
+
+// Defined once the page's language has loaded (or after a short wait), so
+// cards draw in it from the start rather than in English first.
+await pageLanguageReady();
 
 customElements.define('dockhand-environment-card', DockhandEnvironmentCard);
 customElements.define('dockhand-vulnerability-card', DockhandVulnerabilityCard);
@@ -31,6 +43,9 @@ customElements.define('dockhand-containers-card', DockhandContainersCard);
 customElements.define('dockhand-updates-card', DockhandUpdatesCard);
 customElements.define('dockhand-overview-card', DockhandOverviewCard);
 customElements.define('dockhand-schedules-card', DockhandSchedulesCard);
+customElements.define('ll-strategy-dashboard-dockhand', DockhandDashboardStrategy);
+customElements.define('ll-strategy-view-dockhand-environment', DockhandEnvironmentViewStrategy);
+customElements.define('ll-strategy-view-dockhand-devices', DockhandDevicesViewStrategy);
 
 // Each card's own editor is registered lazily via its getConfigElement()
 // (dynamically imported, self-registers on first use) to keep the initial
@@ -48,6 +63,11 @@ declare global {
       documentationURL?: string;
       getEntitySuggestion?: (hass: HomeAssistant, entityId: string) => EntitySuggestion | EntitySuggestion[] | undefined;
     }[];
+    /** Home Assistant's strategy registrations (frontend
+     * lovelace_custom_strategies.ts): a dashboard strategy registered here
+     * shows under Add dashboard → Community dashboards. View strategies
+     * can't be picked anywhere yet, so the environment view isn't. */
+    customStrategies?: { type: string; strategyType: 'dashboard' | 'view' | 'section'; name?: string; description?: string; documentationURL?: string }[];
   }
 }
 
@@ -76,15 +96,15 @@ window.customCards.push({
     // to see the stacks themselves, not just the environment tile.
     if (entry.translation_key === ENV_TRANSLATION_KEYS.vulnerabilities) {
       return [
-        { config: { type: 'custom:dockhand-vulnerability-card', device_id: device.id }, label: t(hass, 'suggest_vulnerability_summary') },
+        { config: { type: 'custom:dockhand-vulnerability-card', ...only(hass, device.id) }, label: t(hass, 'suggest_vulnerability_summary') },
         envSuggestion
       ];
     }
     if (entry.translation_key === ENV_TRANSLATION_KEYS.stacks) {
-      return [{ config: { type: 'custom:dockhand-stacks-card', device_id: device.id }, label: t(hass, 'suggest_all_stacks') }, envSuggestion];
+      return [{ config: { type: 'custom:dockhand-stacks-card', ...only(hass, device.id) }, label: t(hass, 'suggest_all_stacks') }, envSuggestion];
     }
     if (entry.translation_key === ENV_TRANSLATION_KEYS.containers) {
-      return [{ config: { type: 'custom:dockhand-containers-card', device_id: device.id }, label: t(hass, 'suggest_all_containers') }, envSuggestion];
+      return [{ config: { type: 'custom:dockhand-containers-card', ...only(hass, device.id) }, label: t(hass, 'suggest_all_containers') }, envSuggestion];
     }
     return envSuggestion;
   }
@@ -117,7 +137,7 @@ window.customCards.push({
     const envId = getEnvIdForStackDevice(device);
     const envDeviceId = envId !== null ? getEnvDeviceIdForEnvId(hass, envId, device) : null;
     if (envDeviceId) {
-      suggestions.push({ config: { type: 'custom:dockhand-stacks-card', device_id: envDeviceId }, label: t(hass, 'suggest_stacks_in_environment') });
+      suggestions.push({ config: { type: 'custom:dockhand-stacks-card', ...only(hass, envDeviceId) }, label: t(hass, 'suggest_stacks_in_environment') });
     }
     return suggestions;
   }
@@ -142,7 +162,7 @@ window.customCards.push({
     const envDeviceId = envId !== null ? getEnvDeviceIdForEnvId(hass, envId, device) : null;
     if (envDeviceId) {
       suggestions.push({
-        config: { type: 'custom:dockhand-containers-card', device_id: envDeviceId },
+        config: { type: 'custom:dockhand-containers-card', ...only(hass, envDeviceId) },
         label: t(hass, 'suggest_containers_in_environment')
       });
     }
@@ -153,7 +173,7 @@ window.customCards.push({
 window.customCards.push({
   type: 'dockhand-stacks-card',
   name: 'Dockhand Stacks Card',
-  description: 'Every Compose stack in one environment, one compact row each.',
+  description: 'Every Compose stack across the environments you choose, one compact row each.',
   preview: true,
   documentationURL: 'https://github.com/raetha/ha-dockhand-cards'
   // No getEntitySuggestion of its own — it's offered as the second option
@@ -165,7 +185,7 @@ window.customCards.push({
 window.customCards.push({
   type: 'dockhand-containers-card',
   name: 'Dockhand Containers Card',
-  description: 'Every container in one environment, one compact row each.',
+  description: 'Every container across the environments you choose, one compact row each.',
   preview: true,
   documentationURL: 'https://github.com/raetha/ha-dockhand-cards'
 });
@@ -184,7 +204,7 @@ window.customCards.push({
     const envId = getEnvIdForContainerDevice(device);
     const envDeviceId = envId !== null ? getEnvDeviceIdForEnvId(hass, envId, device) : null;
     return {
-      config: { type: 'custom:dockhand-updates-card', scope: envDeviceId ? 'environment' : 'all', device_id: envDeviceId ?? undefined },
+      config: { type: 'custom:dockhand-updates-card', ...(envDeviceId ? only(hass, envDeviceId) : {}) },
       label: t(hass, 'pending_updates')
     };
   }
@@ -212,16 +232,22 @@ window.customCards.push({
     if (!device || !isScheduleDevice(device)) return undefined;
     const envId = getEnvIdForScheduleDevice(hass, device);
     const envDeviceId = envId !== null ? getEnvDeviceIdForEnvId(hass, envId, device) : null;
-    // No scope/device_id fields anymore — "just this environment" is
-    // expressed the same way the editor's own per-row "solo" action
-    // writes it: exclude every other known environment, same as picking
-    // scope: 'environment' + this device_id used to mean.
-    const excludeOthers = envDeviceId ? Object.values(hass.devices ?? {}).filter((d) => isEnvironmentDevice(d) && d.id !== envDeviceId).map((d) => d.id) : [];
+    // "Just this environment" is written the way the editor's per-row
+    // solo action writes it: every other environment excluded.
     return {
-      config: { type: 'custom:dockhand-schedules-card', ...(envDeviceId ? { exclude_device_ids: excludeOthers } : {}) },
+      config: { type: 'custom:dockhand-schedules-card', ...(envDeviceId ? only(hass, envDeviceId) : {}) },
       label: envDeviceId ? t(hass, 'suggest_schedules_in_environment') : t(hass, 'suggest_all_schedules')
     };
   }
+});
+
+window.customStrategies = window.customStrategies || [];
+window.customStrategies.push({
+  type: 'dockhand',
+  strategyType: 'dashboard',
+  name: 'Dockhand',
+  description: 'An overview of every Dockhand environment, and a view for each with its stacks, containers, updates and schedules.',
+  documentationURL: 'https://github.com/raetha/ha-dockhand-cards#dockhand-dashboard'
 });
 
 console.info(`%c HA-DOCKHAND-CARDS %c v${CARD_VERSION} `, 'color: white; background: #0ea5e9; font-weight: 700;', 'color: #0ea5e9; background: white; font-weight: 700;');

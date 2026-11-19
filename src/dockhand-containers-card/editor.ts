@@ -5,13 +5,14 @@ import type { HaFormSchema } from '../common/ha-form-types';
 
 import type { HomeAssistant } from '../common/ha-types';
 import { getEnvironmentDevices, getRepresentativeEntityId } from '../common/device-utils';
-import { cardNameFieldSchema, migrateTitleToName } from '../common/card-name';
+import { cardNameFieldSchema } from '../common/card-name';
 import { stripUndefinedKeys } from '../common/config-utils';
 import { t } from '../common/i18n-editor';
 import { editorFormStyles, sortableRowStyles } from '../common/editor-styles';
-import { resolveIncludedOrderedWithLegacy } from '../common/environment-scope';
-import { renderEnvironmentOrderSection, effectiveExcludeDeviceIds } from '../common/environment-scope-editor';
-import { DEFAULT_CONTAINERS_BADGES, type DockhandContainersCardConfig } from './types';
+import { resolveIncludedOrdered } from '../common/environment-scope';
+import { renderEnvironmentOrderSection } from '../common/environment-scope-editor';
+import { CONTAINERS_BADGE_ORDER, DEFAULT_CONTAINERS_BADGES, type DockhandContainersCardConfig } from './types';
+import { CONTAINERS_FILTER_FIELDS, renderFiltersForm } from '../common/filters-editor';
 
 export class DockhandContainersCardEditor extends LitElement implements LovelaceCardEditor {
   @state() private _config?: DockhandContainersCardConfig;
@@ -20,6 +21,10 @@ export class DockhandContainersCardEditor extends LitElement implements Lovelace
    * full reasoning — set only by the Overview card's per-environment
    * override detail view, never by HA itself. */
   @property({ type: Boolean }) cardIsEmbedded = false;
+  /** Set by the Dockhand dashboard's settings: the dashboard chooses the
+   * environments, so the editor leaves its Environments section out, but
+   * the card still spans several (unlike cardIsEmbedded). */
+  @property({ type: Boolean }) scopeFixed = false;
   /** See DockhandEnvironmentCardEditor's identical property for the full
    * reasoning. */
   @property({ type: Boolean }) hideTitle = false;
@@ -31,7 +36,7 @@ export class DockhandContainersCardEditor extends LitElement implements Lovelace
   }
 
   setConfig(config: DockhandContainersCardConfig): void {
-    this._config = { sort_by: 'name', ...(migrateTitleToName(config as Record<string, unknown>) as DockhandContainersCardConfig) };
+    this._config = { sort_by: 'name', ...config };
   }
 
   /** See DockhandStacksCardEditor's identical method for the full
@@ -66,7 +71,9 @@ export class DockhandContainersCardEditor extends LitElement implements Lovelace
             mode: 'dropdown' as const,
             options: [
               { value: 'name', label: t(this._hass, 'sort_by_name') },
-              { value: 'status', label: t(this._hass, 'sort_by_status') }
+              { value: 'status', label: t(this._hass, 'sort_by_status') },
+              { value: 'cpu', label: t(this._hass, 'sort_by_cpu') },
+              { value: 'memory', label: t(this._hass, 'sort_by_memory') }
             ]
           }
         }
@@ -88,13 +95,9 @@ export class DockhandContainersCardEditor extends LitElement implements Lovelace
           {
             name: 'visible_badges',
             type: 'multi_select',
-            options: {
-              health: t(this._hass, 'badge_health'),
-              updates: t(this._hass, 'badge_updates'),
-              cpu: t(this._hass, 'badge_cpu'),
-              memory: t(this._hass, 'badge_memory'),
-              ...(this.cardIsEmbedded ? {} : { environment: t(this._hass, 'badge_environment') })
-            }
+            options: Object.fromEntries(
+              CONTAINERS_BADGE_ORDER.filter((badge) => !(this.cardIsEmbedded && badge === 'environment')).map((badge) => [badge, t(this._hass, `badge_${badge}`)])
+            )
           }
         ]
       }
@@ -109,7 +112,7 @@ export class DockhandContainersCardEditor extends LitElement implements Lovelace
       return html`<div class="row">${t(this._hass, 'no_environments_found')}</div>`;
     }
 
-    const includedEnvDevices = resolveIncludedOrderedWithLegacy(devices, this._config.environments_order, this._config.exclude_device_ids, this._config.device_id);
+    const includedEnvDevices = resolveIncludedOrdered(devices, this._config.environments_order, this._config.exclude_device_ids);
     const representativeEntityId = includedEnvDevices[0] ? getRepresentativeEntityId(this._hass, includedEnvDevices[0].deviceId) : undefined;
 
     return html`
@@ -121,20 +124,14 @@ export class DockhandContainersCardEditor extends LitElement implements Lovelace
         @value-changed=${this._valueChanged}
       ></ha-form>
 
-      <!--
-        Legacy single-environment configs (device_id, real and released
-        since 1.0.0) are never rewritten here — see
-        resolveIncludedOrderedWithLegacy's own comment in
-        environment-scope.ts for the full reasoning (same as Stacks').
-      -->
       ${renderEnvironmentOrderSection({
         hass: this._hass,
         headingKey: 'label_environments',
         hintKey: 'order_list_hint',
         icon: 'mdi:web',
-        hidden: this.cardIsEmbedded,
+        hidden: this.cardIsEmbedded || this.scopeFixed,
         order: this._config.environments_order,
-        excluded: effectiveExcludeDeviceIds(devices, this._config.exclude_device_ids, this._config.device_id),
+        excluded: this._config.exclude_device_ids,
         showExcludeToggle: true,
         // Drag order only actually affects anything when grouped by
         // environment (groupContainerRows sorts *other* groupings by
@@ -142,18 +139,20 @@ export class DockhandContainersCardEditor extends LitElement implements Lovelace
         // the handle stays visible but disabled otherwise, rather than
         // functional but silently inert.
         allowReorder: (this._config.group_by ?? (this.cardIsEmbedded ? 'none' : 'environment')) === 'environment',
-        onMoved: (order) => this._updateConfig({ environments_order: order, device_id: undefined }),
+        onMoved: (order) => this._updateConfig({ environments_order: order }),
         onToggleExcluded: (deviceId, nowExcluded) => {
-          const current = effectiveExcludeDeviceIds(devices, this._config?.exclude_device_ids, this._config?.device_id) ?? [];
+          const current = this._config?.exclude_device_ids ?? [];
           const next = nowExcluded ? [...current, deviceId] : current.filter((id) => id !== deviceId);
-          this._updateConfig({ exclude_device_ids: next, device_id: undefined });
+          this._updateConfig({ exclude_device_ids: next });
         },
         onSolo: (deviceId) => {
-          this._updateConfig({ exclude_device_ids: devices.filter((d) => d.deviceId !== deviceId).map((d) => d.deviceId), device_id: undefined });
+          this._updateConfig({ exclude_device_ids: devices.filter((d) => d.deviceId !== deviceId).map((d) => d.deviceId) });
         },
-        onSelectAll: () => this._updateConfig({ exclude_device_ids: [], device_id: undefined }),
-        onClearAll: () => this._updateConfig({ exclude_device_ids: devices.map((d) => d.deviceId), device_id: undefined })
+        onSelectAll: () => this._updateConfig({ exclude_device_ids: [] }),
+        onClearAll: () => this._updateConfig({ exclude_device_ids: devices.map((d) => d.deviceId) })
       })}
+
+      ${renderFiltersForm(this._hass, CONTAINERS_FILTER_FIELDS, this._config, (patch) => this._updateConfig(patch), 'always_show_problems_containers')}
 
       <ha-form
         .hass=${this._hass}

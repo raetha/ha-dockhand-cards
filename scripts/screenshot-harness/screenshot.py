@@ -12,11 +12,12 @@ CARDS = [
     ("dockhand-environment-card", {"device_id": "env_1", "mode": "detailed"}, "env-detailed.png", 500, 700),
     ("dockhand-environment-card", {"device_id": "env_4", "mode": "full"}, "env-full.png", 900, 640),
     ("dockhand-vulnerability-card", {"device_id": "env_1"}, "vulnerability.png", 420, 260),
+    ("dockhand-vulnerability-card", {}, "vulnerability-rollup.png", 420, 320),
     ("dockhand-stack-card", {"device_id": "stack_1_core"}, "stack.png", 420, 420),
     ("dockhand-container-card", {"device_id": "container_1_web"}, "container.png", 420, 320),
-    ("dockhand-stacks-card", {"device_id": "env_1"}, "stacks-list.png", 420, 220),
-    ("dockhand-containers-card", {"device_id": "env_1"}, "containers-list.png", 420, 320),
-    ("dockhand-updates-card", {"scope": "all"}, "updates.png", 420, 320),
+    ("dockhand-stacks-card", {"exclude_device_ids": ["env_2", "env_3", "env_4"]}, "stacks-list.png", 420, 220),
+    ("dockhand-containers-card", {"exclude_device_ids": ["env_2", "env_3", "env_4"]}, "containers-list.png", 420, 320),
+    ("dockhand-updates-card", {}, "updates.png", 420, 320),
     ("dockhand-schedules-card", {"group_by": "environment"}, "schedules.png", 420, 460),
     (
         "dockhand-overview-card",
@@ -33,10 +34,45 @@ CARDS = [
         # Overview is the one card with text outside a card body (its column
         # titles), which is unreadable on a transparent PNG once the README's
         # page background doesn't match the theme. Render it on HA's own
-        # dashboard background instead, in the light theme.
-        {"theme": "light", "backdrop": True},
+        # dashboard background instead.
+        {"backdrop": True},
     ),
 ]
+
+
+# Dockhand dashboard pages (`window.__mountDashboard`): the strategies'
+# output, in a stand-in for Home Assistant's sections view. Rendered on the
+# dashboard background in both themes, at 1x since they're wide.
+DASHBOARDS = [
+    ("dashboard-overview.png", {}, "overview", 380),
+    ("dashboard-environment.png", {}, {"env": "env_1"}, 380),
+    ("dashboard-containers.png", {}, {"env": "env_1", "kind": "containers"}, 380),
+]
+
+
+async def _dashboards(browser, light):
+    page = await browser.new_page(device_scale_factor=1, viewport={"width": 2000, "height": 1200})
+    page.on("pageerror", lambda exc: print("[pageerror]", exc))
+    await page.goto("http://localhost:8931/index.html" + ("?theme=light" if light else ""))
+    await page.wait_for_function("window.__renderDone === true")
+    for filename, settings, view, column in DASHBOARDS:
+        if light:
+            filename = filename.replace(".png", "-light.png")
+        slot_id = filename.replace(".", "_")
+        await page.evaluate("([id, s, v, c]) => window.__mountDashboard(id, s, v, c)", [slot_id, settings, view, column])
+        await page.wait_for_timeout(800)
+        await page.locator(f"#{slot_id}").screenshot(path=os.path.join(OUT_DIR, filename))
+        print("saved", filename)
+    await page.close()
+
+    page = await _open_page(browser, light)
+    filename = "dashboard-settings-light.png" if light else "dashboard-settings.png"
+    slot_id = filename.replace(".", "_")
+    await page.evaluate("([id]) => window.__mountDashboardEditor(id, {}, 600)", [slot_id])
+    await page.wait_for_timeout(500)
+    await page.locator(f"#{slot_id}").screenshot(path=os.path.join(OUT_DIR, filename))
+    print("saved", filename)
+    await page.close()
 
 
 async def _open_page(browser, light):
@@ -56,15 +92,9 @@ async def main():
 
         for tag, config, filename, width, height, *extra in CARDS:
             opts = extra[0] if extra else {}
-            if "theme" in opts:
-                # Fixed theme: produced once, only by the default (dark) run.
-                if LIGHT:
-                    continue
-                light = opts["theme"] == "light"
-            else:
-                light = LIGHT
-                if LIGHT:
-                    filename = filename.replace(".png", "-light.png")
+            light = LIGHT
+            if LIGHT:
+                filename = filename.replace(".png", "-light.png")
             if light not in pages:
                 pages[light] = await _open_page(browser, light)
             page = pages[light]
@@ -89,6 +119,7 @@ async def main():
             await el.screenshot(path=os.path.join(OUT_DIR, filename), omit_background=True)
             print("saved", filename)
 
+        await _dashboards(browser, LIGHT)
         await browser.close()
 
 

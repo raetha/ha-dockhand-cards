@@ -35,23 +35,19 @@ describe('eventLookupKey', () => {
 
 describe('pendingUpdateSummary', () => {
   it('counts the total, matching the Updates card rows, not just installable updates', () => {
-    const r = pendingUpdateSummary({ pending_updates: 1, pending_system_updates: 1, pending_version_updates: 2, pending_updates_total: 4 });
+    const r = pendingUpdateSummary({ installable: 1, system: 1, versionTag: 2, total: 4 });
     expect(r.count).toBe(4);
     expect(r.title).toBe('Pending updates — Installable: 1, System: 1, New version tags: 2');
   });
 
   it('keeps the plain title when only one kind is pending', () => {
-    expect(pendingUpdateSummary({ pending_updates: 0, pending_system_updates: 0, pending_version_updates: 3, pending_updates_total: 3 })).toEqual({
+    expect(pendingUpdateSummary({ installable: 0, system: 0, versionTag: 3, total: 3 })).toEqual({
       count: 3,
       title: 'Pending updates'
     });
   });
 
-  it('falls back to pending_updates on integrations without a total', () => {
-    expect(pendingUpdateSummary({ pending_updates: 2 }).count).toBe(2);
-  });
-
-  it('treats missing attributes as zero', () => {
+  it('treats missing counts as zero', () => {
     expect(pendingUpdateSummary({})).toEqual({ count: 0, title: 'Pending updates' });
   });
 });

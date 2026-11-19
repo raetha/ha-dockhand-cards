@@ -3,8 +3,8 @@ import type { CardMode, CustomSection, DockhandEnvironmentCardConfig } from '../
 import type { StacksCardBadge, StacksGroupBy, StacksSortBy, DockhandStacksCardConfig } from '../dockhand-stacks-card/types';
 import type { ContainersCardBadge, ContainersGroupBy, ContainersSortBy, DockhandContainersCardConfig } from '../dockhand-containers-card/types';
 import type { DockhandVulnerabilityCardConfig } from '../dockhand-vulnerability-card/types';
-import type { ScheduleGroupBy, ScheduleSortBy, ScheduleBadge } from '../dockhand-schedules-card/types';
-import type { EntityNameItem } from '../common/ha-types';
+import type { ScheduleGroupBy, ScheduleSortBy, ScheduleBadge, DockhandSchedulesCardConfig } from '../dockhand-schedules-card/types';
+import type { DockhandUpdatesCardConfig } from '../dockhand-updates-card/types';
 
 export type OverviewSection = 'environments' | 'vulnerabilities' | 'stacks' | 'containers' | 'updates' | 'schedules';
 
@@ -25,6 +25,48 @@ export function enabledSections(sections: OverviewSection[], config: DockhandOve
   return sections.filter((s) => shown[s]);
 }
 
+/** Section → the prefix of its defaults' keys (§4) and its key in an
+ * environment's override. */
+const SECTION_PREFIX: Record<OverviewSection, string> = {
+  environments: 'environment',
+  vulnerabilities: 'vulnerabilities',
+  stacks: 'stacks',
+  containers: 'containers',
+  updates: 'updates',
+  schedules: 'schedules'
+};
+const OVERRIDE_KEY: Record<OverviewSection, keyof EnvironmentOverride> = {
+  environments: 'environment',
+  vulnerabilities: 'vulnerabilities',
+  stacks: 'stacks',
+  containers: 'containers',
+  updates: 'updates',
+  schedules: 'schedules'
+};
+
+/** A section's settings for one environment's card: the section's
+ * defaults (`stacks_group_by` → `group_by`), then the environment's
+ * override. The singular `environment_` prefix can't match the plural
+ * `environments_overrides`/`environments_order` (§4). */
+export function sectionSettings(config: Record<string, unknown>, section: OverviewSection, override: EnvironmentOverride | undefined): Record<string, unknown> {
+  const prefix = `${SECTION_PREFIX[section]}_`;
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(config)) {
+    if (key.startsWith(prefix) && value !== undefined) out[key.slice(prefix.length)] = value;
+  }
+  for (const [key, value] of Object.entries(override?.[OVERRIDE_KEY[section]] ?? {})) {
+    if (value !== undefined) out[key] = value;
+  }
+  return out;
+}
+
+/** The saved section order, with any section it doesn't name after it. */
+export function orderedSections(saved: OverviewSection[] | undefined): OverviewSection[] {
+  if (!saved) return DEFAULT_SECTION_ORDER;
+  const known = new Set(saved);
+  return [...saved, ...DEFAULT_SECTION_ORDER.filter((s) => !known.has(s))];
+}
+
 /** Per-environment override of any field the standalone Environment/
  * Vulnerability/Stacks/Containers card itself exposes — same fields,
  * same meaning, just scoped to one environment's column here instead of
@@ -32,58 +74,25 @@ export function enabledSections(sections: OverviewSection[], config: DockhandOve
  * value", not "use a blank one".
  *
  * Derived from each card's own config type (everything except
- * type/device_id, which don't apply to an override) rather than
- * hand-declared separately, on purpose: a hand-declared parallel
- * interface is exactly the kind of duplication that silently broke
- * per-environment visible_badges overrides for a while (see
- * docs/architecture.md §3) — that specific bug was in the *runtime*
- * extraction handlers, already fixed by making those generic, but the
- * *type* had the same duplication risk sitting right next to it, just
- * without a way to fail loudly yet. `Omit<..., 'type' | 'device_id'>`
- * means adding a field to e.g. DockhandStacksCardConfig automatically
- * makes it a valid override field too, with nothing here to remember to
- * touch. `EnvironmentOverrideUpdates` is deliberately NOT built this way
- * — DockhandUpdatesCardConfig has scope/visibility fields that aren't
- * override-appropriate, so Omit alone doesn't produce the right shape
- * there; it stays hand-declared, the same exception `updates` already
- * is everywhere else in this design. */
+ * type/device_id, which don't apply to an override) rather than declared
+ * again, so a field added to e.g. DockhandStacksCardConfig is a valid
+ * override with nothing here to change (a parallel copy drifts:
+ * docs/architecture.md §3). `EnvironmentOverrideUpdates` is declared by
+ * hand: DockhandUpdatesCardConfig's scope and visibility fields don't
+ * apply to an override, so Omit alone wouldn't give the right shape. */
 export type EnvironmentOverrideEnvironment = Omit<DockhandEnvironmentCardConfig, 'type' | 'device_id'>;
 export type EnvironmentOverrideVulnerabilities = Omit<DockhandVulnerabilityCardConfig, 'type' | 'device_id'>;
-/** `environments_order`/`exclude_device_ids` also omitted, alongside the
- * pre-existing `type`/`device_id` — not override-appropriate now that
- * Stacks supports multiple environments: Overview already owns which
- * environment(s) each generated card represents, same reasoning as
- * EnvironmentOverrideSchedules' own comment. */
+/** `environments_order` and `exclude_device_ids` are omitted too:
+ * Overview decides which environment each generated card shows, as for
+ * EnvironmentOverrideSchedules. */
 export type EnvironmentOverrideStacks = Omit<DockhandStacksCardConfig, 'type' | 'device_id' | 'environments_order' | 'exclude_device_ids'>;
 export type EnvironmentOverrideContainers = Omit<DockhandContainersCardConfig, 'type' | 'device_id' | 'environments_order' | 'exclude_device_ids'>;
-export interface EnvironmentOverrideUpdates {
-  name?: string | EntityNameItem | EntityNameItem[];
-  hide_when_no_updates?: boolean;
-}
-/** Hand-declared for the same reason EnvironmentOverrideUpdates is: Omit<>
- * alone doesn't produce the right shape. Schedules has no `device_id` to
- * omit in the first place (it never had one — see that card's own
- * README for why), and its environment-scoping fields
- * (`environments_order`/`exclude_device_ids`/`include_global`) aren't
- * override-appropriate here at all — Overview already owns which
- * environment each column represents, and forces every generated
- * Schedules card to that one environment plus include_global: false
- * (see card.ts) so the same global schedules don't repeat in every
- * column. `visible_badges` is included (unlike the two fields above) —
- * an override *can* meaningfully ask for the environment badge back on
- * one specific column even though Overview's own default excludes it
- * (see card.ts's own comment on why) — but the embedded editor never
- * offers 'environment' as a choice in the first place when embedded, so
- * in practice an override here can only ever end up narrowing
- * ['next_run'] further, never actually adding 'environment' back. */
-export interface EnvironmentOverrideSchedules {
-  name?: string | EntityNameItem | EntityNameItem[];
-  show_settings_link?: boolean;
-  show_stats?: boolean;
-  visible_badges?: ScheduleBadge[];
-  group_by?: ScheduleGroupBy;
-  sort_by?: ScheduleSortBy;
-}
+/** Updates and Schedules also leave out the keys a column decides for
+ * them: the environment scope (an Overview column is one environment, with
+ * no global schedules), and Updates' `visibility`, since the Overview hides
+ * that card itself. */
+export type EnvironmentOverrideUpdates = Omit<DockhandUpdatesCardConfig, 'type' | 'device_id' | 'scope' | 'environments_order' | 'exclude_device_ids' | 'visibility'>;
+export type EnvironmentOverrideSchedules = Omit<DockhandSchedulesCardConfig, 'type' | 'environments_order' | 'exclude_device_ids' | 'include_global'>;
 
 /** One environment's full set of per-card-type overrides — edited via the
  * editor's per-environment detail view (see editor.ts), not hand-written
@@ -164,6 +173,9 @@ export interface DockhandOverviewCardConfig extends LovelaceCardConfig {
   schedules_visible_badges?: ScheduleBadge[];
   schedules_group_by?: ScheduleGroupBy;
   schedules_sort_by?: ScheduleSortBy;
+  /** Every other field of a list card works the same way as a section
+   * default (`stacks_show_controls`, `containers_filters`, …): the Overview
+   * passes any key with a section's prefix on to that section's cards. */
   /** Per-environment overrides of any field any of the 5 generated card
    * types expose, keyed by device id. Edited via the editor's per-
    * environment detail view — see EnvironmentOverride above. Plural,
@@ -171,33 +183,14 @@ export interface DockhandOverviewCardConfig extends LovelaceCardConfig {
    * the environments section/list as a whole, not one environment's
    * card settings the way environment_mode etc. are (singular there is
    * correct: each of those really is a per-card-type default, this
-   * isn't). Read via getEnvironmentOverrides(), not this field directly
-   * — see that function for why. */
+   * isn't). */
   environments_overrides?: Record<string, EnvironmentOverride>;
-  /** @deprecated Renamed to `environments_overrides` (see above) shortly
-   * after the 1.1.0 release that introduced it, while ha-dockhand-cards
-   * had close to zero real users — the rename fixes a genuine
-   * inconsistency (singular "environment", unlike every sibling
-   * plural-when-about-the-section key) and removes the one case where
-   * a top-level key collided with a global-defaults section prefix
-   * (see docs/architecture.md §4). Read via getEnvironmentOverrides(),
-   * never directly, so this fallback can be deleted from that one
-   * function (and this field from this interface) once enough time has
-   * passed that remaining old-style saved configs are a non-issue —
-   * tracked in docs/backlog.md with a target date. */
-  environment_overrides?: Record<string, EnvironmentOverride>;
   exclude_device_ids?: string[];
   /** Device ids in the order the user dragged them to, in the editor.
    * Environments not listed here (newly added ones) sort after the
-   * ordered ones, alphabetically. Read via getEnvironmentOrder(), not
-   * this field directly — see environments_overrides above for the
-   * same reasoning (plural, matches show_environments; not a
-   * per-environment-card setting the way environment_mode is). */
+   * ordered ones, alphabetically. Plural, matching show_environments,
+   * like environments_overrides above. */
   environments_order?: string[];
-  /** @deprecated Renamed to `environments_order` (see above) — same
-   * migration, same reasoning, same removal tracking in
-   * docs/backlog.md. Read via getEnvironmentOrder(), never directly. */
-  environment_order?: string[];
   /** Section order within each environment's column, user-arranged in
    * the editor the same way environments_order is. Sections not listed
    * (newly added ones, e.g. after an update) sort after the ordered
@@ -215,49 +208,4 @@ export interface DockhandOverviewCardConfig extends LovelaceCardConfig {
    * flex-wrap layout when section heights differ significantly between
    * environments. */
   align_columns?: boolean;
-}
-
-/** Prefers the current environments_overrides key, falling back to the
- * deprecated environment_overrides for a config saved before the rename
- * — see that field's own doc comment in DockhandOverviewCardConfig for
- * the full reasoning and removal tracking. The only place either field
- * should ever be read from; card.ts and editor.ts both call this rather
- * than reading either key directly. */
-export function getEnvironmentOverrides(config: DockhandOverviewCardConfig | undefined): Record<string, EnvironmentOverride> | undefined {
-  return config?.environments_overrides ?? config?.environment_overrides;
-}
-
-/** Same fallback as getEnvironmentOverrides, for environments_order /
- * the deprecated environment_order. */
-export function getEnvironmentOrder(config: DockhandOverviewCardConfig | undefined): string[] | undefined {
-  return config?.environments_order ?? config?.environment_order;
-}
-
-/** Normalizes a config's deprecated environment_overrides/environment_order
- * keys to their current environments_overrides/environments_order names
- * (preferring an already-current value if somehow both are present),
- * deleting the deprecated key either way. Called once, in the editor's
- * own setConfig() — not here in types.ts as a side effect of the getters
- * above, since a pure accessor shouldn't also mutate — so this._config is
- * always in the post-rename shape from the moment the editor loads,
- * before any of its own code ever reads or writes either key again. This
- * is what lets _globalEditorConfig's generic prefix scan (see
- * docs/architecture.md §4) skip needing a denylist of its own: by the
- * time it runs, the deprecated keys it would otherwise have to exclude
- * simply aren't present in memory anymore. The live card (card.ts)
- * doesn't need this: it never writes anything back, and
- * getEnvironmentOverrides()/getEnvironmentOrder() already read either
- * key name correctly for rendering on their own. */
-export function migrateOverviewConfig(config: DockhandOverviewCardConfig): DockhandOverviewCardConfig {
-  if (config.environment_overrides === undefined && config.environment_order === undefined) return config;
-  const next = { ...config } as Record<string, unknown>;
-  if (next.environment_overrides !== undefined) {
-    next.environments_overrides ??= next.environment_overrides;
-    delete next.environment_overrides;
-  }
-  if (next.environment_order !== undefined) {
-    next.environments_order ??= next.environment_order;
-    delete next.environment_order;
-  }
-  return next as DockhandOverviewCardConfig;
 }
