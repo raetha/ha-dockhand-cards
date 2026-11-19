@@ -10,6 +10,10 @@ and [Unreleased] is the notes of the current test build.
 
 ## [Unreleased]
 
+### Internal
+
+- After a release, CI resets `dev` to `main` also when the release pull request came from a release branch off `dev`, as 2.0.0's did.
+
 ## [2.0.0] - 2026-11-18
 
 Dockhand Cards 2.0 goes with the Dockhand integration 2.0, reading its new sensors and using the controls it adds.

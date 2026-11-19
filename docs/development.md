@@ -135,7 +135,7 @@ Day to day:
 Releasing (the owner decides when):
 
 1. Open a release pull request from `dev` into `main` titled "Dockhand Cards X.Y.Z". In it: rename `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD` with a fresh empty `## [Unreleased]` above, update the compare links at the bottom of `CHANGELOG.md`, and check `package.json`'s version is still the right one for what's in the release. The body is the new changelog section.
-2. Squash-merge it. CI tags `X.Y.Z` (no leading "v": HACS shows tag names; releases up to 1.5.1 are tagged `vX.Y.Z`), publishes the release with the built files attached and the changelog section as notes, deletes the test builds, and resets `dev` to `main`.
+2. Squash-merge it. CI tags `X.Y.Z` (no leading "v": HACS shows tag names; releases up to 1.5.1 are tagged `vX.Y.Z`), publishes the release with the built files attached and the changelog section as notes, deletes the test builds, and resets `dev` to `main` (sync-dev: when `dev` holds nothing that wasn't released, whether the pull request came from `dev` or from a release branch off it).
 
 Nothing else is needed: no tags pushed by hand, no version scripts. The release is created by CI, so a version is released exactly once, when its tag doesn't exist yet. CI refuses a pull request into `main` whose version has no dated changelog section, so an undated release can't merge (a merge into `main` that releases nothing needs `dev` back on the released version).
 
