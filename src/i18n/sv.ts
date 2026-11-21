@@ -194,6 +194,8 @@ const card: Record<CardTranslationKey, string> = {
   git_sync_status_error: 'Fel',
   msg_no_filter_matches: 'Inget matchar kortets filter.',
   msg_no_updates_match: 'Inga uppdateringar matchar kortets filter.',
+  tag_from_stack: 'Från stacken {stack}',
+  tag_also_on_stack: 'Även på stacken {stack}',
   filtered_hidden: 'Dolda av filter: {count}',
   stack_status_restarting: 'Startar om',
   msg_no_containers_yet: 'Inga containrar hittades ännu i de valda miljöerna.',

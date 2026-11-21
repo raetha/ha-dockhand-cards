@@ -194,6 +194,8 @@ const card: Record<CardTranslationKey, string> = {
   git_sync_status_error: '错误',
   msg_no_filter_matches: '没有符合此卡片筛选条件的项目。',
   msg_no_updates_match: '没有符合此卡片筛选条件的更新。',
+  tag_from_stack: '来自堆栈 {stack}',
+  tag_also_on_stack: '堆栈 {stack} 上也有',
   filtered_hidden: '被筛选隐藏：{count}',
   stack_status_restarting: '重启中',
   msg_no_containers_yet: '所选环境中尚未找到容器。',

@@ -194,6 +194,8 @@ const card: Record<CardTranslationKey, string> = {
   git_sync_status_error: 'Fout',
   msg_no_filter_matches: 'Niets komt overeen met de filters van deze kaart.',
   msg_no_updates_match: 'Geen updates komen overeen met de filters van deze kaart.',
+  tag_from_stack: 'Van stack {stack}',
+  tag_also_on_stack: 'Ook op stack {stack}',
   filtered_hidden: 'Verborgen door filters: {count}',
   stack_status_restarting: 'Herstarten',
   msg_no_containers_yet: 'Nog geen containers gevonden in de geselecteerde omgevingen.',

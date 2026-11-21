@@ -33,16 +33,18 @@ describe('Containers card filters', () => {
   });
 
   it('excludes with "is not", and picks "no health check" and "no tags" on purpose', async () => {
-    expect(names(await mount('containers', { ...nebula, filters: { tags: { not: ['critical', 'edge'] } } }))).toEqual(['backup', 'redis', 'web', 'worker']);
+    // web and worker are in the `core` stack, tagged critical (issue #108).
+    expect(names(await mount('containers', { ...nebula, filters: { tags: { not: ['critical', 'edge'] } } }))).toEqual(['backup', 'redis']);
     expect(names(await mount('containers', { ...nebula, filters: { health: ['(none)'] } }))).toEqual(['backup', 'traefik']);
     expect(names(await mount('containers', { ...nebula, filters: { update: ['up_to_date', 'pinned'] } }))).toEqual(['backup', 'worker']);
   });
 
   it('keeps problems in view with Always show problems', async () => {
     const filters = { tags: ['critical'] };
-    expect(names(await mount('containers', { ...nebula, filters }))).toEqual(['postgres']);
-    // backup exited with an error, worker is unhealthy.
-    expect(names(await mount('containers', { ...nebula, filters, always_show_problems: true }))).toEqual(['backup', 'postgres', 'worker']);
+    // traefik, web and worker by their `core` stack's tag.
+    expect(names(await mount('containers', { ...nebula, filters }))).toEqual(['postgres', 'traefik', 'web', 'worker']);
+    // backup exited with an error.
+    expect(names(await mount('containers', { ...nebula, filters, always_show_problems: true }))).toEqual(['backup', 'postgres', 'traefik', 'web', 'worker']);
   });
 
   it('says when nothing matches, and can leave out the count', async () => {

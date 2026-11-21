@@ -194,6 +194,8 @@ const card: Record<CardTranslationKey, string> = {
   git_sync_status_error: 'Errore',
   msg_no_filter_matches: 'Nulla corrisponde ai filtri di questa scheda.',
   msg_no_updates_match: 'Nessun aggiornamento corrisponde ai filtri di questa scheda.',
+  tag_from_stack: 'Dallo stack {stack}',
+  tag_also_on_stack: 'Anche sullo stack {stack}',
   filtered_hidden: 'Nascosti dai filtri: {count}',
   stack_status_restarting: 'Riavvio',
   msg_no_containers_yet: 'Nessun container ancora trovato negli ambienti selezionati.',

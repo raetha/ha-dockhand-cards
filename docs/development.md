@@ -122,7 +122,7 @@ Small breaking changes wait for the planned 2.0.0 rather than forcing a major re
 | --- | --- | --- |
 | `main` | Releases only: one squash-merged pull request per release. Never pushed to directly. | Releases the version if it has no tag yet; deletes test builds; resets `dev` (sync-dev). |
 | `dev` | Adopted work, and Dependabot's updates. `[Unreleased]` is kept current here. | Publishes a test build. |
-| `try/<topic>` | Experiments that may be dropped. Branched from `dev`. | Nothing by itself: open a (draft) pull request into `dev` to run CI. |
+| `try/<topic>` | Experiments that may be dropped. Branched from `dev`. Keep the word `tags` out of the name: HACS validation fails a branch named `try/stack-tags` on its `hacs.json` and README images while the same commit passes under another name (2026-11-20). | Nothing by itself: open a (draft) pull request into `dev` to run CI. |
 
 Adopted `try/` work is squash-merged into `dev`; ideas dropped for good get a line in [backlog.md](backlog.md).
 
