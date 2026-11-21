@@ -11,7 +11,7 @@ import { NONE, type FilterExtractor } from './filters';
 import { findPrimaryEntityByDomain, resolveContainerEntities } from './entity-resolver';
 import { getStackNameForContainerDevice } from './device-utils';
 import { updateStatus } from './update-kind';
-import { entityTags } from './tag-pills';
+import { containerTags, entityTags } from './tag-pills';
 import { t } from './i18n-card';
 
 const KNOWN = (state: string | undefined): state is string => !!state && state !== 'unknown' && state !== 'unavailable';
@@ -49,7 +49,11 @@ export function containerUpdateValues(hass: HomeAssistant, deviceId: string): st
 
 export function tagValues(stateObj: HassEntity | undefined): string[] {
   if (!stateObj) return [];
-  const names = entityTags(stateObj).map((tag) => tag.name);
+  return namesOrNone(entityTags(stateObj));
+}
+
+function namesOrNone(tags: { name: string }[]): string[] {
+  const names = tags.map((tag) => tag.name);
   return names.length ? names : [NONE];
 }
 
@@ -69,7 +73,11 @@ export function containerFilters<Row>(deviceIdOf: (row: Row) => string | undefin
     health: ((row, hass) => containerHealthValues(entities(hass, row).health?.state)) as FilterExtractor<Row>,
     stack: onDevice(containerStackValues),
     update: onDevice(containerUpdateValues),
-    tags: ((row, hass) => tagValues(entities(hass, row).state?.state)) as FilterExtractor<Row>
+    // A stack's tags count as its containers' too, as in Dockhand's filter.
+    tags: ((row, hass) => {
+      const state = entities(hass, row).state?.state;
+      return state ? namesOrNone(containerTags(hass, deviceIdOf(row), state)) : [];
+    }) as FilterExtractor<Row>
   };
 }
 

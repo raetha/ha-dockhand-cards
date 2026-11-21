@@ -20,7 +20,7 @@ import { DEFAULT_CONTAINERS_BADGES, type DockhandContainersCardConfig, type Cont
 import { renderRowControls, renderActionsColumn, resolveDeviceControls, rowControlSlots } from '../common/device-controls';
 import { applyFilters } from '../common/filters';
 import { containerFilters, containerStateValues, renderFilteredNote } from '../common/list-filters';
-import { renderTagPills } from '../common/tag-pills';
+import { containerTags, renderTagPills } from '../common/tag-pills';
 import { cell, renderAlignedList, shownColumns } from '../common/aligned-list';
 import { cardStyles } from './styles';
 import { RowFitController } from '../common/row-fit';
@@ -406,7 +406,7 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
           <ha-icon class="row-icon ${stateIcon.cls}" icon=${stateIcon.icon} title=${stateLabel(this._hass, 'container_state', st, found.state!.state)}></ha-icon>
           <span class="item-name">${row.name}</span>
           ${visible.has('environment') ? html`<span class="label-pill name-label">${row.environment}</span>` : nothing}
-          ${visible.has('tags') ? renderTagPills(found.state!.state) : nothing}
+          ${visible.has('tags') ? renderTagPills(containerTags(this._hass!, row.deviceId, found.state!.state), this._hass) : nothing}
         </div>
         ${columns.map(column)}
       </div>

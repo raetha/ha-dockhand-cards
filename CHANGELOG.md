@@ -10,6 +10,19 @@ and [Unreleased] is the notes of the current test build.
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-11-20
+
+Containers now show their stack's Dockhand tags, drawn so you can tell them from their own, as Dockhand's containers list shows them. Update the Dockhand integration to 2.1.0 at the same time.
+
+### Added
+
+- **Stack tags on containers** — the Containers and Container cards show a container's stack's Dockhand tags after its own, as Dockhand's containers list does ([#108](https://github.com/raetha/ha-dockhand-cards/issues/108)). Its own are filled, its stack's outlined (hover for the stack), and one on both is filled and outlined. The Stacks and Stack cards outline a stack's tags too, so an outline always means a stack's tag. The Containers and Updates cards' **Tags** filter matches a container by its stack's tags too. A stack's own tags are only those assigned to it in Dockhand from the Dockhand integration 2.1.0, which goes with this release.
+
+### Internal
+
+- The development guide warns that HACS validation fails a branch with `tags` in its name.
+- After a release, CI resets `dev` to `main` also when the release pull request came from a release branch off `dev`, as 2.0.0's did.
+
 ## [2.0.0] - 2026-11-18
 
 Dockhand Cards 2.0 goes with the Dockhand integration 2.0, reading its new sensors and using the controls it adds.
@@ -715,7 +728,8 @@ so a user's own icon customization is reflected automatically.
   from `hass.language`. Custom mode's section-checkbox labels specifically are English-only for
   now — see `docs/BACKLOG.md`.
 
-[Unreleased]: https://github.com/raetha/ha-dockhand-cards/compare/2.0.0...HEAD
+[Unreleased]: https://github.com/raetha/ha-dockhand-cards/compare/2.1.0...HEAD
+[2.1.0]: https://github.com/raetha/ha-dockhand-cards/compare/2.0.0...2.1.0
 [2.0.0]: https://github.com/raetha/ha-dockhand-cards/compare/v1.5.1...2.0.0
 [1.5.1]: https://github.com/raetha/ha-dockhand-cards/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/raetha/ha-dockhand-cards/compare/v1.4.0...v1.5.0

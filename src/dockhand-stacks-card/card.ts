@@ -17,7 +17,7 @@ import { DEFAULT_STACKS_BADGES, type DockhandStacksCardConfig, type StacksGroupB
 import { renderRowControls, renderActionsColumn, resolveDeviceControls, rowControlSlots } from '../common/device-controls';
 import { applyFilters, type FilterExtractor } from '../common/filters';
 import { renderFilteredNote, tagValues } from '../common/list-filters';
-import { renderTagPills } from '../common/tag-pills';
+import { renderTagPills, stackTags } from '../common/tag-pills';
 import { cell, renderAlignedList, shownColumns } from '../common/aligned-list';
 import { cardStyles } from './styles';
 import { RowFitController } from '../common/row-fit';
@@ -390,7 +390,7 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
           <span class="item-name">${row.name}</span>
           ${visible.has('type') ? html`<span class="label-pill name-label">${stateLabel(this._hass, 'stack_type', row.type)}</span>` : nothing}
           ${visible.has('environment') ? html`<span class="label-pill name-label">${row.environment}</span>` : nothing}
-          ${visible.has('tags') ? renderTagPills(found.status?.state) : nothing}
+          ${visible.has('tags') ? renderTagPills(stackTags(found.status?.state)) : nothing}
         </div>
         ${columns.map((key) => this._renderCell(key, row))}
       </div>

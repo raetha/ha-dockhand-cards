@@ -122,7 +122,7 @@ Small breaking changes wait for the planned 2.0.0 rather than forcing a major re
 | --- | --- | --- |
 | `main` | Releases only: one squash-merged pull request per release. Never pushed to directly. | Releases the version if it has no tag yet; deletes test builds; resets `dev` (sync-dev). |
 | `dev` | Adopted work, and Dependabot's updates. `[Unreleased]` is kept current here. | Publishes a test build. |
-| `try/<topic>` | Experiments that may be dropped. Branched from `dev`. | Nothing by itself: open a (draft) pull request into `dev` to run CI. |
+| `try/<topic>` | Experiments that may be dropped. Branched from `dev`. Keep the word `tags` out of the name: HACS validation fails a branch named `try/stack-tags` on its `hacs.json` and README images while the same commit passes under another name (2026-11-20). | Nothing by itself: open a (draft) pull request into `dev` to run CI. |
 
 Adopted `try/` work is squash-merged into `dev`; ideas dropped for good get a line in [backlog.md](backlog.md).
 
@@ -135,7 +135,7 @@ Day to day:
 Releasing (the owner decides when):
 
 1. Open a release pull request from `dev` into `main` titled "Dockhand Cards X.Y.Z". In it: rename `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD` with a fresh empty `## [Unreleased]` above, update the compare links at the bottom of `CHANGELOG.md`, and check `package.json`'s version is still the right one for what's in the release. The body is the new changelog section.
-2. Squash-merge it. CI tags `X.Y.Z` (no leading "v": HACS shows tag names; releases up to 1.5.1 are tagged `vX.Y.Z`), publishes the release with the built files attached and the changelog section as notes, deletes the test builds, and resets `dev` to `main`.
+2. Squash-merge it. CI tags `X.Y.Z` (no leading "v": HACS shows tag names; releases up to 1.5.1 are tagged `vX.Y.Z`), publishes the release with the built files attached and the changelog section as notes, deletes the test builds, and resets `dev` to `main` (sync-dev: when `dev` holds nothing that wasn't released, whether the pull request came from `dev` or from a release branch off it).
 
 Nothing else is needed: no tags pushed by hand, no version scripts. The release is created by CI, so a version is released exactly once, when its tag doesn't exist yet. CI refuses a pull request into `main` whose version has no dated changelog section, so an undated release can't merge (a merge into `main` that releases nothing needs `dev` back on the released version).
 

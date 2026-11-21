@@ -12,6 +12,8 @@ Ideas and gaps already evaluated and deliberately deferred or rejected, and why 
 
 ## Containers / Stacks cards
 
+- **Rolling a stack's containers' tags up to the stack** on the Stacks and Stack cards, the reverse of the stack tags a container shows (`containerTags()`), drawn as their own look. Dockhand's stacks list rolls up its services' label tags; ha-dockhand 2.1 keeps those on the containers. Only if asked (2026-11-20).
+- **A setting to hide a stack's tags on its containers**, like Dockhand's own per-browser one. Only if asked (2026-11-20).
 - **Grouping by Dockhand tag** on the Containers and Stacks cards (filtering by tag shipped in 2.0.0). A row can have several tags, so it would appear in several groups; not attempted yet.
 - **Filter option B (add-a-filter rows)** if cards gain many more filters: Raetha likes it better in the long run; 2.0.0 ships option A (every filter listed) since `ha-form` can't model rows that choose their own field.
 
