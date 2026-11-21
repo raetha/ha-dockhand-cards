@@ -18,7 +18,7 @@ import { renderUpdateKindIcon, updateStatus, type UpdateStatus } from '../common
 import { joinWithDividers, mergeSections } from '../common/section-join';
 import { renderHeaderControls, resolveDeviceControls } from '../common/device-controls';
 import { DEFAULT_STACK_SECTIONS, type DockhandStackCardConfig } from './types';
-import { entityTags, renderTagRow } from '../common/tag-pills';
+import { renderTagRow, stackTags } from '../common/tag-pills';
 import { cardStyles } from './styles';
 
 const STATUS_ICON: Record<string, string> = {
@@ -150,7 +150,7 @@ export class DockhandStackCard extends LitElement implements LovelaceCard {
               })}
             </div>
           </div>
-          ${renderTagRow(entityTags(s.status?.state))}
+          ${renderTagRow(stackTags(s.status?.state))}
           <div class="divider"></div>
           ${this._renderBody(s, isGit, device)}
         </div>
