@@ -193,6 +193,8 @@ export const card = {
   git_sync_status_error: 'Error',
   msg_no_filter_matches: 'Nothing matches this card’s filters.',
   msg_no_updates_match: 'No updates match this card’s filters.',
+  tag_from_stack: 'From stack {stack}',
+  tag_also_on_stack: 'Also on stack {stack}',
   filtered_hidden: 'Hidden by filters: {count}',
   stack_status_restarting: 'Restarting',
   msg_no_containers_yet: 'No containers found for the selected environments yet.',

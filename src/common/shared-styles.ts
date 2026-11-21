@@ -812,6 +812,17 @@ export const sharedStyles = css`
   .row.no-tags .row-left:has(.tag-pills) .item-name {
     flex-shrink: 1;
   }
+  /* Where a container's tag comes from (containerTags()): its own is
+   * filled, its stack's is outlined, one on both is filled and outlined.
+   * An inset ring keeps every pill the same size, and its colour follows
+   * the pill's text, so it's never the fill's own colour. */
+  .tag-pill.from-stack {
+    background: transparent;
+    box-shadow: inset 0 0 0 1px currentColor;
+  }
+  .tag-pill.also-stack {
+    box-shadow: inset 0 0 0 1px currentColor;
+  }
   .tag-pills {
     display: flex;
     gap: var(--ha-space-1, 4px);

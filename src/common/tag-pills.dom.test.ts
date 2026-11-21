@@ -5,7 +5,7 @@ import { DockhandContainersCard } from '../dockhand-containers-card/card';
 import { DockhandStacksCard } from '../dockhand-stacks-card/card';
 import { DockhandContainerCard } from '../dockhand-container-card/card';
 import { DockhandStackCard } from '../dockhand-stack-card/card';
-import { entityTags, renderTagPill } from './tag-pills';
+import { containerTags, entityTags, renderTagPill } from './tag-pills';
 import { makeDevice, makeEntity, makeHass, makeState } from './test-fixtures';
 import type { HomeAssistant } from './ha-types';
 import { mount as mountTag, type Lit } from './mount.test-helpers';
@@ -92,6 +92,73 @@ describe.each([
     el.remove();
     el = await mount(single, hassWith(kind, {}), { device_id: 'dev-web' });
     expect(el.shadowRoot!.querySelector('.tag-row')).toBeNull();
+    el.remove();
+  });
+});
+
+// A container in stack `app`: its own `media` and `critical`, and the stack's
+// `critical` and `db` (github.com/raetha/ha-dockhand-cards/issues/108).
+function hassInStack(): HomeAssistant {
+  const stack = makeDevice({ id: 'dev-app', identifiers: [['dockhand', 'entry_stack_1_app']], config_entry_id: 'entry', name: 'app', via_device_id: 'env-device' });
+  const web = makeDevice({ id: 'dev-web', identifiers: [['dockhand', 'entry_container_1_web']], config_entry_id: 'entry', name: 'web', via_device_id: 'dev-app' });
+  const lone = makeDevice({ id: 'dev-lone', identifiers: [['dockhand', 'entry_container_1_lone']], config_entry_id: 'entry', name: 'lone', via_device_id: 'env-device' });
+  return makeHass({
+    devices: [env, stack, web, lone],
+    entities: [
+      makeEntity({ entity_id: 'sensor.app_status', device_id: 'dev-app', translation_key: 'status' }),
+      makeEntity({ entity_id: 'sensor.web_state', device_id: 'dev-web', translation_key: 'state' }),
+      makeEntity({ entity_id: 'sensor.lone_state', device_id: 'dev-lone', translation_key: 'state' })
+    ],
+    states: [
+      makeState({ entity_id: 'sensor.app_status', state: 'running', attributes: { tags: ['Critical', 'db'], tag_colors: { Critical: '#ef4444', db: '#22c55e' } } }),
+      makeState({ entity_id: 'sensor.web_state', state: 'running', attributes: { tags: ['media', 'critical'], tag_colors: { media: '#3b82f6', critical: '#ef4444' } } }),
+      makeState({ entity_id: 'sensor.lone_state', state: 'running', attributes: { tags: [], tag_colors: {} } })
+    ]
+  });
+}
+
+describe("a stack's tags on its containers", () => {
+  it('come after the container’s own, a tag on both staying the container’s', () => {
+    const hass = hassInStack();
+    expect(containerTags(hass, 'dev-web', hass.states['sensor.web_state'])).toEqual([
+      { name: 'media', color: '#3b82f6' },
+      { name: 'critical', color: '#ef4444', stack: 'app', own: true },
+      { name: 'db', color: '#22c55e', stack: 'app' }
+    ]);
+    expect(containerTags(hass, 'dev-lone', hass.states['sensor.lone_state'])).toEqual([]);
+    expect(containerTags(hass, undefined, hass.states['sensor.web_state'])).toHaveLength(2);
+  });
+
+  it('draw filled, outlined, or filled and outlined, saying where they come from', () => {
+    const hass = hassInStack();
+    const host = document.createElement('div');
+    render(containerTags(hass, 'dev-web', hass.states['sensor.web_state']).map((tag) => renderTagPill(tag, hass)), host);
+    const [own, both, stack] = host.querySelectorAll('.tag-pill');
+    expect(own.className).toBe('label-pill tag-pill');
+    expect(own.hasAttribute('title')).toBe(false);
+    expect(both.className).toBe('label-pill tag-pill also-stack');
+    expect(both.getAttribute('title')).toBe('Also on stack app');
+    expect(both.getAttribute('style')).toContain('background');
+    expect(stack.className).toBe('label-pill tag-pill from-stack');
+    expect(stack.getAttribute('title')).toBe('From stack app');
+    expect(stack.getAttribute('style')).not.toContain('background');
+  });
+
+  it('show on the Containers and Container cards, and the tag filter matches them', async () => {
+    const hass = hassInStack();
+    let el = await mount('containers', hass, { device_id: 'env-device' });
+    expect(pills(el)).toEqual(['media', 'critical', 'db']);
+    expect(el.shadowRoot!.querySelectorAll('.tag-pill.from-stack')).toHaveLength(1);
+    el.remove();
+    el = await mount('container', hass, { device_id: 'dev-web' });
+    expect(pills(el)).toEqual(['media', 'critical', 'db']);
+    el.remove();
+    el = await mount('containers', hass, { device_id: 'env-device', filters: { tags: ['db'] } });
+    expect(el.shadowRoot!.querySelectorAll('.row-left')).toHaveLength(1);
+    el.remove();
+    el = await mount('stacks', hass, { device_id: 'env-device' });
+    expect(pills(el)).toEqual(['Critical', 'db']);
+    expect(el.shadowRoot!.querySelectorAll('.tag-pill.from-stack, .tag-pill.also-stack')).toHaveLength(0);
     el.remove();
   });
 });

@@ -581,6 +581,8 @@ function buildSchedules(addDevice, addEntity) {
 // ha-dockhand 2.0's Dockhand tags, on a few containers and stacks (Dockhand's palette).
 const MOCK_TAGS = {
   traefik: [['edge', '#0ea5e9']],
+  // Also on its `core` stack: shows the filled-and-outlined look.
+  web: [['frontend', '#3b82f6'], ['critical', '#ef4444']],
   postgres: [['database', '#8b5cf6'], ['critical', '#ef4444']],
   monitoring: [['observability', '#22c55e']],
   core: [['critical', '#ef4444']]

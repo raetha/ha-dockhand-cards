@@ -25,3 +25,13 @@ The row details line up in columns down the card, one for each detail shown that
   <source media="(prefers-color-scheme: light)" srcset="../images/containers-list-light.png">
   <img src="../images/containers-list.png" alt="Containers card" width="420">
 </picture>
+
+## Tags from the stack
+
+A container shows its stack's Dockhand tags too, after its own, as Dockhand's containers list does by default. The pills say where each tag comes from:
+
+- **Filled**: the container's own tag, assigned to it in Dockhand or named in its `dockhand.tags` label.
+- **Outlined**: a tag assigned to its stack. Hover for the stack's name.
+- **Filled and outlined**: on both the container and its stack.
+
+The **Tags** filter matches a container by its stack's tags too, as Dockhand's does. Dockhand can turn stack tags off in its containers list, but keeps that choice in your browser, where Home Assistant can't see it, so the cards always show them. A stack's own tags are only the ones assigned to it in Dockhand: tags its services name in their labels stay on those containers (ha-dockhand 2.1+).

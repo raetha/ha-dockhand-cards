@@ -10,6 +10,10 @@ and [Unreleased] is the notes of the current test build.
 
 ## [Unreleased]
 
+### Added
+
+- **Stack tags on containers** — the Containers and Container cards show a container's stack's Dockhand tags after its own, as Dockhand's containers list does ([#108](https://github.com/raetha/ha-dockhand-cards/issues/108)). Its own are filled, its stack's outlined (hover for the stack), and one on both is filled and outlined. The Containers and Updates cards' **Tags** filter matches a container by its stack's tags too. A stack's own tags are only those assigned to it in Dockhand from the Dockhand integration 2.1.0, which goes with this release.
+
 ### Internal
 
 - After a release, CI resets `dev` to `main` also when the release pull request came from a release branch off `dev`, as 2.0.0's did.
