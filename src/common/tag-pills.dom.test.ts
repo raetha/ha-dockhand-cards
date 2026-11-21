@@ -157,8 +157,13 @@ describe("a stack's tags on its containers", () => {
     expect(el.shadowRoot!.querySelectorAll('.row-left')).toHaveLength(1);
     el.remove();
     el = await mount('stacks', hass, { device_id: 'env-device' });
+    // Outlined on the stack too, so an outline always means a stack's tag.
     expect(pills(el)).toEqual(['Critical', 'db']);
-    expect(el.shadowRoot!.querySelectorAll('.tag-pill.from-stack, .tag-pill.also-stack')).toHaveLength(0);
+    expect(el.shadowRoot!.querySelectorAll('.tag-pill.from-stack')).toHaveLength(2);
+    expect(el.shadowRoot!.querySelector('.tag-pill.from-stack')!.hasAttribute('title')).toBe(false);
+    el.remove();
+    el = await mount('stack', hass, { device_id: 'dev-app' });
+    expect(el.shadowRoot!.querySelectorAll('.tag-pill.from-stack')).toHaveLength(2);
     el.remove();
   });
 });

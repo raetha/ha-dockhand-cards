@@ -6,8 +6,9 @@ import { resolveStackEntities } from './entity-resolver';
 import { t } from './i18n-card';
 
 /** A Dockhand tag (ha-dockhand 2.0+): a name, and the colour the user
- * picked for it in Dockhand. `stack` names the stack it comes from on a
- * container, and `own` says the container has it too. */
+ * picked for it in Dockhand. `stack` marks a stack's tag, drawn outlined
+ * wherever it shows: on a container it names the stack it comes from (and
+ * `own` says the container has it too), on the stack itself it's ''. */
 export interface DockhandTag {
   name: string;
   color?: string;
@@ -54,6 +55,12 @@ export function containerTags(hass: HomeAssistant, deviceId: string | undefined,
   ];
 }
 
+/** A stack's own tags, marked as a stack's so they're outlined as they
+ * are on its containers. */
+export function stackTags(stateObj: HassEntity | undefined): DockhandTag[] {
+  return entityTags(stateObj).map((tag) => ({ ...tag, stack: '' }));
+}
+
 /** The same pill and colouring as an environment label: the tag's colour
  * mixed halfway toward the theme's text colour for the text, and at 15%
  * for the background, as in Dockhand. A tag without a colour gets the
@@ -63,7 +70,7 @@ export function renderTagPill(tag: DockhandTag, hass?: HomeAssistant): TemplateR
   const fromStack = tag.stack !== undefined && !tag.own;
   const cls = `label-pill tag-pill${fromStack ? ' from-stack' : tag.stack !== undefined ? ' also-stack' : ''}`;
   const title =
-    tag.stack === undefined || !hass ? nothing : t(hass, fromStack ? 'tag_from_stack' : 'tag_also_on_stack', { stack: tag.stack });
+    !tag.stack || !hass ? nothing : t(hass, fromStack ? 'tag_from_stack' : 'tag_also_on_stack', { stack: tag.stack });
   const style = tag.color
     ? `color: color-mix(in srgb, ${tag.color} 50%, var(--primary-text-color));${fromStack ? '' : ` background: rgb(from ${tag.color} r g b / 0.15);`}`
     : nothing;

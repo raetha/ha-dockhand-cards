@@ -34,4 +34,6 @@ A container shows its stack's Dockhand tags too, after its own, as Dockhand's co
 - **Outlined**: a tag assigned to its stack. Hover for the stack's name.
 - **Filled and outlined**: on both the container and its stack.
 
+The Stacks and Stack cards draw a stack's tags outlined too, so an outline means a stack's tag wherever you see it.
+
 The **Tags** filter matches a container by its stack's tags too, as Dockhand's does. Dockhand can turn stack tags off in its containers list, but keeps that choice in your browser, where Home Assistant can't see it, so the cards always show them. A stack's own tags are only the ones assigned to it in Dockhand: tags its services name in their labels stay on those containers (ha-dockhand 2.1+).
