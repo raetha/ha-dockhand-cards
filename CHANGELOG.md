@@ -16,6 +16,7 @@ and [Unreleased] is the notes of the current test build.
 
 ### Internal
 
+- The development guide warns that HACS validation fails a branch with `tags` in its name.
 - After a release, CI resets `dev` to `main` also when the release pull request came from a release branch off `dev`, as 2.0.0's did.
 
 ## [2.0.0] - 2026-11-18
