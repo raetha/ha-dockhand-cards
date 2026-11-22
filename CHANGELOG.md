@@ -22,6 +22,7 @@ and [Unreleased] is the notes of the current test build.
 ### Internal
 
 - The screenshot harness's accessibility check (`a11y.py`) also finds content cut off by rounded corners, so a clipped name fails it instead of needing a close look at a screenshot.
+- The license names the copyright holder as Elias Hunt (raetha).
 
 ## [2.1.0] - 2026-11-20
 
