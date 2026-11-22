@@ -91,7 +91,14 @@ export const CONTAINER_TRANSLATION_KEYS = {
   networkRx: 'container_network_rx',
   networkTx: 'container_network_tx',
   blockRead: 'container_block_read',
-  blockWrite: 'container_block_write'
+  blockWrite: 'container_block_write',
+  // ha-dockhand 2.2.0+ with Dockhand 1.0.59+: the same keys as the
+  // environment's counts, on each container's device.
+  vulnerabilities: 'vulnerabilities',
+  vulnerabilitiesCritical: 'vulnerabilities_critical',
+  vulnerabilitiesHigh: 'vulnerabilities_high',
+  vulnerabilitiesMedium: 'vulnerabilities_medium',
+  vulnerabilitiesLow: 'vulnerabilities_low'
 } as const;
 
 export type ContainerTranslationKey = keyof typeof CONTAINER_TRANSLATION_KEYS;

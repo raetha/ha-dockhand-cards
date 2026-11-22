@@ -10,6 +10,15 @@ and [Unreleased] is the notes of the current test build.
 
 ## [Unreleased]
 
+### Added
+
+- The Vulnerability card lists the most affected containers under its totals, most severe first, with each one's four counts (`top_containers`, 5 by default). Needs ha-dockhand 2.2.0 with Dockhand 1.0.59 or later and the containers' vulnerability sensors turned on.
+- The Containers card can show each container's findings as a row detail (`vulnerabilities`) and sort by them (`sort_by: vulnerabilities`), with the same requirements.
+
+### Fixed
+
+- The Vulnerability card no longer clips the bottom of letters like g and p in environment names.
+
 ## [2.1.0] - 2026-11-20
 
 Containers now show their stack's Dockhand tags, drawn so you can tell them from their own, as Dockhand's containers list shows them. Update the Dockhand integration to 2.1.0 at the same time.

@@ -1,10 +1,12 @@
-import { LitElement, html, type TemplateResult } from 'lit';
+import { LitElement, html, nothing, type TemplateResult } from 'lit';
+import { loadDisabledEntities } from '../common/disabled-entities';
+import { resolveContainerEntities } from '../common/entity-resolver';
 import { state, property } from 'lit/decorators.js';
 import { fireEvent, type LovelaceCardEditor } from 'custom-card-helpers';
 import type { HaFormSchema } from '../common/ha-form-types';
 
 import type { HomeAssistant } from '../common/ha-types';
-import { getEnvironmentDevices, getRepresentativeEntityId } from '../common/device-utils';
+import { getContainerDevicesForEnvironment, getEnvironmentDevices, getRepresentativeEntityId, type EnvironmentDeviceOption } from '../common/device-utils';
 import { cardNameFieldSchema } from '../common/card-name';
 import { stripUndefinedKeys } from '../common/config-utils';
 import { t } from '../common/i18n-editor';
@@ -33,6 +35,25 @@ export class DockhandContainersCardEditor extends LitElement implements Lovelace
 
   set hass(hass: HomeAssistant) {
     this._hass = hass;
+    // A disabled sensor is only in the full registry: load it to hint at it.
+    void loadDisabledEntities(hass).then((loaded) => loaded && this.requestUpdate());
+  }
+
+  /** Vulnerabilities shown or sorted by while a container's sensor for them
+   * is off (ha-dockhand creates it disabled). */
+  private _vulnerabilitiesOff(included: EnvironmentDeviceOption[]): boolean {
+    const config = this._config!;
+    const used = (config.visible_badges ?? DEFAULT_CONTAINERS_BADGES).includes('vulnerabilities') || config.sort_by === 'vulnerabilities';
+    if (!used) return false;
+    return included.some((env) => {
+      const envDevice = this._hass!.devices?.[env.deviceId];
+      return (
+        envDevice !== undefined &&
+        getContainerDevicesForEnvironment(this._hass!, envDevice).some((d) =>
+          resolveContainerEntities(this._hass!, d.id, ['vulnerabilities']).unavailable.some((u) => u.reason === 'disabled')
+        )
+      );
+    });
   }
 
   setConfig(config: DockhandContainersCardConfig): void {
@@ -73,7 +94,8 @@ export class DockhandContainersCardEditor extends LitElement implements Lovelace
               { value: 'name', label: t(this._hass, 'sort_by_name') },
               { value: 'status', label: t(this._hass, 'sort_by_status') },
               { value: 'cpu', label: t(this._hass, 'sort_by_cpu') },
-              { value: 'memory', label: t(this._hass, 'sort_by_memory') }
+              { value: 'memory', label: t(this._hass, 'sort_by_memory') },
+              { value: 'vulnerabilities', label: t(this._hass, 'sort_by_vulnerabilities') }
             ]
           }
         }
@@ -161,6 +183,9 @@ export class DockhandContainersCardEditor extends LitElement implements Lovelace
         .computeLabel=${this._computeLabel}
         @value-changed=${this._valueChanged}
       ></ha-form>
+      ${this._vulnerabilitiesOff(includedEnvDevices)
+        ? html`<div class="hint availability">${t(this._hass, 'availability_hint', { names: t(this._hass, 'entity_container_vulnerabilities') })}</div>`
+        : nothing}
     `;
   }
 

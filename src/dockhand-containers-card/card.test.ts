@@ -52,6 +52,23 @@ describe('sortContainerRows', () => {
   });
 });
 
+describe('sortContainerRows by vulnerabilities', () => {
+  it('puts the most severe first, as Dockhand ranks them; rows without counts last', () => {
+    const v = (critical: number, high: number, medium: number, low: number) => ({ severities: { critical, high, medium, low }, entityIds: {} });
+    const rows = [
+      row({ name: 'clean', vulnerabilities: v(0, 0, 0, 0) }),
+      row({ name: 'unscanned' }),
+      row({ name: 'mediums', vulnerabilities: v(0, 0, 9, 0) }),
+      row({ name: 'critical', vulnerabilities: v(1, 0, 0, 0) }),
+      row({ name: 'highs', vulnerabilities: v(0, 3, 0, 0) }),
+      row({ name: 'also-highs', vulnerabilities: v(0, 3, 0, 0) }),
+      // Only the total sensor on.
+      row({ name: 'total-only', vulnerabilities: { total: 4, severities: {}, entityIds: {} } })
+    ];
+    expect(sortContainerRows(rows, 'vulnerabilities').map((r) => r.name)).toEqual(['critical', 'also-highs', 'highs', 'mediums', 'total-only', 'clean', 'unscanned']);
+  });
+});
+
 describe('groupContainerRows', () => {
   it('returns one ungrouped bucket when group_by is none or unset', () => {
     const rows = [row({ name: 'b' }), row({ name: 'a' })];

@@ -26,6 +26,8 @@ export interface HaFormSelector {
   text?: Record<string, never>;
   icon?: Record<string, never>;
   boolean?: Record<string, never>;
+  /** HA's NumberSelector (src/data/selector.ts). */
+  number?: { min?: number; max?: number; step?: number; mode?: 'box' | 'slider'; unit_of_measurement?: string };
   /** Verified directly against HA frontend source
    * (src/data/selector.ts's EntityNameSelector) — see common/card-name.ts
    * for the full reasoning behind using this rather than a plain text

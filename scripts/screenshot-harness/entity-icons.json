@@ -123,7 +123,7 @@
    "default": "mdi:docker"
   },
   "uptime": {
-   "default": "mdi:restart"
+   "default": "mdi:clock-start"
   },
   "vulnerabilities": {
    "default": "mdi:shield-bug"
@@ -197,6 +197,12 @@
   "disk_usage_build_cache": {
    "default": "mdi:hammer-wrench"
   },
+  "volume_containers": {
+   "default": "mdi:database"
+  },
+  "volume_size": {
+   "default": "mdi:harddisk"
+  },
   "activity_events_today": {
    "default": "mdi:pulse"
   },
@@ -226,6 +232,15 @@
   },
   "stack_pending_updates": {
    "default": "mdi:update"
+  },
+  "image": {
+   "default": "mdi:package-variant-closed"
+  },
+  "untagged_images": {
+   "default": "mdi:package-variant"
+  },
+  "network": {
+   "default": "mdi:lan"
   }
  },
  "binary_sensor": {

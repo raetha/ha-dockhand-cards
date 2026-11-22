@@ -210,3 +210,53 @@ describe('Containers card aligned columns', () => {
     expect(none.style.gridTemplateColumns).toBe('minmax(var(--dockhand-name-min, 0px), 1fr)');
   });
 });
+
+describe('Containers card, vulnerabilities', () => {
+  function withVulnerabilities(counts: Record<string, string>) {
+    const hass = hassWithContainer(null);
+    for (const [key, value] of Object.entries(counts)) {
+      const entityId = `sensor.postgres_${key}`;
+      hass.entities[entityId] = makeEntity({ entity_id: entityId, device_id: 'dev-postgres', translation_key: key });
+      hass.states[entityId] = makeState({ entity_id: entityId, state: value });
+    }
+    return hass;
+  }
+
+  it('shows the findings in the most severe one’s colour, each severity in the tooltip', async () => {
+    const hass = withVulnerabilities({
+      vulnerabilities: '9',
+      vulnerabilities_critical: '0',
+      vulnerabilities_high: '2',
+      vulnerabilities_medium: '7',
+      vulnerabilities_low: '0'
+    });
+    const card = await mount(hass, { visible_badges: ['vulnerabilities'] });
+    const item = rightItems(card)[0] as HTMLElement;
+    expect(item.textContent!.trim()).toBe('9');
+    expect(item.getAttribute('style')).toBe('color:var(--dockhand-severity-high-text-color)');
+    expect(item.getAttribute('title')).toBe('Critical: 0 · High: 2 · Medium: 7 · Low: 0');
+    const opened: string[] = [];
+    card.addEventListener('hass-more-info', (ev) => opened.push((ev as CustomEvent).detail.entityId));
+    item.click();
+    expect(opened).toEqual(['sensor.postgres_vulnerabilities']);
+  });
+
+  it('shows nothing for a clean or unscanned image, and no column without findings', async () => {
+    const cases: Record<string, string>[] = [{ vulnerabilities: '0', vulnerabilities_high: '0' }, { vulnerabilities: 'unknown' }, {}];
+    for (const counts of cases) {
+      const card = await mount(withVulnerabilities(counts), { visible_badges: ['vulnerabilities'] });
+      expect(rightItems(card)).toEqual([]);
+    }
+  });
+
+  it('opens a severity when only those sensors are on', async () => {
+    const card = await mount(withVulnerabilities({ vulnerabilities_low: '3' }), { visible_badges: ['vulnerabilities'] });
+    const item = rightItems(card)[0] as HTMLElement;
+    expect(item.textContent!.trim()).toBe('3');
+    expect(item.getAttribute('title')).toBe('Low: 3');
+    const opened: string[] = [];
+    card.addEventListener('hass-more-info', (ev) => opened.push((ev as CustomEvent).detail.entityId));
+    item.click();
+    expect(opened).toEqual(['sensor.postgres_vulnerabilities_low']);
+  });
+});
