@@ -23,6 +23,7 @@ import { containerFilters, containerStateValues, renderFilteredNote } from '../c
 import { containerTags, renderTagPills } from '../common/tag-pills';
 import { cell, renderAlignedList, shownColumns } from '../common/aligned-list';
 import { cardStyles } from './styles';
+import { CONTAINER_VULNERABILITY_KEYS, SEVERITIES, compareVulnerabilities, containerVulnerabilities, findings, worstSeverity, type ContainerVulnerabilities } from '../common/container-vulnerabilities';
 import { RowFitController } from '../common/row-fit';
 
 // Attention-first ordering for sort_by/group_by: 'status' — matching
@@ -52,6 +53,8 @@ interface ContainerRow {
   newerVersion?: NewerVersionTag;
   /** See updateStatus() in common/update-kind.ts. */
   updateStatus?: UpdateStatus;
+  /** Its image's findings (ha-dockhand 2.2.0+, sensors on). */
+  vulnerabilities?: ContainerVulnerabilities;
 }
 
 const FILTERS = containerFilters<ContainerRow>((row) => row.deviceId);
@@ -88,6 +91,9 @@ export function sortContainerRows(rows: ContainerRow[], sortBy: ContainersSortBy
       if (rankA !== rankB) return rankA - rankB;
     } else if (sortBy === 'cpu' || sortBy === 'memory') {
       const diff = usage(b, sortBy) - usage(a, sortBy);
+      if (diff !== 0) return diff;
+    } else if (sortBy === 'vulnerabilities') {
+      const diff = compareVulnerabilities(a.vulnerabilities, b.vulnerabilities);
       if (diff !== 0) return diff;
     }
     return byNameThenEnvironment(a, b);
@@ -130,7 +136,7 @@ export function groupContainerRows(
 
 /** Right-hand row details in their order on a row; each shown one is a
  * column. Environment and tags stay with the name, on its left. */
-const COLUMN_ORDER = ['updates', 'health', 'cpu', 'memory'] as const;
+const COLUMN_ORDER = ['updates', 'vulnerabilities', 'health', 'cpu', 'memory'] as const;
 type ColumnKey = (typeof COLUMN_ORDER)[number] | 'controls';
 
 function hasDetail(row: ContainerRow, key: Exclude<ColumnKey, 'controls'>): boolean {
@@ -138,6 +144,8 @@ function hasDetail(row: ContainerRow, key: Exclude<ColumnKey, 'controls'>): bool
   switch (key) {
     case 'updates':
       return Boolean(row.newerVersion || (row.updateStatus && row.updateStatus.kind !== 'tag'));
+    case 'vulnerabilities':
+      return row.vulnerabilities !== undefined && findings(row.vulnerabilities) > 0;
     case 'health':
       return ['healthy', 'unhealthy', 'starting'].includes(found.health?.state.state ?? '');
     case 'cpu':
@@ -231,7 +239,7 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
       const containerDevices = envDevice ? getContainerDevicesForEnvironment(this._hass!, envDevice) : [];
       return containerDevices
         .map((d): ContainerRow | null => {
-          const { found } = resolveContainerEntities(this._hass!, d.id, ['state', 'health', 'cpuPercent', 'memoryPercent']);
+          const { found } = resolveContainerEntities(this._hass!, d.id, ['state', 'health', 'cpuPercent', 'memoryPercent', ...CONTAINER_VULNERABILITY_KEYS]);
           if (!found.state) return null;
           const update = findPrimaryEntityByDomain(this._hass!, d.id, 'update');
           const status = updateStatus(update?.state);
@@ -244,7 +252,8 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
             found,
             updateEntityId: status && update ? update.entityId : null,
             newerVersion: status?.newerVersion,
-            updateStatus: status
+            updateStatus: status,
+            vulnerabilities: containerVulnerabilities(found)
           };
         })
         .filter((r): r is ContainerRow => r !== null);
@@ -347,6 +356,25 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
     );
   }
 
+  /** Its findings in the colour of the most severe, each severity's count
+   * in the tooltip; nothing when it has none, like an up-to-date image in
+   * the updates column. */
+  private _renderVulnerabilities(v: ContainerVulnerabilities | undefined): TemplateResult | typeof nothing {
+    if (!v || findings(v) === 0) return nothing;
+    const worst = worstSeverity(v);
+    const title = SEVERITIES.filter((sev) => v.severities[sev.key] !== undefined)
+      .map((sev) => `${t(this._hass, sev.label)}: ${v.severities[sev.key]}`)
+      .join(' · ');
+    return renderIcon({
+      baseClass: 'row-icon',
+      icon: 'mdi:shield-bug-outline',
+      color: worst ? `var(--dockhand-severity-${worst}-text-color)` : undefined,
+      text: String(findings(v)),
+      title: title || t(this._hass, 'name_vulnerabilities'),
+      onClick: () => this._moreInfo(v.totalEntityId ?? Object.values(v.entityIds)[0])
+    });
+  }
+
   private _renderRow(row: ContainerRow, columns: ColumnKey[]): TemplateResult {
     const found = row.found;
     const st = found.state!.state.state;
@@ -378,6 +406,8 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
               : nothing}
             ${row.updateStatus && row.updateStatus.kind !== 'tag' ? this._renderUpdateIcon(row) : nothing}
           </div>`;
+        case 'vulnerabilities':
+          return cell(this._renderVulnerabilities(row.vulnerabilities));
         case 'health':
           return cell(
             health === 'healthy' || health === 'unhealthy' || health === 'starting'

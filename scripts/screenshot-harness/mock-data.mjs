@@ -210,11 +210,12 @@ function buildEnvironment(addDevice, addEntity, opts) {
       netRx: 184320,
       netTx: 92160,
       blkRead: 15728640,
-      blkWrite: 4194304
+      blkWrite: 4194304,
+      vulns: [0, 0, 2, 1]
     },
-    { name: 'postgres', state: 'running', health: 'healthy', cpu: 6.1, mem: 12.4, memLimit: 1024, update: 'tag', newer: '17.6', newerBump: 'major', newerCount: 7, image: 'postgres:16' },
-    { name: 'redis', state: 'running', health: 'healthy', cpu: 1.1, mem: 3.2, memLimit: 256, update: 'held', heldHours: 9, image: 'redis:7.2' },
-    { name: 'traefik', state: 'running', health: null, cpu: 0.4, mem: 1.8, memLimit: 256, update: 'generic', newer: 'v3.5', newerBump: 'minor', newerCount: 4, image: 'traefik:v3.1' },
+    { name: 'postgres', state: 'running', health: 'healthy', cpu: 6.1, mem: 12.4, memLimit: 1024, update: 'tag', newer: '17.6', newerBump: 'major', newerCount: 7, image: 'postgres:16', vulns: [0, 2, 1, 0] },
+    { name: 'redis', state: 'running', health: 'healthy', cpu: 1.1, mem: 3.2, memLimit: 256, update: 'held', heldHours: 9, image: 'redis:7.2', vulns: [0, 0, 0, 0] },
+    { name: 'traefik', state: 'running', health: null, cpu: 0.4, mem: 1.8, memLimit: 256, update: 'generic', newer: 'v3.5', newerBump: 'minor', newerCount: 4, image: 'traefik:v3.1', vulns: [0, 0, 1, 0] },
     {
       name: 'worker',
       state: 'running',
@@ -323,6 +324,13 @@ function buildEnvironment(addDevice, addEntity, opts) {
       addEntity(entity(`sensor.${slug}_${c.name}_block_read`, devId, 'container_block_read', mib(c.blkRead), { unit_of_measurement: 'MiB' }));
       addEntity(entity(`sensor.${slug}_${c.name}_block_write`, devId, 'container_block_write', mib(c.blkWrite), { unit_of_measurement: 'MiB' }));
     }
+    // ha-dockhand 2.2.0's counts per container (critical, high, medium,
+    // low), adding up to the environment's; worker's and backup's images
+    // aren't scanned yet, so theirs are unknown.
+    const vulnKeys = ['vulnerabilities_critical', 'vulnerabilities_high', 'vulnerabilities_medium', 'vulnerabilities_low'];
+    const vuln = (v) => (online ? v : 'unavailable');
+    addEntity(entity(`sensor.${slug}_${c.name}_vulnerabilities`, devId, 'vulnerabilities', vuln(c.vulns ? String(c.vulns.reduce((a, b) => a + b, 0)) : 'unknown')));
+    vulnKeys.forEach((key, i) => addEntity(entity(`sensor.${slug}_${c.name}_${key}`, devId, key, vuln(c.vulns ? String(c.vulns[i]) : 'unknown'))));
     const newer = c.newer ? { newer_version: c.newer, newer_version_bump: c.newerBump, newer_versions_count: c.newerCount } : {};
     const tag = c.image.split(':')[1];
     const update = {

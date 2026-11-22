@@ -8,9 +8,9 @@ environments_order: [] # environment display order; all environments are include
 exclude_device_ids: [] # environments to leave out
 name: null # optional — Composed or Custom, same as every other card's Name field
 show_settings_link: true # link to view containers in Dockhand
-visible_badges: [health, updates, cpu, memory, tags] # per-row details; add `environment` for an environment pill, `controls` for the Container card's buttons
+visible_badges: [health, updates, cpu, memory, tags] # per-row details; add `environment` for an environment pill, `vulnerabilities` for each container's findings, `controls` for the Container card's buttons
 group_by: environment # none | environment | status
-sort_by: name # name | status | cpu | memory (highest first)
+sort_by: name # name | status | cpu | memory (highest first) | vulnerabilities (most severe first)
 filters: {} # which rows show — see lists.md
 show_filtered_count: true # a "Hidden by filters" line under a filtered list
 ```
@@ -24,6 +24,15 @@ The row details line up in columns down the card, one for each detail shown that
 <picture>
   <source media="(prefers-color-scheme: light)" srcset="../images/containers-list-light.png">
   <img src="../images/containers-list.png" alt="Containers card" width="420">
+</picture>
+
+## Vulnerabilities
+
+With `vulnerabilities` among the row details, a container whose image has findings shows how many, in the colour of the most severe (hover for each severity's count, click for the sensor). Clean and unscanned images show nothing. `sort_by: vulnerabilities` puts the most severe first, as Dockhand ranks them. Both need ha-dockhand 2.2.0 with Dockhand 1.0.59 or later, and the containers' vulnerability sensors turned on (**Vulnerabilities** under **Container entities** in the integration's Configure); the editor says when they're off.
+
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="../images/containers-vulnerabilities-light.png">
+  <img src="../images/containers-vulnerabilities.png" alt="Containers card sorted by vulnerabilities" width="420">
 </picture>
 
 ## Tags from the stack

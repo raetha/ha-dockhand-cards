@@ -12,11 +12,11 @@ import type { FiltersConfig } from '../common/filters';
  * is new alongside multi-environment support — same checkbox-group
  * convention as everything else here (docs/editor-design.md rule 5),
  * not a standalone toggle. */
-export type ContainersCardBadge = 'health' | 'updates' | 'cpu' | 'memory' | 'environment' | 'tags' | 'controls';
+export type ContainersCardBadge = 'health' | 'updates' | 'vulnerabilities' | 'cpu' | 'memory' | 'environment' | 'tags' | 'controls';
 
 /** The details in their order on a row (the name's side, then the
  * columns), which the editor lists them in. */
-export const CONTAINERS_BADGE_ORDER: readonly ContainersCardBadge[] = ['environment', 'tags', 'updates', 'health', 'cpu', 'memory', 'controls'];
+export const CONTAINERS_BADGE_ORDER: readonly ContainersCardBadge[] = ['environment', 'tags', 'updates', 'vulnerabilities', 'health', 'cpu', 'memory', 'controls'];
 
 export const DEFAULT_CONTAINERS_BADGES: ContainersCardBadge[] = ['health', 'updates', 'cpu', 'memory', 'tags'];
 
@@ -25,9 +25,10 @@ export const DEFAULT_CONTAINERS_BADGES: ContainersCardBadge[] = ['health', 'upda
 export type ContainersGroupBy = 'none' | 'environment' | 'status';
 
 /** 'status' sorts problems first, matching every other card's own
- * status-priority ordering; 'cpu' and 'memory' put the busiest first.
+ * status-priority ordering; 'cpu' and 'memory' put the busiest first;
+ * 'vulnerabilities' the most severe findings first, as Dockhand ranks them.
  * Ties fall back to the name. */
-export type ContainersSortBy = 'name' | 'status' | 'cpu' | 'memory';
+export type ContainersSortBy = 'name' | 'status' | 'cpu' | 'memory' | 'vulnerabilities';
 
 export interface DockhandContainersCardConfig extends LovelaceCardConfig {
   type: 'custom:dockhand-containers-card';

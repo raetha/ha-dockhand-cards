@@ -38,6 +38,7 @@ EXTRA_CARDS = [
     ('dockhand-environment-card', {'device_id': 'env_3', 'mode': 'standard'}),
     ('dockhand-environment-card', {'device_id': 'env_1', 'mode': 'detailed'}),
     ('dockhand-vulnerability-card', {}),
+    ('dockhand-containers-card', {'exclude_device_ids': ['env_2', 'env_3', 'env_4'], 'visible_badges': ['vulnerabilities', 'health'], 'sort_by': 'vulnerabilities'}),
 ]
 
 EDITORS = sorted({tag for tag, *_ in CARDS} | {tag for tag, _ in EXTRA_CARDS})
