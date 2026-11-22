@@ -356,6 +356,15 @@ export const sharedStyles = css`
    * smaller element inside it) — matches the card's own, larger
    * theme-driven corner radius instead of .clickable's own fixed 6px,
    * which would give the hover overlay visibly mismatched corners. */
+  /* A truncated name that's clickable clips its text to its rounded
+   * corner too, cutting off a glyph sitting in it (the tail of a "p" at
+   * the start of a name). Room inside, taken back outside, keeps the text
+   * where it was and puts the corners clear of it; the hover background
+   * reaches a little past the text. */
+  .clickable.truncate {
+    padding: 2px 4px;
+    margin: -2px -4px;
+  }
   ha-card.clickable {
     border-radius: var(--ha-card-border-radius, 12px);
   }

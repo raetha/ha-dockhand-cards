@@ -17,7 +17,7 @@ and [Unreleased] is the notes of the current test build.
 
 ### Fixed
 
-- The Vulnerability card no longer clips the bottom of letters like g and p in environment names.
+- Names you can click no longer lose part of a letter to the rounded corner of their highlight (the tail of a "p" at the start of a name, as in the Vulnerability card's rows).
 
 ## [2.1.0] - 2026-11-20
 
