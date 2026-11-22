@@ -1,6 +1,7 @@
 """Automated accessibility check: runs axe-core (WCAG 2.1 A/AA rules) over
 every card and every editor, in both themes, against the same mock data and
-real built bundle the screenshots use.
+real built bundle the screenshots use. It also finds text cut off by a
+rounded corner (see clipped_by_corners), which axe doesn't look for.
 
 Run from this folder with the harness server up (see README.md):
 
@@ -18,9 +19,12 @@ colors (see HA_THEME_COLORS).
 """
 
 import asyncio
+import io
 import json
 import re
 import sys
+
+from PIL import Image, ImageChops
 
 from playwright.async_api import async_playwright
 
@@ -84,6 +88,61 @@ async def run(page, slot_id):
     )
 
 
+# Every element that clips its content (overflow other than visible) and has
+# rounded corners, through every shadow root under a slot.
+CLIPPING_ELEMENTS = """(id) => {
+    const out = [];
+    const walk = (root) => {
+        for (const e of root.querySelectorAll('*')) {
+            if (e.shadowRoot) walk(e.shadowRoot);
+            const cs = getComputedStyle(e);
+            if (cs.overflow === 'visible' || !e.textContent.trim()) continue;
+            const radii = [cs.borderTopLeftRadius, cs.borderTopRightRadius, cs.borderBottomLeftRadius, cs.borderBottomRightRadius];
+            if (radii.some((r) => parseFloat(r) > 0)) out.push(e);
+        }
+    };
+    walk(document.getElementById(id));
+    return out;
+}"""
+
+# The element's own paint is hidden for both shots, so only what it contains
+# can differ: a rounded pill's background isn't a finding.
+BARE = "e => { e.dataset.a11yStyle = e.getAttribute('style') ?? ''; Object.assign(e.style, {background: 'none', borderColor: 'transparent', boxShadow: 'none'}); }"
+SQUARE = "e => { e.style.borderRadius = '0'; }"
+RESTORE = "e => { e.setAttribute('style', e.dataset.a11yStyle); delete e.dataset.a11yStyle; if (!e.getAttribute('style')) e.removeAttribute('style'); }"
+
+
+async def _shot(page, clip):
+    return Image.open(io.BytesIO(await page.screenshot(clip=clip))).convert('L')
+
+
+async def clipped_by_corners(page, slot_id):
+    """Elements whose rounded corners cut off part of their content: what
+    changes when the corners are made square. A clickable name that
+    truncates (overflow: hidden) clipped the tail of a "p" at its start to
+    .clickable's 6px corner; nothing else looks for that, and a screenshot
+    only shows it to someone zooming in."""
+    found = []
+    elements = await page.evaluate_handle(CLIPPING_ELEMENTS, slot_id)
+    for i in range(await elements.evaluate('(list) => list.length')):
+        el = await elements.evaluate_handle('(list, i) => list[i]', i)
+        await el.scroll_into_view_if_needed()
+        box = await el.bounding_box()
+        if not box or box['width'] < 1 or box['height'] < 1:
+            continue
+        clip = {'x': box['x'] - 2, 'y': box['y'] - 2, 'width': box['width'] + 4, 'height': box['height'] + 4}
+        await el.evaluate(BARE)
+        rounded = await _shot(page, clip)
+        await el.evaluate(SQUARE)
+        square = await _shot(page, clip)
+        await el.evaluate(RESTORE)
+        pixels = ImageChops.difference(rounded, square).point(lambda v: 255 if v > 20 else 0).histogram()[255]
+        if pixels:
+            target, html = await el.evaluate("e => [e.tagName.toLowerCase() + [...e.classList].map((c) => '.' + c).join(''), e.outerHTML.split('>')[0] + '> ' + e.textContent.trim().replace(/\\s+/g, ' ').slice(0, 60)]")
+            found.append({'target': target, 'html': html, 'summary': f'{pixels} pixel(s) of content cut off by its rounded corners'})
+    return found
+
+
 async def check_theme(browser, light):
     page = await browser.new_page()
     page.on('pageerror', lambda exc: print('[pageerror]', exc))
@@ -113,6 +172,10 @@ async def check_theme(browser, light):
             if not nodes:
                 continue
             entry = found.setdefault(v['id'], {'impact': v['impact'], 'help': v['help'], 'where': []})
+            entry['where'].append((label, nodes))
+        nodes = [n for n in await clipped_by_corners(page, slot_id) if not from_shim(n)]
+        if nodes:
+            entry = found.setdefault('clipped-by-corner', {'impact': 'moderate', 'help': 'Content must not be cut off by rounded corners', 'where': []})
             entry['where'].append((label, nodes))
     await page.close()
     return found

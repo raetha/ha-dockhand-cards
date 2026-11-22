@@ -19,6 +19,10 @@ and [Unreleased] is the notes of the current test build.
 
 - Names you can click no longer lose part of a letter to the rounded corner of their highlight (the tail of a "p" at the start of a name, as in the Vulnerability card's rows).
 
+### Internal
+
+- The screenshot harness's accessibility check (`a11y.py`) also finds content cut off by rounded corners, so a clipped name fails it instead of needing a close look at a screenshot.
+
 ## [2.1.0] - 2026-11-20
 
 Containers now show their stack's Dockhand tags, drawn so you can tell them from their own, as Dockhand's containers list shows them. Update the Dockhand integration to 2.1.0 at the same time.

@@ -83,7 +83,9 @@ Home Assistant's translation system only covers backend strings (an integration'
 
 ## Accessibility and colors
 
-`scripts/screenshot-harness/a11y.py` runs axe-core's WCAG 2.1 A/AA rules over every card and editor in both themes. Run it after any change to a card's markup or colors; it exits non-zero on any violation.
+`scripts/screenshot-harness/a11y.py` runs axe-core's WCAG 2.1 A/AA rules over every card and editor in both themes, and finds content cut off by rounded corners (`clipped-by-corner`). Run it after any change to a card's markup, colors or styles; it exits non-zero on any finding.
+
+- **A clickable element that clips its content keeps it clear of its corners.** `.clickable`'s rounded corners clip whatever an element with `overflow: hidden` holds, so a truncated name lost the tail of a "p" at its start. `.clickable.truncate` gets room inside, taken back outside (`padding: 2px 4px; margin: -2px -4px`), so the text stays put and the hover background reaches past it; a new clipping element that's clickable needs the same.
 
 - **Interactive things use `renderIcon()` or the `.row-target` pattern**, so they get `tabindex`, `role="button"`, Enter/Space handling and a visible focus ring. Never nest clickable elements.
 - **Use Home Assistant's theme colors unchanged** (`--success-color`, `--primary-color`, …), so the cards match the rest of HA; a user who needs more contrast picks a theme for it. `a11y.py` excuses text in HA's default colors for that reason. Colored text uses the `--dockhand-*-text-color` properties so a theme can tune words separately from icons.

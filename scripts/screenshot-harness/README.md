@@ -7,7 +7,7 @@ Renders the real, built cards (`dist/`) in a headless browser against made-up da
 ```bash
 cd scripts/screenshot-harness
 npm install                        # @mdi/js, @fontsource/roboto, axe-core
-pip install playwright
+pip install playwright pillow
 python3 -m playwright install chromium
 ```
 
@@ -37,6 +37,8 @@ python3 a11y.py --verbose    # also list every affected element
 ```
 
 Runs [axe-core](https://github.com/dequelabs/axe-core)'s WCAG 2.1 A/AA rules over every card in `CARDS`, a few more states, and every editor, in both themes, on Home Assistant's dashboard background. Elements drawn by `ha-shims.mjs` are skipped, and so is text in Home Assistant's own theme colors, which the cards use unchanged. It checks names, roles, nesting and contrast, not whether a card makes sense read aloud.
+
+It also reports `clipped-by-corner`: content cut off by an element's rounded corners. Every element that clips its content (`overflow` other than `visible`) and has rounded corners is screenshotted with its corners rounded and square, its own background, border and shadow hidden both times, and any pixel that differs is content the corners cut off. That's how a clickable name lost the tail of its first "p"; it takes a zoomed-in look to see otherwise. Needs Pillow (`pip install pillow`).
 
 ## How it works
 
