@@ -1,7 +1,8 @@
 """Automated accessibility check: runs axe-core (WCAG 2.1 A/AA rules) over
 every card and every editor, in both themes, against the same mock data and
 real built bundle the screenshots use. It also finds text cut off by a
-rounded corner (see clipped_by_corners), which axe doesn't look for.
+rounded corner (see clipped_by_corners) and names cut short beside pills
+that should have given way (CROWDED_NAMES), which axe doesn't look for.
 
 Run from this folder with the harness server up (see README.md):
 
@@ -143,6 +144,31 @@ async def clipped_by_corners(page, slot_id):
     return found
 
 
+# Rows whose name is cut short while pills that should give way first
+# still show (row-fit.ts): measured to the fraction of a pixel, since the
+# browser draws an ellipsis for any overflow.
+CROWDED_NAMES = """(id) => {
+    const out = [];
+    const walk = (root) => {
+        for (const e of root.querySelectorAll('*')) if (e.shadowRoot) walk(e.shadowRoot);
+        for (const row of root.querySelectorAll('.row')) {
+            const name = row.querySelector('.item-name');
+            if (!name || !name.textContent.trim()) continue;
+            const range = document.createRange();
+            range.selectNodeContents(name);
+            const text = range.getBoundingClientRect().width;
+            const shown = name.getBoundingClientRect().width;
+            const em = parseFloat(getComputedStyle(name).fontSize) || 14;
+            if (text - shown <= 0.01 || shown >= Math.min(text, 6 * em)) continue;
+            const shownPills = [...row.querySelectorAll('.name-label, .tag-pills, .tag-summary')].filter((p) => p.getClientRects().length > 0);
+            if (shownPills.length) out.push({ target: 'row ' + name.textContent.trim(), html: shownPills.map((p) => p.textContent.trim()).join(', '), summary: `name shows ${shown.toFixed(1)} of ${text.toFixed(1)}px beside pills that should give way` });
+        }
+    };
+    walk(document.getElementById(id));
+    return out;
+}"""
+
+
 async def check_theme(browser, light):
     page = await browser.new_page()
     page.on('pageerror', lambda exc: print('[pageerror]', exc))
@@ -173,6 +199,10 @@ async def check_theme(browser, light):
                 continue
             entry = found.setdefault(v['id'], {'impact': v['impact'], 'help': v['help'], 'where': []})
             entry['where'].append((label, nodes))
+        crowded = await page.evaluate(CROWDED_NAMES, slot_id)
+        if crowded:
+            entry = found.setdefault('name-crowded-by-pills', {'impact': 'moderate', 'help': "A row's pills must give way before its name is cut short", 'where': []})
+            entry['where'].append((label, crowded))
         nodes = [n for n in await clipped_by_corners(page, slot_id) if not from_shim(n)]
         if nodes:
             entry = found.setdefault('clipped-by-corner', {'impact': 'moderate', 'help': 'Content must not be cut off by rounded corners', 'where': []})

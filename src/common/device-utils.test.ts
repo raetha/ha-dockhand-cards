@@ -297,3 +297,29 @@ describe('defaultCardName', () => {
     expect(defaultCardName(hass, makeDevice({ id: 'x', identifiers: [], name: 'Odd' }))).toBe('Odd');
   });
 });
+
+describe('an environment’s Dockhand, when names repeat', () => {
+  const env = (id: string, name: string, host: string | null) =>
+    makeDevice({ id, name, identifiers: [['dockhand', `${id}_env_1`]], configuration_url: host ? `http://${host}/settings?tab=environments` : null });
+
+  it('names the host only where another Dockhand has the same name, case aside', async () => {
+    const { environmentText } = await import('./device-utils');
+    const hass = makeHass({
+      devices: [env('a', 'local', 'dockhand.local:3000'), env('b', 'Local', 'dockhand2.local:3000'), env('c', 'nas', 'dockhand2.local:3000')]
+    });
+    const found = getEnvironmentDevices(hass).map((e) => [e.name, e.instance, environmentText(e)]);
+    expect(found).toEqual([
+      ['local', 'dockhand.local:3000', 'local (dockhand.local:3000)'],
+      ['Local', 'dockhand2.local:3000', 'Local (dockhand2.local:3000)'],
+      ['nas', undefined, 'nas']
+    ]);
+  });
+
+  it('leaves it out when the host can’t tell them apart', () => {
+    // Two entries for the same Dockhand, and one without an address.
+    const same = makeHass({ devices: [env('a', 'local', 'dockhand.local:3000'), env('b', 'local', 'dockhand.local:3000')] });
+    expect(getEnvironmentDevices(same).map((e) => e.instance)).toEqual([undefined, undefined]);
+    const unknown = makeHass({ devices: [env('a', 'local', null), env('b', 'local', 'dockhand2.local:3000')] });
+    expect(getEnvironmentDevices(unknown).map((e) => e.instance)).toEqual([undefined, 'dockhand2.local:3000']);
+  });
+});

@@ -7,9 +7,11 @@ import { DomChanges } from './dom-changes';
  * names are in its tooltip). If even the count pill doesn't fit, the tags
  * are left out (`.no-tags`; a sliver of a clipped pill says nothing). Then,
  * if the name still shows less than NAME_MIN_EM of itself, or the name side
- * holds more than fits, its environment, type and instance pills are left
- * out too (`.no-labels`): the name says which row it is, they only add
- * context. A newer-tag pill beside a version keeps only its icon when the
+ * holds more than fits, its environment and type pills are left out too
+ * (`.no-labels`): the name says which row it is, they only add context.
+ * A Dockhand's host pill (`.instance-label`, there only when environment
+ * names repeat across Dockhands) goes last, if the row is still crowded
+ * (`.no-instance`). A newer-tag pill beside a version keeps only its icon when the
  * version would be cut (`.compact-version`). If the columns still don't fit beside the name's minimum (an
  * aligned list's first track), the list scrolls sideways with its controls
  * held in view (`.overflowing` on `.list.aligned`).
@@ -48,7 +50,7 @@ export class RowFitController implements ReactiveController {
     const all = Array.from(this.host.shadowRoot?.querySelectorAll<HTMLElement>('.row') ?? []);
     const rows = all.filter((row) => row.querySelector('.tag-pills'));
     const labelled = all.filter((row) => row.querySelector('.name-label'));
-    for (const row of all) row.classList.remove('compact-tags', 'no-tags', 'no-labels', 'compact-version');
+    for (const row of all) row.classList.remove('compact-tags', 'no-tags', 'no-labels', 'no-instance', 'compact-version');
     // Read every row, then write: one layout for each step, not one a row.
     const clipped = rows.filter((row) => isCut(row.querySelector('.tag-pills')));
     for (const row of clipped) row.classList.add('compact-tags');
@@ -57,8 +59,11 @@ export class RowFitController implements ReactiveController {
       row.classList.remove('compact-tags');
       row.classList.add('no-tags');
     }
-    const crowded = labelled.filter((row) => isCut(row.querySelector('.row-left')) || nameTooShort(row.querySelector('.item-name')));
+    const crowdedBy = (row: Element): boolean => isCut(row.querySelector('.row-left')) || nameTooShort(row.querySelector('.item-name'));
+    const crowded = labelled.filter(crowdedBy);
     for (const row of crowded) row.classList.add('no-labels');
+    const stillCrowded = crowded.filter((row) => row.querySelector('.instance-label') && crowdedBy(row));
+    for (const row of stillCrowded) row.classList.add('no-instance');
     // Only then does an aligned list's name side keep a minimum: what each
     // row needs to show NAME_MIN_EM of its name (or all of a shorter one)
     // after its icon. If the columns don't fit beside that, the list
@@ -81,7 +86,30 @@ export class RowFitController implements ReactiveController {
 
 /** Whether the row's name is cut, or its left side holds more than fits. */
 function isSqueezed(row: Element): boolean {
-  return isCut(row.querySelector('.item-name')) || isCut(row.querySelector('.row-left'));
+  return nameCut(row.querySelector('.item-name')) || isCut(row.querySelector('.row-left'));
+}
+
+/** A name's text width and the width it's given, to the fraction of a
+ * pixel: the browser shows an ellipsis for any overflow, which
+ * scrollWidth and clientWidth (whole pixels) can hide (22.1px of "web" in
+ * a 21.9px box reads 22 and 22). Where layout gives no fractions (a
+ * test's DOM), those whole pixels. */
+function nameWidths(name: HTMLElement): { text: number; shown: number } {
+  const range = document.createRange();
+  range.selectNodeContents(name);
+  const text = range.getBoundingClientRect?.().width ?? 0;
+  const box = name.getBoundingClientRect().width;
+  if (!text || !box) return { text: name.scrollWidth, shown: name.clientWidth };
+  const style = getComputedStyle(name);
+  const inset = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0) + (parseFloat(style.borderLeftWidth) || 0) + (parseFloat(style.borderRightWidth) || 0);
+  return { text, shown: box - inset };
+}
+
+/** Whether a name shows less than all of itself. */
+function nameCut(name: HTMLElement | null): boolean {
+  if (!name) return false;
+  const { text, shown } = nameWidths(name);
+  return text - shown > 0.01;
 }
 
 /** How much of a cut name to keep before its row's labels give way, and
@@ -104,9 +132,10 @@ function nameSideMinimum(row: HTMLElement): number {
 /** Whether a name is cut to less than NAME_MIN_EM (or all of itself, if
  * it's shorter). */
 function nameTooShort(name: HTMLElement | null): boolean {
-  if (!name || !isCut(name)) return false;
+  if (!name || !nameCut(name)) return false;
+  const { text, shown } = nameWidths(name);
   const em = parseFloat(getComputedStyle(name).fontSize) || 14;
-  return name.clientWidth < Math.min(name.scrollWidth, NAME_MIN_EM * em);
+  return shown < Math.min(text, NAME_MIN_EM * em);
 }
 
 /** Whether an element shows less than its content. A pixel's slack, as

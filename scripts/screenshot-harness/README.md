@@ -40,6 +40,8 @@ Runs [axe-core](https://github.com/dequelabs/axe-core)'s WCAG 2.1 A/AA rules ove
 
 It also reports `clipped-by-corner`: content cut off by an element's rounded corners. Every element that clips its content (`overflow` other than `visible`) and has rounded corners is screenshotted with its corners rounded and square, its own background, border and shadow hidden both times, and any pixel that differs is content the corners cut off. That's how a clickable name lost the tail of its first "p"; it takes a zoomed-in look to see otherwise. Needs Pillow (`pip install pillow`).
 
+And `name-crowded-by-pills`: a row whose name is cut short (to less than 6em, or less than all of a shorter name) while any of its pills still show, which `RowFitController` should have prevented. Measured to the fraction of a pixel, since the browser draws an ellipsis for any overflow.
+
 ## How it works
 
 - **`mock-data.mjs`** builds `hass.devices`, `hass.entities` and `hass.states` as ha-dockhand 2.0 makes them: four environments (Nebula, Aurora, Orion offline, Vega), each with the same stacks and containers, plus schedules. Device identifiers, `translation_key`s, states and attributes follow ha-dockhand's own (`docs/development.md` → "Test data looks like Home Assistant's"); counts are worked out from the containers and stacks listed, so they can't disagree. Every name and value is made up.

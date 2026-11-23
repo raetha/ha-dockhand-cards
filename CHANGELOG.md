@@ -15,14 +15,20 @@ and [Unreleased] is the notes of the current test build.
 - The Vulnerability card lists the most affected containers under its totals, most severe first, with each one's four counts and, with several environments, its environment's pill (`top_containers`, 5 by default). Needs ha-dockhand 2.2.0 with Dockhand 1.0.59 or later and the containers' vulnerability sensors turned on.
 - The Containers card can show each container's findings as a row detail (`vulnerabilities`) and sort by them (`sort_by: vulnerabilities`), with the same requirements.
 
+### Changed
+
+- When environments in two Dockhands share a name, every card now says which Dockhand each belongs to: its address in a pill after the environment's name in rows, group headings, the Vulnerability card and under the Environment card's name, and after the name in editors' environment pickers and the Dockhand dashboard's tabs. With unique names (or one Dockhand), nothing changes. The Vulnerability card used to show the address on every row whenever there were several Dockhands.
+- On a narrow card, a Dockhand's address pill is the last to make room for the name, after tags and environment and type pills.
+
 ### Fixed
 
+- A row's pills could stay while its name was cut by a fraction of a pixel ("w…" for "web"); they now make room.
 - Lists sort in the language you chose in Home Assistant rather than your browser's, ignoring capitals: the stack filter no longer puts "Zeta" before "alpha".
-- The Vulnerability card names an environment's Dockhand (its address, in a pill) only when another Dockhand has an environment of the same name, rather than on every row whenever there are several Dockhands.
 - Names you can click no longer lose part of a letter to the rounded corner of their highlight (the tail of a "p" at the start of a name, as in the Vulnerability card's rows).
 
 ### Internal
 
+- The screenshot harness's accessibility check also fails a row whose name is cut short while its pills still show.
 - The screenshot harness shows one Dockhand at `dockhand.local:3000`, like the docs and most setups, rather than one per environment.
 - The screenshot harness's accessibility check (`a11y.py`) also finds content cut off by rounded corners, so a clipped name fails it instead of needing a close look at a screenshot.
 - The license names the copyright holder as Elias Hunt (raetha).

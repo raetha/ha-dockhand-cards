@@ -46,6 +46,18 @@ export const cardStyles = css`
    * The lower radius gives proportions matching a header-icon or row
    * element rather than a pill; the room around it comes from the shared
    * .clickable.truncate rule. */
+  /* Under the name: its Dockhand's host pill, when environment names
+   * repeat across Dockhands (the header's icons leave the name's own line
+   * no room for it), then the Docker host, which truncates. */
+  .env-sub-line {
+    display: flex;
+    align-items: center;
+    gap: var(--ha-space-2, 8px);
+    min-width: 0;
+  }
+  .env-sub-line > .card-subheader {
+    min-width: 0;
+  }
   .env-name.clickable {
     border-radius: 4px;
   }

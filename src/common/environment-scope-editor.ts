@@ -9,7 +9,7 @@
 
 import { html, nothing, type TemplateResult } from 'lit';
 import type { HomeAssistant } from './ha-types';
-import { getEnvironmentDevices } from './device-utils';
+import { getEnvironmentDevices, environmentText } from './device-utils';
 import { t, type EditorTranslationKey } from './i18n-editor';
 import { resolveEnvironmentOrder } from './environment-scope';
 
@@ -117,7 +117,7 @@ export function renderEnvironmentOrderSection(opts: {
         return html`
           <div class="order-row ${isExcluded ? 'hidden' : ''}">
             <ha-icon class="order-handle ${opts.allowReorder ? '' : 'disabled'}" icon="mdi:drag-horizontal-variant"></ha-icon>
-            <span class="order-name">${env.name}</span>
+            <span class="order-name">${environmentText(env)}</span>
             <div class="row-actions">
               ${opts.onEdit
                 ? html`

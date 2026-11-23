@@ -176,6 +176,28 @@ describe('Containers card on a narrow row', () => {
     expect(row.classList.contains('no-labels')).toBe(true);
   });
 
+  it('keeps a Dockhand’s host pill longest, when environment names repeat', async () => {
+    const hass = hassWithContainer(null);
+    hass.devices['env-device'] = { ...hass.devices['env-device'], configuration_url: 'http://dockhand.local:3000/settings' };
+    hass.devices['env-other'] = makeDevice({ id: 'env-other', identifiers: [['dockhand', 'other_env_1']], config_entry_id: 'other', name: 'nebula', configuration_url: 'http://dockhand2.local:3000/settings' });
+    const card = await mount(hass, { visible_badges: ['environment'] });
+    const row = card.shadowRoot!.querySelector<HTMLElement>('.row')!;
+    expect([...row.querySelectorAll('.row-left > .name-label')].map((p) => [p.textContent, p.classList.contains('instance-label')])).toEqual([
+      ['Nebula', false],
+      ['dockhand.local:3000', true]
+    ]);
+    const name = row.querySelector('.item-name')!;
+    // Leaving the environment pill out is enough: the host pill stays.
+    width(name, () => 200, () => (row.classList.contains('no-labels') ? 120 : 40));
+    resize();
+    expect(row.classList.contains('no-labels')).toBe(true);
+    expect(row.classList.contains('no-instance')).toBe(false);
+    // Still too narrow: the host pill goes too.
+    width(name, () => 200, () => 40);
+    resize();
+    expect(row.classList.contains('no-instance')).toBe(true);
+  });
+
   it('scrolls the list sideways only when the columns don’t fit beside the names', async () => {
     const card = await mount(hassWithContainer({ state: 'on', latest: 'update-pending' }), { visible_badges: ['updates', 'controls'] });
     const list = card.shadowRoot!.querySelector<HTMLElement>('.list.aligned')!;
