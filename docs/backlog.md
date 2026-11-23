@@ -12,6 +12,7 @@ Ideas and gaps already evaluated and deliberately deferred or rejected, and why 
 
 ## Containers / Stacks cards
 
+- **Letting users order the row columns** (Containers: updates, health, vulnerabilities, CPU, memory; Stacks: updates, container count, CPU, memory), as environments and the Overview's cards can be ordered. Sized 2026-11-23 as moderate, about 300–400 lines with tests and translations: a new `columns_order` key (not `visible_badges`' own order, which would quietly reorder existing dashboards whose lists happen to differ), and the column options as a drag-to-reorder list with show/hide toggles built from the sortable list the Overview and environment ordering use, environment and tags staying as checkboxes beside the name and controls staying last. Schedules (next run only) and Updates (fixed columns) left out. Not critical; only if asked.
 - **Rolling a stack's containers' tags up to the stack** on the Stacks and Stack cards, the reverse of the stack tags a container shows (`containerTags()`), drawn as their own look. Dockhand's stacks list rolls up its services' label tags; ha-dockhand 2.1 keeps those on the containers. Only if asked (2026-11-20).
 - **A setting to hide a stack's tags on its containers**, like Dockhand's own per-browser one. Only if asked (2026-11-20).
 - **Grouping by Dockhand tag** on the Containers and Stacks cards (filtering by tag shipped in 2.0.0). A row can have several tags, so it would appear in several groups; not attempted yet.
