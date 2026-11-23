@@ -16,7 +16,7 @@ export type ContainersCardBadge = 'health' | 'updates' | 'vulnerabilities' | 'cp
 
 /** The details in their order on a row (the name's side, then the
  * columns), which the editor lists them in. */
-export const CONTAINERS_BADGE_ORDER: readonly ContainersCardBadge[] = ['environment', 'tags', 'updates', 'vulnerabilities', 'health', 'cpu', 'memory', 'controls'];
+export const CONTAINERS_BADGE_ORDER: readonly ContainersCardBadge[] = ['environment', 'tags', 'updates', 'health', 'vulnerabilities', 'cpu', 'memory', 'controls'];
 
 export const DEFAULT_CONTAINERS_BADGES: ContainersCardBadge[] = ['health', 'updates', 'cpu', 'memory', 'tags'];
 

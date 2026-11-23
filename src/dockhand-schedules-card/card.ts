@@ -5,10 +5,10 @@ import { state } from 'lit/decorators.js';
 import { fireEvent, type LovelaceCard, type LovelaceCardEditor } from 'custom-card-helpers';
 
 import type { HomeAssistant, LovelaceGridOptions } from '../common/ha-types';
-import { getEnvironmentDevices, getScheduleDevicesForEnvironment, getGlobalScheduleDevices, getRepresentativeEntityId, type EnvironmentDeviceOption, getScheduleName } from '../common/device-utils';
+import { getEnvironmentDevices, getScheduleDevicesForEnvironment, getGlobalScheduleDevices, getRepresentativeEntityId, type EnvironmentDeviceOption, getScheduleName, getInstanceName } from '../common/device-utils';
 import { resolveCardName, multiEnvCardNameFallback } from '../common/card-name';
 import { resolveScheduleEntities } from '../common/entity-resolver';
-import { getDockhandBaseUrl, getInstanceLabel, formatRelativeTime } from '../common/format';
+import { getDockhandBaseUrl, formatRelativeTime } from '../common/format';
 import { stateLabel } from '../common/state-label';
 import { renderSettingsLink, renderIcon, onKeydownActivate } from '../common/icon';
 import { resolveIncludedOrdered, groupRowsByEnvironment, resolveEffectiveGroupBy } from '../common/environment-scope';
@@ -133,7 +133,8 @@ export function sortScheduleRows(rows: ScheduleRow[], sortBy: ScheduleSortBy): S
 
 /** Pure decision logic behind ScheduleRow.instanceLabel: given every global
  * schedule device's own id and via_device_id (its parent schedules_hub),
- * plus a way to read a hub device's configuration_url, returns a Map of
+ * plus a way to name a hub's Dockhand (getInstanceName: the instance's
+ * name, which the user controls), returns a Map of
  * schedule-device-id -> instance label — populated only when the global
  * schedules actually span more than one hub (see ScheduleRow.instanceLabel
  * for why an unambiguous single-instance case stays unlabeled). Exported
@@ -144,7 +145,7 @@ export function sortScheduleRows(rows: ScheduleRow[], sortBy: ScheduleSortBy): S
  */
 export function resolveGlobalInstanceLabels(
   globalDevices: { id: string; via_device_id: string | null }[],
-  getHubConfigurationUrl: (hubId: string) => string | null | undefined
+  instanceName: (hubId: string) => string | null | undefined
 ): Map<string, string> {
   const hubIdByDeviceId = new Map<string, string>();
   for (const device of globalDevices) {
@@ -154,7 +155,7 @@ export function resolveGlobalInstanceLabels(
 
   const labels = new Map<string, string>();
   for (const [deviceId, hubId] of hubIdByDeviceId) {
-    const label = getInstanceLabel(getHubConfigurationUrl(hubId));
+    const label = instanceName(hubId);
     if (label) labels.set(deviceId, label);
   }
   return labels;
@@ -344,7 +345,10 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
     // id) when the global schedules actually span more than one instance.
     const globalInstanceLabels = resolveGlobalInstanceLabels(
       globalDevices.map((d) => ({ id: d.id, via_device_id: d.via_device_id })),
-      (hubId) => this._hass!.devices[hubId]?.configuration_url
+      (hubId) => {
+        const hub = this._hass!.devices[hubId];
+        return hub ? getInstanceName(this._hass!, hub) : null;
+      }
     );
 
     const rows: ScheduleRow[] = [];

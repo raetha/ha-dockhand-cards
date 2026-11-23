@@ -163,6 +163,8 @@ An overview of your environments, with vulnerabilities, updates and schedules be
 
 The cards and the Dockhand dashboard work across every Dockhand you've added to the integration. They show environments by name, so if two Dockhands each have an environment of the same name (both called `local`, say), the cards can't tell them apart: give them distinct names in Dockhand.
 
+What belongs to a Dockhand rather than an environment (the Schedules card's global schedules, the dashboard's choice of instance) is labelled with the Dockhand's name. Give each one a useful name, like `dockhand1` and `dockhand2`, by renaming its entry under **Settings → Devices & services → Dockhand** (needs ha-dockhand 2.2 or later) or its **Dockhand** device; otherwise it shows the Dockhand's address.
+
 ## Translations
 
 Every card and editor is translated into the same languages as the integration: German, Spanish, French, Italian, Norwegian, Dutch, Polish, Portuguese, Swedish and Chinese (Simplified), alongside English, following your Home Assistant language. Numbers and times ("5 min ago") follow your language and number format too. Each language is its own small file beside the cards, so a dashboard only loads the one it shows. Translations are machine-generated; corrections from native speakers are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).

@@ -137,7 +137,9 @@ export function groupContainerRows(
 
 /** Right-hand row details in their order on a row; each shown one is a
  * column. Environment and tags stay with the name, on its left. */
-const COLUMN_ORDER = ['updates', 'vulnerabilities', 'health', 'cpu', 'memory'] as const;
+// Vulnerabilities after health: any container can have findings, only
+// some have a health check, so the sparser column sits further in.
+const COLUMN_ORDER = ['updates', 'health', 'vulnerabilities', 'cpu', 'memory'] as const;
 type ColumnKey = (typeof COLUMN_ORDER)[number] | 'controls';
 
 function hasDetail(row: ContainerRow, key: Exclude<ColumnKey, 'controls'>): boolean {

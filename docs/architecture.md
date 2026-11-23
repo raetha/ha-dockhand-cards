@@ -233,7 +233,7 @@ Schedules resolve through `via_device_id`, an HA-assigned unique id, which is be
 
 ## 20. Naming a Dockhand instance: the `configuration_url` host
 
-To tell a person which instance something belongs to (the Schedules card's global schedules when several instances have them), use `getInstanceLabel()` (`common/format.ts`): the host of the device's `configuration_url`, which every ha-dockhand device carries. Environment names and numbers can repeat across instances and an instance has no single environment to name it by; two entries share a host only if they point at the same server.
+To tell a person which instance something belongs to (the Schedules card's global schedules when several instances have them, the dashboard's instance picker), use `getInstanceName()` (`common/device-utils.ts`): the name of the entry's instance device (`<entry_id>_instance`), which the user controls (renaming the device, or the entry, whose title ha-dockhand 2.2+ names it after), falling back to `getInstanceLabel()` (`common/format.ts`), the host of the device's `configuration_url`, without one. Environment names and numbers can repeat across instances and an instance has no single environment to name it by; two entries share a host only if they point at the same server.
 
 Two Dockhands can each have an environment of the same name, and the cards don't try to tell them apart: an environment's own address is unique but not readable, and a Dockhand's host says little more. The docs say to give environments distinct names instead (README, "Several Dockhand instances").
 
