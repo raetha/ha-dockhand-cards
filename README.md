@@ -159,6 +159,10 @@ An overview of your environments, with vulnerabilities, updates and schedules be
 
 ---
 
+## Several Dockhand instances
+
+The cards and the Dockhand dashboard work across every Dockhand you've added to the integration. They show environments by name, so if two Dockhands each have an environment of the same name (both called `local`, say), the cards can't tell them apart: give them distinct names in Dockhand.
+
 ## Translations
 
 Every card and editor is translated into the same languages as the integration: German, Spanish, French, Italian, Norwegian, Dutch, Polish, Portuguese, Swedish and Chinese (Simplified), alongside English, following your Home Assistant language. Numbers and times ("5 min ago") follow your language and number format too. Each language is its own small file beside the cards, so a dashboard only loads the one it shows. Translations are machine-generated; corrections from native speakers are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).

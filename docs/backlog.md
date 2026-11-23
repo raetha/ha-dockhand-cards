@@ -19,6 +19,7 @@ Ideas and gaps already evaluated and deliberately deferred or rejected, and why 
 
 ## Cross-card
 
+- **Telling apart environments of the same name in two Dockhands.** Tried 2026-11-23 with each Dockhand's host in a pill wherever such a name showed, and reverted: the host says little to a person, and it added upkeep across every card for a rare setup. The README asks for distinct names instead. If it's ever needed, label by the integration entry's title (which a user can name `dockhand1`, `dockhand2`) rather than an address; the cards would need it from ha-dockhand, since `hass` doesn't carry entry titles.
 - **A section strategy per environment** for the Dockhand dashboard (§22): Home Assistant after 2026.8 lets a registered section strategy be picked under "Automatic section", with a preview (`getStubConfig`) and an editor (`getConfigElement`, needed there); 2026.8 has no picker, so it would be YAML-only until the minimum moves. Set aside: with settings it comes close to an Overview card limited to one environment, which already works in any dashboard.
 - **Free layout in the Dockhand dashboard** (dragging its sections and cards around): a strategy writes the layout each time, so that's what **Take control** is for. Its settings cover which sections, their order and their settings.
 

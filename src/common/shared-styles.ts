@@ -846,13 +846,9 @@ export const sharedStyles = css`
     display: none;
     flex-shrink: 0;
   }
-  /* Environment and type pills give way before a Dockhand's host pill
-   * (.instance-label), which is only there to tell apart environments
-   * whose names repeat; it goes last. */
   .row.compact-tags .tag-pills,
   .row.no-tags .tag-pills,
-  .row.no-labels .name-label:not(.instance-label),
-  .row.no-instance .instance-label {
+  .row.no-labels .name-label {
     display: none;
   }
   .row.compact-tags .tag-summary {
@@ -927,10 +923,6 @@ export const sharedStyles = css`
     padding-left: 4px;
     padding-right: 4px;
     margin-bottom: 6px;
-  }
-  .group-header .instance-label {
-    margin-left: var(--ha-space-2, 8px);
-    letter-spacing: normal;
   }
   /* .status-banner: a single, prominent card-level message (environment
    * health, vulnerability all-clear) — larger, always carries its own

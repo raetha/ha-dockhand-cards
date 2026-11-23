@@ -5,7 +5,7 @@ import { fireEvent, type LovelaceCardEditor } from 'custom-card-helpers';
 import type { HaFormSchema } from '../common/ha-form-types';
 
 import type { HomeAssistant } from '../common/ha-types';
-import { getEnvironmentDevices, getRepresentativeEntityId, environmentText } from '../common/device-utils';
+import { getEnvironmentDevices, getRepresentativeEntityId } from '../common/device-utils';
 import { cardNameFieldSchema } from '../common/card-name';
 import { resolveEnvironmentEntities } from '../common/entity-resolver';
 import { REQUIRED_KEYS_BY_MODE, ENV_FRIENDLY_LABEL, type EnvTranslationKey } from '../common/const';
@@ -69,7 +69,7 @@ export class DockhandEnvironmentCardEditor extends LitElement implements Lovelac
             {
               name: 'device_id',
               required: true,
-              selector: { select: { mode: 'dropdown' as const, options: devices.map((d) => ({ value: d.deviceId, label: environmentText(d) })) } }
+              selector: { select: { mode: 'dropdown' as const, options: devices.map((d) => ({ value: d.deviceId, label: d.name })) } }
             }
           ]),
       {

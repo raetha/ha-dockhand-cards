@@ -7,11 +7,9 @@ import { DomChanges } from './dom-changes';
  * names are in its tooltip). If even the count pill doesn't fit, the tags
  * are left out (`.no-tags`; a sliver of a clipped pill says nothing). Then,
  * if the name still shows less than NAME_MIN_EM of itself, or the name side
- * holds more than fits, its environment and type pills are left out too
- * (`.no-labels`): the name says which row it is, they only add context.
- * A Dockhand's host pill (`.instance-label`, there only when environment
- * names repeat across Dockhands) goes last, if the row is still crowded
- * (`.no-instance`). A newer-tag pill beside a version keeps only its icon when the
+ * holds more than fits, its environment, type and instance pills are left
+ * out too (`.no-labels`): the name says which row it is, they only add
+ * context. A newer-tag pill beside a version keeps only its icon when the
  * version would be cut (`.compact-version`). If the columns still don't fit beside the name's minimum (an
  * aligned list's first track), the list scrolls sideways with its controls
  * held in view (`.overflowing` on `.list.aligned`).
@@ -50,7 +48,7 @@ export class RowFitController implements ReactiveController {
     const all = Array.from(this.host.shadowRoot?.querySelectorAll<HTMLElement>('.row') ?? []);
     const rows = all.filter((row) => row.querySelector('.tag-pills'));
     const labelled = all.filter((row) => row.querySelector('.name-label'));
-    for (const row of all) row.classList.remove('compact-tags', 'no-tags', 'no-labels', 'no-instance', 'compact-version');
+    for (const row of all) row.classList.remove('compact-tags', 'no-tags', 'no-labels', 'compact-version');
     // Read every row, then write: one layout for each step, not one a row.
     const clipped = rows.filter((row) => isCut(row.querySelector('.tag-pills')));
     for (const row of clipped) row.classList.add('compact-tags');
@@ -59,11 +57,8 @@ export class RowFitController implements ReactiveController {
       row.classList.remove('compact-tags');
       row.classList.add('no-tags');
     }
-    const crowdedBy = (row: Element): boolean => isCut(row.querySelector('.row-left')) || nameTooShort(row.querySelector('.item-name'));
-    const crowded = labelled.filter(crowdedBy);
+    const crowded = labelled.filter((row) => isCut(row.querySelector('.row-left')) || nameTooShort(row.querySelector('.item-name')));
     for (const row of crowded) row.classList.add('no-labels');
-    const stillCrowded = crowded.filter((row) => row.querySelector('.instance-label') && crowdedBy(row));
-    for (const row of stillCrowded) row.classList.add('no-instance');
     // Only then does an aligned list's name side keep a minimum: what each
     // row needs to show NAME_MIN_EM of its name (or all of a shorter one)
     // after its icon. If the columns don't fit beside that, the list
