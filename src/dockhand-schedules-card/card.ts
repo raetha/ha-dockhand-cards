@@ -1,3 +1,4 @@
+import { compareText } from '../common/compare';
 import { loadEditor } from '../common/editor-loader';
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { state } from 'lit/decorators.js';
@@ -103,9 +104,9 @@ const FILTERS: Record<string, FilterExtractor<ScheduleRow>> = {
  * sorts first" rule below, rather than an arbitrary, unrelated tiebreak
  * decision. */
 function byNameThenEnvironment(a: ScheduleRow, b: ScheduleRow): number {
-  const nameDiff = a.name.localeCompare(b.name);
+  const nameDiff = compareText(a.name, b.name);
   if (nameDiff !== 0) return nameDiff;
-  return (a.environment ?? '').localeCompare(b.environment ?? '');
+  return compareText(a.environment ?? '', b.environment ?? '');
 }
 
 export function sortScheduleRows(rows: ScheduleRow[], sortBy: ScheduleSortBy): ScheduleRow[] {
@@ -238,7 +239,7 @@ export function groupScheduleRows(
     if (groupBy === 'status') return statusGroupRank(keyA) - statusGroupRank(keyB);
     // 'type' — no inherent order, alphabetical by label is the only
     // sensible default.
-    return bucketA.label.localeCompare(bucketB.label);
+    return compareText(bucketA.label, bucketB.label);
   });
 
   return entries.map(([, bucket]) => ({ label: bucket.label, rows: sortScheduleRows(bucket.rows, sortBy) }));

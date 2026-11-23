@@ -5,6 +5,7 @@
  * `filter_<key>` / `filter_<key>_match` fields; this module maps them to and
  * from the card's `filters:`.
  */
+import { compareText } from './compare';
 import { html, type TemplateResult } from 'lit';
 import type { HaFormSchema } from './ha-form-types';
 import type { HomeAssistant } from './ha-types';
@@ -38,7 +39,7 @@ const labelled = (entries: [string, EditorTranslationKey][]) => (hass: HomeAssis
 /** Every stack name and Dockhand tag in Home Assistant, sorted. */
 function stackOptions(hass: HomeAssistant | undefined): FilterOption[] {
   const names = new Set(getAllStackDevices(hass ?? ({} as HomeAssistant)).map(getStackName).filter((n): n is string => !!n));
-  return [{ value: NONE, label: t(hass, 'filter_option_no_stack') }, ...[...names].sort().map((value) => ({ value, label: value }))];
+  return [{ value: NONE, label: t(hass, 'filter_option_no_stack') }, ...[...names].sort(compareText).map((value) => ({ value, label: value }))];
 }
 
 const TAGGED: ReadonlySet<string> = new Set([CONTAINER_TRANSLATION_KEYS.state, STACK_TRANSLATION_KEYS.status]);
@@ -52,7 +53,7 @@ function tagOptions(hass: HomeAssistant | undefined): FilterOption[] {
     if (entry.platform !== 'dockhand' || !TAGGED.has(entry.translation_key ?? '')) continue;
     for (const tag of entityTags(hass?.states[entityId])) names.set(tag.name.toLowerCase(), tag.name);
   }
-  const sorted = [...names.values()].sort((a, b) => a.localeCompare(b));
+  const sorted = [...names.values()].sort(compareText);
   return [{ value: NONE, label: t(hass, 'filter_option_no_tags') }, ...sorted.map((value) => ({ value, label: value }))];
 }
 

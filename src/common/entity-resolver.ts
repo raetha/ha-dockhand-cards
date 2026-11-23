@@ -1,3 +1,4 @@
+import { compareText } from './compare';
 import {
   DOCKHAND_DOMAIN,
   ENV_TRANSLATION_KEYS,
@@ -160,12 +161,12 @@ export function getContainerDropdownOptions(devices: DeviceRegistryEntry[]): Dev
   const options = devices.map((d) => {
     return { value: d.id, label: getContainerName(d) || d.name_by_user || d.name || d.id };
   });
-  return options.sort((a, b) => a.label.localeCompare(b.label));
+  return options.sort((a, b) => compareText(a.label, b.label));
 }
 
 export function getStackDropdownOptions(devices: DeviceRegistryEntry[]): DeviceDropdownOption[] {
   const options = devices.map((d) => {
     return { value: d.id, label: getStackName(d) || d.name_by_user || d.name || d.id };
   });
-  return options.sort((a, b) => a.label.localeCompare(b.label));
+  return options.sort((a, b) => compareText(a.label, b.label));
 }

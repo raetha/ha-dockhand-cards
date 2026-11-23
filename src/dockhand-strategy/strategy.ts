@@ -10,6 +10,7 @@
  * changes; "take control" turns it into a normal dashboard. See
  * docs/architecture.md §22.
  */
+import { compareText } from '../common/compare';
 import type { LovelaceCardEditor } from 'custom-card-helpers';
 import type { HomeAssistant } from '../common/ha-types';
 import { getContainerDevicesForEnvironment, getContainerName, getEnvironmentDevices, getStackDevicesForEnvironment, getStackName } from '../common/device-utils';
@@ -384,5 +385,5 @@ function devices(hass: HomeAssistant, config: DockhandDevicesViewConfig) {
   if (!env) return [];
   const list = config.kind === 'stacks' ? getStackDevicesForEnvironment(hass, env) : getContainerDevicesForEnvironment(hass, env);
   const name = config.kind === 'stacks' ? getStackName : getContainerName;
-  return [...list].sort((a, b) => (name(a) ?? a.name ?? '').localeCompare(name(b) ?? b.name ?? ''));
+  return [...list].sort((a, b) => compareText(name(a) ?? a.name ?? '', name(b) ?? b.name ?? ''));
 }

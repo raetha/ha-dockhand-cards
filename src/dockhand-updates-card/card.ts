@@ -1,3 +1,4 @@
+import { compareText } from '../common/compare';
 import { loadEditor } from '../common/editor-loader';
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { state } from 'lit/decorators.js';
@@ -60,7 +61,7 @@ interface EnvGroup {
  * sort_by choice here; see docs/editor-design.md rule 1 and
  * docs/cards/updates.md for why). */
 export function sortPendingUpdates(updates: PendingUpdate[]): PendingUpdate[] {
-  return [...updates].sort((a, b) => a.name.localeCompare(b.name));
+  return [...updates].sort((a, b) => compareText(a.name, b.name));
 }
 
 /** Whether Home Assistant can install this update: the entity offers

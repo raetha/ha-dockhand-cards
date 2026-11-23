@@ -1,3 +1,4 @@
+import { compareText } from './compare';
 import type { EnvironmentDeviceOption } from './device-utils';
 
 /** Every known environment, in environments_order's configured order
@@ -12,7 +13,7 @@ export function resolveEnvironmentOrder(all: EnvironmentDeviceOption[], order: s
   const byId = new Map(all.map((e) => [e.deviceId, e]));
   const ordered = (order ?? []).map((id) => byId.get(id)).filter((e): e is EnvironmentDeviceOption => e !== undefined);
   const orderedIds = new Set(ordered.map((e) => e.deviceId));
-  const rest = all.filter((e) => !orderedIds.has(e.deviceId)).sort((a, b) => a.name.localeCompare(b.name));
+  const rest = all.filter((e) => !orderedIds.has(e.deviceId)).sort((a, b) => compareText(a.name, b.name));
   return [...ordered, ...rest];
 }
 
