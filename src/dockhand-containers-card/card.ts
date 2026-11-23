@@ -1,4 +1,3 @@
-import { renderInstancePill } from '../common/instance-pill';
 import { compareText } from '../common/compare';
 import { loadEditor } from '../common/editor-loader';
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
@@ -48,8 +47,6 @@ interface ContainerRow {
   name: string;
   status: string;
   environment: string;
-  /** Its Dockhand's host, when environment names repeat across Dockhands. */
-  environmentInstance?: string | undefined;
   environmentDeviceId: string;
   found: ResolutionResult<ContainerTranslationKey>['found'];
   updateEntityId: string | null;
@@ -115,7 +112,7 @@ export function groupContainerRows(
   sortBy: ContainersSortBy,
   envDevices: EnvironmentDeviceOption[] = [],
   statusLabel: (status: string) => string = capitalize
-): { label: string | null; instance?: string; rows: ContainerRow[] }[] {
+): { label: string | null; rows: ContainerRow[] }[] {
   if (!groupBy || groupBy === 'none') return [{ label: null, rows: sortContainerRows(rows, sortBy) }];
 
   // 'environment' groups by iterating envDevices directly — see Stacks'
@@ -252,7 +249,6 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
             name: getContainerName(d) || d.name_by_user || d.name || d.id,
             status: found.state.state.state,
             environment: env.name,
-            environmentInstance: env.instance,
             environmentDeviceId: env.deviceId,
             found,
             updateEntityId: status && update ? update.entityId : null,
@@ -354,7 +350,7 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
       groups.map(
         (group, i) => html`
           ${i > 0 ? html`<div class="divider"></div>` : nothing}
-          ${group.label !== null ? html`<div class="group-header">${group.label}${renderInstancePill(group.instance)}</div>` : nothing}
+          ${group.label !== null ? html`<div class="group-header">${group.label}</div>` : nothing}
           ${group.rows.map((r) => this._renderRow(r, columns))}
         `
       )
@@ -440,7 +436,7 @@ export class DockhandContainersCard extends LitElement implements LovelaceCard {
         <div class="row-left row-target" tabindex="0" role="button" @keydown=${onKeydownActivate(() => this._moreInfo(id))}>
           <ha-icon class="row-icon ${stateIcon.cls}" icon=${stateIcon.icon} title=${stateLabel(this._hass, 'container_state', st, found.state!.state)}></ha-icon>
           <span class="item-name">${row.name}</span>
-          ${visible.has('environment') ? html`<span class="label-pill name-label">${row.environment}</span>${renderInstancePill(row.environmentInstance)}` : nothing}
+          ${visible.has('environment') ? html`<span class="label-pill name-label">${row.environment}</span>` : nothing}
           ${visible.has('tags') ? renderTagPills(containerTags(this._hass!, row.deviceId, found.state!.state), this._hass) : nothing}
         </div>
         ${columns.map(column)}

@@ -5,7 +5,7 @@ import { fireEvent, type LovelaceCardEditor } from 'custom-card-helpers';
 import type { HaFormSchema } from '../common/ha-form-types';
 
 import type { EntityNameItem, HomeAssistant } from '../common/ha-types';
-import { defaultCardName, getEnvironmentDevices, getContainerDevicesForEnvironment, getEnvIdForContainerDevice, getEnvDeviceIdForEnvId, getRepresentativeEntityId, environmentText } from '../common/device-utils';
+import { defaultCardName, getEnvironmentDevices, getContainerDevicesForEnvironment, getEnvIdForContainerDevice, getEnvDeviceIdForEnvId, getRepresentativeEntityId } from '../common/device-utils';
 import { cardNameFieldSchema } from '../common/card-name';
 import { resolveContainerEntities, getContainerDropdownOptions } from '../common/entity-resolver';
 import { t } from '../common/i18n-editor';
@@ -65,7 +65,7 @@ export class DockhandContainerCardEditor extends LitElement implements LovelaceC
     const pickers: HaFormSchema[] = this.cardIsEmbedded
       ? []
       : [
-          { name: 'environment_device_id', required: true, selector: { select: { mode: 'dropdown' as const, options: envDevices.map((d) => ({ value: d.deviceId, label: environmentText(d) })) } } },
+          { name: 'environment_device_id', required: true, selector: { select: { mode: 'dropdown' as const, options: envDevices.map((d) => ({ value: d.deviceId, label: d.name })) } } },
           {
             name: 'device_id',
             required: true,

@@ -5,7 +5,7 @@ import { keyed } from 'lit/directives/keyed.js';
 import { fireEvent, type LovelaceCardEditor } from 'custom-card-helpers';
 
 import type { HomeAssistant } from '../common/ha-types';
-import { getEnvironmentDevices, environmentText } from '../common/device-utils';
+import { getEnvironmentDevices } from '../common/device-utils';
 import { stripUndefinedKeys } from '../common/config-utils';
 import { editorFormStyles, sortableRowStyles } from '../common/editor-styles';
 import { resolveEnvironmentOrder } from '../common/environment-scope';
@@ -219,7 +219,7 @@ export class DockhandOverviewCardEditor extends LitElement implements LovelaceCa
     if (this._editingDeviceId) {
       const device = orderedDevices.find((d) => d.deviceId === this._editingDeviceId);
       if (device) {
-        return this._renderEnvironmentDetail(device.deviceId, environmentText(device));
+        return this._renderEnvironmentDetail(device.deviceId, device.name);
       }
       this._editingDeviceId = undefined;
     }

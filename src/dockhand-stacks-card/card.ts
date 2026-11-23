@@ -1,4 +1,3 @@
-import { renderInstancePill } from '../common/instance-pill';
 import { compareText } from '../common/compare';
 import { loadEditor } from '../common/editor-loader';
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
@@ -55,8 +54,6 @@ interface StackRow {
   type: string;
   status: string;
   environment: string;
-  /** Its Dockhand's host, when environment names repeat across Dockhands. */
-  environmentInstance?: string | undefined;
   environmentDeviceId: string;
   found: ResolutionResult<StackTranslationKey>['found'];
 }
@@ -139,7 +136,7 @@ export function groupStackRows(
   sortBy: StacksSortBy,
   envDevices: EnvironmentDeviceOption[] = [],
   labelFor: (groupBy: 'status' | 'type', value: string) => string = capitalize
-): { label: string | null; instance?: string; rows: StackRow[] }[] {
+): { label: string | null; rows: StackRow[] }[] {
   if (!groupBy || groupBy === 'none') return [{ label: null, rows: sortStackRows(rows, sortBy) }];
 
   // 'environment' groups in envDevices' own order (already resolved by
@@ -269,7 +266,7 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
       const envDevice = this._hass!.devices[env.deviceId];
       const stackDevices = envDevice ? getStackDevicesForEnvironment(this._hass!, envDevice) : [];
       return stackDevices
-        .map((d): StackRow | null => {
+        .map((d) => {
           const { found } = resolveStackEntities(this._hass!, d.id, ['status', 'containersInStack', 'updatesAvailable', 'pendingUpdates', 'cpuPercent', 'memoryUsage']);
           if (!found.status) return null;
           const attrs = found.status.state.attributes;
@@ -279,7 +276,6 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
             type: attrs.type || d.model || 'Stack',
             status: found.status.state.state,
             environment: env.name,
-            environmentInstance: env.instance,
             environmentDeviceId: env.deviceId,
             found
           };
@@ -367,14 +363,14 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
   }
 
   /** One grid for every group, so the columns line up across groups too. */
-  private _renderList(groups: { label: string | null; instance?: string; rows: StackRow[] }[]): TemplateResult {
+  private _renderList(groups: { label: string | null; rows: StackRow[] }[]): TemplateResult {
     const columns = this._columns(groups.flatMap((g) => g.rows));
     return renderAlignedList(
       columns.length,
       groups.map(
         (group, i) => html`
           ${i > 0 ? html`<div class="divider"></div>` : nothing}
-          ${group.label !== null ? html`<div class="group-header">${group.label}${renderInstancePill(group.instance)}</div>` : nothing}
+          ${group.label !== null ? html`<div class="group-header">${group.label}</div>` : nothing}
           ${group.rows.map((r) => this._renderRow(r, columns))}
         `
       )
@@ -394,7 +390,7 @@ export class DockhandStacksCard extends LitElement implements LovelaceCard {
           <ha-icon class="row-icon ${statusIcon.cls}" icon=${statusIcon.icon} title=${stateLabel(this._hass, 'stack_status', status, found.status!.state)}></ha-icon>
           <span class="item-name">${row.name}</span>
           ${visible.has('type') ? html`<span class="label-pill name-label">${stateLabel(this._hass, 'stack_type', row.type)}</span>` : nothing}
-          ${visible.has('environment') ? html`<span class="label-pill name-label">${row.environment}</span>${renderInstancePill(row.environmentInstance)}` : nothing}
+          ${visible.has('environment') ? html`<span class="label-pill name-label">${row.environment}</span>` : nothing}
           ${visible.has('tags') ? renderTagPills(stackTags(found.status?.state)) : nothing}
         </div>
         ${columns.map((key) => this._renderCell(key, row))}

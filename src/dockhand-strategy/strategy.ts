@@ -13,7 +13,7 @@
 import { compareText } from '../common/compare';
 import type { LovelaceCardEditor } from 'custom-card-helpers';
 import type { HomeAssistant } from '../common/ha-types';
-import { getContainerDevicesForEnvironment, getContainerName, getEnvironmentDevices, getStackDevicesForEnvironment, getStackName, environmentText } from '../common/device-utils';
+import { getContainerDevicesForEnvironment, getContainerName, getEnvironmentDevices, getStackDevicesForEnvironment, getStackName } from '../common/device-utils';
 import { resolveIncludedOrdered } from '../common/environment-scope';
 import { resolveEnvironmentEntities } from '../common/entity-resolver';
 import { loadEditor } from '../common/editor-loader';
@@ -123,7 +123,7 @@ const card = (name: string, config: Config = {}): Config => ({ type: `custom:doc
  * when this changes, not for every container that comes and goes. */
 const environmentKey = (hass: HomeAssistant): string =>
   getEnvironmentDevices(hass)
-    .map((d) => `${d.deviceId}:${environmentText(d)}`)
+    .map((d) => `${d.deviceId}:${d.name}`)
     .join('|');
 
 /** A view's path, from the device id: environment names can repeat across
@@ -196,7 +196,7 @@ function devicesViews(hass: HomeAssistant, env: { deviceId: string; name: string
   return (['stacks', 'containers'] as const).map((kind) => ({
     // Named like the list card it opens from, since both pages share the
     // environment's back arrow.
-    title: `${environmentText(env)} — ${t(hass, kind === 'stacks' ? 'label_stacks' : 'label_containers')}`,
+    title: `${env.name} — ${t(hass, kind === 'stacks' ? 'label_stacks' : 'label_containers')}`,
     path: devicesPath(env.deviceId, kind),
     subview: true,
     back_path: viewPath(env.deviceId),
@@ -234,7 +234,7 @@ export class DockhandDashboardStrategy extends HTMLElement {
       // Nothing to choose between: the environment's own view is the dashboard.
       const [env] = environments;
       const view = { type: 'custom:dockhand-environment', device_id: env.deviceId, settings: rest, alone: true } satisfies DockhandEnvironmentViewConfig;
-      return { title: 'Dockhand', views: [{ title: environmentText(env), path: viewPath(env.deviceId), icon: 'mdi:docker', strategy: view }, ...devicesViews(hass, env, rest)] };
+      return { title: 'Dockhand', views: [{ title: env.name, path: viewPath(env.deviceId), icon: 'mdi:docker', strategy: view }, ...devicesViews(hass, env, rest)] };
     }
 
     // Two environments fit one column; from three they take two, two to a
@@ -275,7 +275,7 @@ export class DockhandDashboardStrategy extends HTMLElement {
     };
     const perEnvironment = environments.flatMap((env) => [
       {
-        title: environmentText(env),
+        title: env.name,
         path: viewPath(env.deviceId),
         icon: 'mdi:server',
         show_icon_and_title: true,

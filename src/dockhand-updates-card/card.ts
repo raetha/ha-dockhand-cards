@@ -1,4 +1,3 @@
-import { renderInstancePill } from '../common/instance-pill';
 import { compareText } from '../common/compare';
 import { loadEditor } from '../common/editor-loader';
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
@@ -54,8 +53,6 @@ const FILTERS: Record<string, FilterExtractor<PendingUpdate>> = {
 interface EnvGroup {
   envDeviceId: string;
   envName: string;
-  /** Its Dockhand's host, when environment names repeat across Dockhands. */
-  envInstance?: string | undefined;
   checkUpdatesEntityId?: string;
   updates: PendingUpdate[];
 }
@@ -170,7 +167,6 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
         groups.push({
           envDeviceId: env.deviceId,
           envName: env.name,
-          envInstance: env.instance,
           checkUpdatesEntityId: found.checkUpdates?.entityId,
           updates: sortedUpdates
         });
@@ -279,7 +275,7 @@ export class DockhandUpdatesCard extends LitElement implements LovelaceCard {
                   : groups.map(
                       (g, i) => html`
                         ${i > 0 ? html`<div class="divider"></div>` : nothing}
-                        ${showGroupHeaders ? html`<div class="group-header">${g.envName}${renderInstancePill(g.envInstance)}</div>` : nothing}
+                        ${showGroupHeaders ? html`<div class="group-header">${g.envName}</div>` : nothing}
                         ${g.updates.map((u) => this._renderUpdateRow(u))}
                       `
                     )
