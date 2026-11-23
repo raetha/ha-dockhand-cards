@@ -32,7 +32,7 @@
     "@rollup/plugin-typescript": "^12.3.1",
     "@types/d3-shape": "^3.2.0",
     "@typescript-eslint/eslint-plugin": "^8.72.1",
-    "@typescript-eslint/parser": "^8.72.1",
+    "@typescript-eslint/parser": "^8.73.0",
     "@vitest/coverage-v8": "^5.1.1",
     "custom-card-helpers": "^2.2.1",
     "eslint": "^10.14.0",
