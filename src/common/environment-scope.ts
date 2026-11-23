@@ -40,7 +40,7 @@ export function groupRowsByEnvironment<T extends { environmentDeviceId?: string 
   rows: T[],
   envDevices: EnvironmentDeviceOption[],
   sortWithinGroup: (rows: T[]) => T[]
-): { label: string; rows: T[] }[] {
+): { label: string; instance?: string; rows: T[] }[] {
   const byDeviceId = new Map<string, T[]>();
   for (const row of rows) {
     if (row.environmentDeviceId === undefined) continue;
@@ -49,7 +49,7 @@ export function groupRowsByEnvironment<T extends { environmentDeviceId?: string 
   }
   return envDevices
     .filter((env) => byDeviceId.has(env.deviceId))
-    .map((env) => ({ label: env.name, rows: sortWithinGroup(byDeviceId.get(env.deviceId)!) }));
+    .map((env) => ({ label: env.name, instance: env.instance, rows: sortWithinGroup(byDeviceId.get(env.deviceId)!) }));
 }
 
 /**

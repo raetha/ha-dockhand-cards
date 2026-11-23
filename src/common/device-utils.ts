@@ -1,5 +1,6 @@
 import { compareText } from './compare';
 import { DOCKHAND_DOMAIN } from './const';
+import { getInstanceLabel } from './format';
 import type { DeviceRegistryEntry, HomeAssistant } from './ha-types';
 import { entitiesOnDevice } from './registry-index';
 
@@ -19,19 +20,38 @@ const ENV_DEVICE_ID_PATTERN = /^(?:.+_)?env_(\d+)$/;
 export interface EnvironmentDeviceOption {
   deviceId: string;
   name: string;
+  /** Its Dockhand's host (getInstanceLabel), set only when another
+   * Dockhand has an environment of the same name, case aside: the one
+   * thing telling them apart. Shown after the name wherever it appears
+   * (a pill, or environmentText() where only text can go). */
+  instance?: string;
+}
+
+/** An environment's name as plain text, with its Dockhand's host when the
+ * name repeats across Dockhands ("local (dockhand2.local:3000)"): for an
+ * editor's picker or a dashboard view's title, where no pill can go. */
+export function environmentText(env: Pick<EnvironmentDeviceOption, 'name' | 'instance'>): string {
+  return env.instance ? `${env.name} (${env.instance})` : env.name;
 }
 
 export function getEnvironmentDevices(hass: HomeAssistant): EnvironmentDeviceOption[] {
   const devices = Object.values(hass.devices ?? {});
   const matches: EnvironmentDeviceOption[] = [];
 
+  const hosts = new Map<string, string | null>();
   for (const device of devices) {
     if (isEnvironmentDevice(device)) {
       matches.push({
         deviceId: device.id,
         name: device.name_by_user || device.name || device.id
       });
+      hosts.set(device.id, getInstanceLabel(device.configuration_url));
     }
+  }
+  for (const env of matches) {
+    const host = hosts.get(env.deviceId);
+    const repeated = matches.some((other) => other !== env && compareText(other.name, env.name) === 0 && hosts.get(other.deviceId) !== host);
+    if (repeated && host) env.instance = host;
   }
 
   return matches.sort((a, b) => compareText(a.name, b.name));

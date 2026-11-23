@@ -1,3 +1,4 @@
+import { renderInstancePill } from '../common/instance-pill';
 import { loadEditor } from '../common/editor-loader';
 import { LitElement, html, svg, nothing, type TemplateResult } from 'lit';
 import { cell, renderAlignedList } from '../common/aligned-list';
@@ -633,6 +634,7 @@ export class DockhandEnvironmentCard extends LitElement implements LovelaceCard 
     // specific environment's settings, not a generic page). Using base
     // itself as the click target would silently strip that path.
     const base = getDockhandBaseUrl(device.configuration_url);
+    const instance = getEnvironmentDevices(this._hass!).find((env) => env.deviceId === device.id)?.instance;
     // Prefer the real connection_type entity (ha-dockhand 1.8.0+) so the
     // icon follows the entity's own icon (including any user override) and
     // stays in sync with ha-dockhand's own corrected iconography. Falls
@@ -689,12 +691,17 @@ export class DockhandEnvironmentCard extends LitElement implements LovelaceCard 
               @keydown=${onKeydownActivate(() => this._moreInfo(onlineId))}
               >${name}</span
             >
-            ${s.online?.state.attributes.connection_host
-              ? html`<span class="card-subheader truncate"
-                  >${s.online.state.attributes.connection_host}${s.online.state.attributes.connection_port
-                    ? `:${s.online.state.attributes.connection_port}`
-                    : ''}</span
-                >`
+            ${instance || s.online?.state.attributes.connection_host
+              ? html`<div class="env-sub-line">
+                  ${renderInstancePill(instance)}
+                  ${s.online?.state.attributes.connection_host
+                    ? html`<span class="card-subheader truncate"
+                        >${s.online.state.attributes.connection_host}${s.online.state.attributes.connection_port
+                          ? `:${s.online.state.attributes.connection_port}`
+                          : ''}</span
+                      >`
+                    : nothing}
+                </div>`
               : nothing}
           </div>
         </div>

@@ -1,3 +1,4 @@
+import { renderInstancePill } from '../common/instance-pill';
 import { compareText } from '../common/compare';
 import { loadEditor } from '../common/editor-loader';
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
@@ -63,6 +64,9 @@ export interface ScheduleRow {
   name: string;
   type: string;
   environment?: string;
+  /** Its environment's Dockhand host, when environment names repeat across
+   * Dockhands (EnvironmentDeviceOption.instance). */
+  environmentInstance?: string | undefined;
   environmentDeviceId?: string;
   /** Only ever set for a global row (environmentDeviceId undefined), and
    * only when this card's global schedules actually come from more than
@@ -203,7 +207,7 @@ export function groupScheduleRows(
   sortBy: ScheduleSortBy,
   envDevices: EnvironmentDeviceOption[] = [],
   labels: ScheduleGroupLabels = ENGLISH_GROUP_LABELS
-): { label: string | null; rows: ScheduleRow[] }[] {
+): { label: string | null; instance?: string | undefined; rows: ScheduleRow[] }[] {
   if (!groupBy || groupBy === 'none') return [{ label: null, rows: sortScheduleRows(rows, sortBy) }];
 
   if (groupBy === 'environment') {
@@ -359,6 +363,7 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
         name: getScheduleName(device) || device.name_by_user || device.name || device.id,
         type: attrs.schedule_type || 'schedule',
         environment: attrs.environment,
+        environmentInstance: envDevices.find((env) => env.deviceId === environmentDeviceId)?.instance,
         environmentDeviceId,
         instanceLabel,
         enabled: attrs.enabled !== false,
@@ -469,7 +474,7 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
 
   /** One grid for every group, so the columns line up across groups too:
    * the next run, when shown and some row has one, then the controls. */
-  private _renderList(groups: { label: string | null; rows: ScheduleRow[] }[]): TemplateResult {
+  private _renderList(groups: { label: string | null; instance?: string | undefined; rows: ScheduleRow[] }[]): TemplateResult {
     const visibleBadges = resolveVisibleBadges(this._config?.visible_badges, this._config?.group_by ?? 'environment');
     const nextRun = visibleBadges.includes('next_run') && groups.some((g) => g.rows.some((r) => this._nextRunText(r)));
     const controls = visibleBadges.includes('controls');
@@ -478,7 +483,7 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
       groups.map(
         (g, i) => html`
           ${i > 0 ? html`<div class="divider"></div>` : nothing}
-          ${g.label ? html`<div class="group-header">${g.label} (${g.rows.length})</div>` : nothing}
+          ${g.label ? html`<div class="group-header">${g.label} (${g.rows.length})${renderInstancePill(g.instance)}</div>` : nothing}
           ${g.rows.map((r) => this._renderRow(r, nextRun))}
         `
       )
@@ -525,8 +530,8 @@ export class DockhandSchedulesCard extends LitElement implements LovelaceCard {
             title=${!row.enabled ? t(this._hass, 'schedule_disabled') : row.status ? stateLabel(this._hass, 'schedule_status', row.status) : t(this._hass, 'schedule_never_run')}
           ></ha-icon>
           <span class="item-name">${row.name}</span>
-          ${showEnvironment && row.environment ? html`<span class="label-pill name-label">${row.environment}</span>` : nothing}
-          ${showInstanceLabel && row.instanceLabel ? html`<span class="label-pill name-label">${row.instanceLabel}</span>` : nothing}
+          ${showEnvironment && row.environment ? html`<span class="label-pill name-label">${row.environment}</span>${renderInstancePill(row.environmentInstance)}` : nothing}
+          ${showInstanceLabel ? renderInstancePill(row.instanceLabel) : nothing}
         </div>
         ${nextRun ? cell(this._nextRunText(row)) : nothing}
         ${showControls ? renderActionsColumn(controls ? renderScheduleControls(this, this._hass, controls, row.name) : null) : nothing}
