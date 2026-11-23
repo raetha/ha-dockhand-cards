@@ -1,3 +1,4 @@
+import { compareText } from './compare';
 import { DOCKHAND_DOMAIN } from './const';
 import type { DeviceRegistryEntry, HomeAssistant } from './ha-types';
 import { entitiesOnDevice } from './registry-index';
@@ -33,7 +34,7 @@ export function getEnvironmentDevices(hass: HomeAssistant): EnvironmentDeviceOpt
     }
   }
 
-  return matches.sort((a, b) => a.name.localeCompare(b.name));
+  return matches.sort((a, b) => compareText(a.name, b.name));
 }
 
 export function isEnvironmentDevice(device: DeviceRegistryEntry): boolean {

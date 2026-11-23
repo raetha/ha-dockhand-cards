@@ -17,10 +17,13 @@ and [Unreleased] is the notes of the current test build.
 
 ### Fixed
 
+- Lists sort in the language you chose in Home Assistant rather than your browser's, ignoring capitals: the stack filter no longer puts "Zeta" before "alpha".
+- The Vulnerability card names an environment's Dockhand (its address, in a pill) only when another Dockhand has an environment of the same name, rather than on every row whenever there are several Dockhands.
 - Names you can click no longer lose part of a letter to the rounded corner of their highlight (the tail of a "p" at the start of a name, as in the Vulnerability card's rows).
 
 ### Internal
 
+- The screenshot harness shows one Dockhand at `dockhand.local:3000`, like the docs and most setups, rather than one per environment.
 - The screenshot harness's accessibility check (`a11y.py`) also finds content cut off by rounded corners, so a clipped name fails it instead of needing a close look at a screenshot.
 - The license names the copyright holder as Elias Hunt (raetha).
 

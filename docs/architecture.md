@@ -233,7 +233,7 @@ Schedules resolve through `via_device_id`, an HA-assigned unique id, which is be
 
 ## 20. Naming a Dockhand instance: the `configuration_url` host
 
-To tell a person which instance something belongs to (the Schedules card's global schedules when several instances have them), use `getInstanceLabel()` (`common/format.ts`): the host of the device's `configuration_url`, which every ha-dockhand device carries. Environment names and numbers can repeat across instances and an instance has no single environment to name it by; two entries share a host only if they point at the same server.
+To tell a person which instance something belongs to (the Schedules card's global schedules when several instances have them), use `getInstanceLabel()` (`common/format.ts`): the host of the device's `configuration_url`, which every ha-dockhand device carries. Environment names and numbers can repeat across instances and an instance has no single environment to name it by; two entries share a host only if they point at the same server. Show it only where it tells things apart: the Vulnerability card puts it in a pill on an environment row only when another Dockhand has an environment of the same name.
 
 ## 21. List card filters
 
@@ -258,3 +258,7 @@ The Stacks, Containers, Updates and Schedules cards take `filters:`, a map from 
 - **Regenerating:** by default HA rebuilds a strategy whenever the entity, device, area or floor registry changes. The dashboard and environment views' `shouldRegenerate()` narrows that to the set of environments (and their names): the cards already follow containers and stacks themselves. A settings change rebuilds it anyway. The environment view also rebuilds when its detail badges or its vulnerability scanning come or go (`environmentPageKey`), so turning one on shows without a reload.
 - View paths come from the device id, not the name, since names repeat across instances.
 - A section strategy and free layout: see `docs/backlog.md`.
+
+## 23. Sorting text
+
+Names and labels people read sort with `compareText()` (`common/compare.ts`), as Home Assistant's own lists do: in the language chosen in Home Assistant (which it puts on `<html lang>`, so no `hass` needs passing to a sort), case ignored. Never `localeCompare()` without a locale or a bare `.sort()` on names: those follow the browser's language, or put every capital first.

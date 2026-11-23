@@ -1,3 +1,4 @@
+import { compareText } from '../common/compare';
 import { loadEditor } from '../common/editor-loader';
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { state } from 'lit/decorators.js';
@@ -69,8 +70,8 @@ export function isProblem(row: ContainerRow): boolean {
 }
 
 function byNameThenEnvironment(a: ContainerRow, b: ContainerRow): number {
-  const byName = a.name.localeCompare(b.name);
-  return byName !== 0 ? byName : a.environment.localeCompare(b.environment);
+  const byName = compareText(a.name, b.name);
+  return byName !== 0 ? byName : compareText(a.environment, b.environment);
 }
 
 /** The row's CPU or memory percentage as the row shows it, in whole

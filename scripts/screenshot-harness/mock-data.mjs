@@ -2,6 +2,9 @@
 // in a headless browser, with no real instance data at all — every name,
 // ID, and value below is made up for demonstration purposes.
 
+// One Dockhand with every environment, as nearly everyone has, at the
+// address the docs use.
+const DOCKHAND_URL = 'http://dockhand.local:3000';
 // A config entry id as Home Assistant makes them (a ULID).
 const ENTRY_ID = '01JDEMO0ENTRY000000000000';
 
@@ -93,7 +96,7 @@ function buildEnvironment(addDevice, addEntity, opts) {
   addDevice(
     device(envDeviceId, [`env_${envId}`], name, {
       model: 'Environment',
-      configuration_url: `http://${slug}.example.internal:2376/settings?tab=environments&edit=${envId}`,
+      configuration_url: `${DOCKHAND_URL}/settings?tab=environments&edit=${envId}`,
       hw_version: connectionType
     })
   );
@@ -273,7 +276,7 @@ function buildEnvironment(addDevice, addEntity, opts) {
     addDevice(
       device(devId, [`container_${envId}_${c.name}`], `${name} – Containers – ${c.name}`, {
         model: 'Container',
-        configuration_url: `http://${slug}.example.internal:2376/containers`,
+        configuration_url: `${DOCKHAND_URL}/containers`,
         via_device_id: stackOf[c.name] ? `stack_${envId}_${stackOf[c.name]}` : `env_${envId}_Containers`
       })
     );
@@ -348,7 +351,7 @@ function buildEnvironment(addDevice, addEntity, opts) {
 
   for (const s of stacks) {
     const devId = `stack_${envId}_${s.name}`;
-    addDevice(device(devId, [`stack_${envId}_${s.name}`], `${name} – Stacks – ${s.name}`, { model: `${s.type} Stack`, configuration_url: `http://${slug}.example.internal:2376/stacks`, via_device_id: `env_${envId}_Stacks` }));
+    addDevice(device(devId, [`stack_${envId}_${s.name}`], `${name} – Stacks – ${s.name}`, { model: `${s.type} Stack`, configuration_url: `${DOCKHAND_URL}/stacks`, via_device_id: `env_${envId}_Stacks` }));
     // Same as ha-dockhand: on while running or partially running.
     addEntity(entity(`switch.${slug}_stacks_${s.name}`, devId, null, s.status === 'running' || s.status === 'partial' ? 'on' : 'off', {}, { friendly_name: s.name }));
     addEntity(entity(`button.${slug}_stacks_${s.name}_restart`, devId, 'restart', 'unknown'));

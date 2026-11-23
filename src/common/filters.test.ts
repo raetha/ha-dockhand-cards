@@ -85,3 +85,16 @@ describe('the editor form and filters:', () => {
     expect(filtersFromForm(CONTAINERS_FILTER_FIELDS, data, { state: ['dead'] })).toEqual({ state: { not: ['dead'] } });
   });
 });
+
+describe('Stack filter options', () => {
+  it('lists stacks alphabetically whatever their case', async () => {
+    const { makeDevice } = await import('./test-fixtures');
+    const stack = CONTAINERS_FILTER_FIELDS.find((f) => f.key === 'stack')!;
+    const devices = Object.fromEntries(
+      ['zeta', 'Alpha', 'beta', 'Gamma'].map((name) => [`d-${name}`, makeDevice({ id: `d-${name}`, identifiers: [['dockhand', `stack_1_${name}`]] })])
+    );
+    const hass = { devices, entities: {}, states: {} } as unknown as HomeAssistant;
+    const values = stack.options(hass).map((o) => o.value);
+    expect(values.slice(1)).toEqual(['Alpha', 'beta', 'Gamma', 'zeta']);
+  });
+});

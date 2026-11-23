@@ -1,3 +1,4 @@
+import { compareText } from '../common/compare';
 import { loadEditor } from '../common/editor-loader';
 import { LitElement, html, nothing, type TemplateResult } from 'lit';
 import { state } from 'lit/decorators.js';
@@ -82,8 +83,8 @@ export function isProblem(row: StackRow, hass: HomeAssistant): boolean {
 }
 
 function byNameThenEnvironment(a: StackRow, b: StackRow): number {
-  const byName = a.name.localeCompare(b.name);
-  return byName !== 0 ? byName : a.environment.localeCompare(b.environment);
+  const byName = compareText(a.name, b.name);
+  return byName !== 0 ? byName : compareText(a.environment, b.environment);
 }
 
 /** The stack's container count, as its row shows it; -1 when unknown,
@@ -158,7 +159,7 @@ export function groupStackRows(
     // 'type' — no inherent order, so alphabetical by label (not key,
     // though for 'type' they're the same thing) is the only sensible
     // default.
-    return bucketA.label.localeCompare(bucketB.label);
+    return compareText(bucketA.label, bucketB.label);
   });
 
   return entries.map(([, bucket]) => ({ label: bucket.label, rows: sortStackRows(bucket.rows, sortBy) }));
