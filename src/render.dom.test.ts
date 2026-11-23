@@ -156,7 +156,7 @@ describe('Aligned list columns', () => {
 
 describe('List card editors', () => {
   it.each([
-    ['containers', ['environment', 'tags', 'updates', 'vulnerabilities', 'health', 'cpu', 'memory', 'controls']],
+    ['containers', ['environment', 'tags', 'updates', 'health', 'vulnerabilities', 'cpu', 'memory', 'controls']],
     ['stacks', ['type', 'environment', 'tags', 'updates', 'container_count', 'cpu', 'memory', 'controls']],
     ['schedules', ['environment', 'next_run', 'controls']]
   ])('list the %s card’s row details in their order on a row', async (card, order) => {

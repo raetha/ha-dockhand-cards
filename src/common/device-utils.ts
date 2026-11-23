@@ -1,5 +1,6 @@
 import { compareText } from './compare';
 import { DOCKHAND_DOMAIN } from './const';
+import { getInstanceLabel } from './format';
 import type { DeviceRegistryEntry, HomeAssistant } from './ha-types';
 import { entitiesOnDevice } from './registry-index';
 
@@ -35,6 +36,23 @@ export function getEnvironmentDevices(hass: HomeAssistant): EnvironmentDeviceOpt
   }
 
   return matches.sort((a, b) => compareText(a.name, b.name));
+}
+
+/**
+ * What to call the Dockhand a device belongs to, for things tied to a
+ * Dockhand rather than an environment (global schedules, the dashboard's
+ * instance picker): its instance device's name (identifier
+ * `<entry_id>_instance`), which is the user's own if they renamed the
+ * device, else the integration entry's title once they've renamed that
+ * (ha-dockhand 2.2+), else "Dockhand (host)". Without that device (an
+ * older ha-dockhand), the host of the device's `configuration_url`.
+ */
+export function getInstanceName(hass: HomeAssistant, device: DeviceRegistryEntry): string | null {
+  const entry = device.config_entry_id;
+  const instance = entry
+    ? Object.values(hass.devices ?? {}).find((d) => d.identifiers.some(([domain, id]) => domain === DOCKHAND_DOMAIN && id === `${entry}_instance`))
+    : undefined;
+  return instance?.name_by_user || instance?.name || getInstanceLabel(device.configuration_url);
 }
 
 export function isEnvironmentDevice(device: DeviceRegistryEntry): boolean {

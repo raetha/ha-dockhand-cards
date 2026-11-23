@@ -13,10 +13,11 @@ and [Unreleased] is the notes of the current test build.
 ### Added
 
 - The Vulnerability card lists the most affected containers under its totals, most severe first, with each one's four counts and, with several environments, its environment's pill (`top_containers`, 5 by default). Needs ha-dockhand 2.2.0 with Dockhand 1.0.59 or later and the containers' vulnerability sensors turned on.
-- The Containers card can show each container's findings as a row detail (`vulnerabilities`) and sort by them (`sort_by: vulnerabilities`), with the same requirements.
+- The Containers card can show each container's findings as a row detail (`vulnerabilities`, after health) and sort by them (`sort_by: vulnerabilities`), with the same requirements.
 
 ### Changed
 
+- With several Dockhands, global schedules on the Schedules card and the dashboard's choice of instance name each Dockhand by its name (rename its integration entry, with ha-dockhand 2.2 or later, or its Dockhand device) rather than its address.
 - The Vulnerability card no longer shows each Dockhand's address after its environments' names when there are several Dockhands: the names say which environment, and the README says what to do when two Dockhands use the same one.
 
 ### Fixed

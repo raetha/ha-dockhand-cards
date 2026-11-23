@@ -395,9 +395,13 @@ describe('Dockhand dashboard settings', () => {
     el!.remove();
     const hass = harnessHass();
     hass.devices.env_3 = { ...hass.devices.env_3, config_entry_id: 'other' };
+    // The other Dockhand's instance device, named after its entry; the
+    // harness's own has none, so it's named by its host.
+    hass.devices.inst_other = { ...hass.devices.env_3, id: 'inst_other', identifiers: [['dockhand', 'other_instance']], name: 'dockhand2', name_by_user: null };
     const { seen } = await mount({}, hass);
-    const form = root().querySelector('ha-form:not(.badges)') as HTMLElement & { schema: { selector: { select: { options: { value: string }[] } } }[] };
+    const form = root().querySelector('ha-form:not(.badges)') as HTMLElement & { schema: { selector: { select: { options: { value: string; label: string }[] } } }[] };
     expect(form.schema[0].selector.select.options.map((o) => o.value)).toEqual(['', hass.devices.env_1.config_entry_id, 'other']);
+    expect(form.schema[0].selector.select.options.slice(1).map((o) => o.label)).toEqual(['dockhand.local:3000', 'dockhand2']);
     form.dispatchEvent(new CustomEvent('value-changed', { detail: { value: { config_entry_id: 'other' } } }));
     expect(seen.pop()).toEqual({ type: 'custom:dockhand', config_entry_id: 'other' });
     form.dispatchEvent(new CustomEvent('value-changed', { detail: { value: { config_entry_id: '' } } }));

@@ -14,8 +14,8 @@ import { ref } from 'lit/directives/ref.js';
 import { html as staticHtml, unsafeStatic } from 'lit/static-html.js';
 import { fireEvent } from 'custom-card-helpers';
 import type { HomeAssistant } from '../common/ha-types';
-import { getEnvironmentDevices } from '../common/device-utils';
-import { getInstanceLabel } from '../common/format';
+import { getEnvironmentDevices, getInstanceName } from '../common/device-utils';
+import {  } from '../common/format';
 import { t, type EditorTranslationKey } from '../common/i18n-editor';
 import { editorFormStyles, sortableRowStyles } from '../common/editor-styles';
 import { renderEnvironmentOrderSection } from '../common/environment-scope-editor';
@@ -375,7 +375,7 @@ export class DockhandDashboardStrategyEditor extends LitElement {
     for (const env of getEnvironmentDevices(hass)) {
       const device = hass.devices?.[env.deviceId];
       if (device?.config_entry_id && !instances.has(device.config_entry_id)) {
-        instances.set(device.config_entry_id, getInstanceLabel(device.configuration_url) ?? device.config_entry_id);
+        instances.set(device.config_entry_id, getInstanceName(hass, device) ?? device.config_entry_id);
       }
     }
     if (instances.size < 2) return nothing;

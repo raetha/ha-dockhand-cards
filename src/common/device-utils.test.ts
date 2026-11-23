@@ -297,3 +297,26 @@ describe('defaultCardName', () => {
     expect(defaultCardName(hass, makeDevice({ id: 'x', identifiers: [], name: 'Odd' }))).toBe('Odd');
   });
 });
+
+describe('getInstanceName', () => {
+  const env = makeDevice({ id: 'env', config_entry_id: 'entry1', identifiers: [['dockhand', 'entry1_env_1']], configuration_url: 'http://dockhand.local:3000/settings' });
+  const instance = (overrides: Partial<Parameters<typeof makeDevice>[0]> = {}) =>
+    makeDevice({ id: 'inst', config_entry_id: 'entry1', identifiers: [['dockhand', 'entry1_instance']], name: 'Dockhand (dockhand.local:3000)', ...overrides });
+
+  it('is the Dockhand instance device’s name, which follows the integration entry’s title', async () => {
+    const { getInstanceName } = await import('./device-utils');
+    expect(getInstanceName(makeHass({ devices: [env, instance({ name: 'dockhand1' })] }), env)).toBe('dockhand1');
+  });
+
+  it('prefers a name the user gave the device', async () => {
+    const { getInstanceName } = await import('./device-utils');
+    expect(getInstanceName(makeHass({ devices: [env, instance({ name_by_user: 'Basement' })] }), env)).toBe('Basement');
+  });
+
+  it('falls back to the host without an instance device (an older ha-dockhand), or for another entry’s', async () => {
+    const { getInstanceName } = await import('./device-utils');
+    expect(getInstanceName(makeHass({ devices: [env] }), env)).toBe('dockhand.local:3000');
+    const other = makeDevice({ id: 'inst2', config_entry_id: 'entry2', identifiers: [['dockhand', 'entry2_instance']], name: 'dockhand2' });
+    expect(getInstanceName(makeHass({ devices: [env, other] }), env)).toBe('dockhand.local:3000');
+  });
+});
